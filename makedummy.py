@@ -102,7 +102,7 @@ paramFile = "Parameters"
 
 frameCnt = 9
 totalTracks = 25
-speed_variance = 3.5
+speed_variance = 1.5
 endTrackProb = 0.1
 
 tLims = [1, frameCnt]
@@ -139,12 +139,19 @@ mhtTracks = FilterMHTTracks(raw_tracks)
 
 # Comparison for the MHT tracker against the true tracks
 pylab.figure()
+PlotTracks(true_tracks, mhtTracks, min(tLims), max(tLims))
+pylab.xlim(xLims)
+pylab.ylim(yLims)
+
+"""
 for index in range(min(tLims), max(tLims) + 1) :
     PlotTracks(true_tracks, mhtTracks, min(tLims), index)
+    pylab.xlim(xLims)
+    pylab.ylim(yLims)
     pylab.title('MHT  t = %d' % index)
     pylab.savefig('MHT_Tracks_%.2d.png' % index)
     pylab.clf()
-
+"""
 
 # Getting SCIT's results from the same track data
 strmAdap = {'distThresh': 38}
@@ -155,14 +162,22 @@ for aVol in volume_data :
     scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
     
 
+pylab.figure()
+PlotTracks(true_tracks, strmTracks, min(tLims), max(tLims))
+pylab.xlim(xLims)
+pylab.ylim(yLims)
 
-
+"""
 for index in range(min(tLims), max(tLims) + 1) :
     PlotTracks(true_tracks, strmTracks, min(tLims), index)
+    pylab.xlim(xLims)
+    pylab.ylim(yLims)
     pylab.title('SCIT  t = %d' % index)
     pylab.savefig('SCIT_Tracks_%.2d.png' % index)
     pylab.clf()
+"""
 
+pylab.show()
 #perform_animation(tracks, 1, frameCnt)
 
 
