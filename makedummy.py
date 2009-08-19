@@ -133,7 +133,7 @@ dataFile.close()
 
 
 
-os.system("/home/bvroot/Programs/MHT/tracking/trackCorners %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
+os.system("~/Programs/MHT/tracking/trackCorners %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
 (raw_tracks, falseAlarms) = read_tracks(outputResults)
 mhtTracks = FilterMHTTracks(raw_tracks)
 
