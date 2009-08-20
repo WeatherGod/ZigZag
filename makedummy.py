@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#from experiment import *
+from experiment import *
 
 import random
 import pylab
@@ -79,7 +79,7 @@ def CreateVolData(true_tracks, tLims, xLims, yLims) :
 
     return(volData)
 
-
+"""
 def PlotTracks(true_tracks, model_tracks, startFrame, endFrame) :
 
     for track in true_tracks :
@@ -92,7 +92,7 @@ def PlotTracks(true_tracks, model_tracks, startFrame, endFrame) :
                    [yLoc for (yLoc, frameNum) in zip(track['yLocs'], track['frameNums']) if frameNum >= startFrame and frameNum <= endFrame],
                    linewidth = 2.0, marker='x', alpha=0.75, zorder=2, hold=True)
     
-
+"""
 
 
 corner_filestem = "corners"
@@ -137,12 +137,13 @@ os.system("~/Programs/MHT/tracking/trackCorners %s -p %s -i %s" % (outputResults
 (raw_tracks, falseAlarms) = read_tracks(outputResults)
 mhtTracks = FilterMHTTracks(raw_tracks)
 
+"""
 # Comparison for the MHT tracker against the true tracks
 pylab.figure()
 PlotTracks(true_tracks, mhtTracks, min(tLims), max(tLims))
 pylab.xlim(xLims)
 pylab.ylim(yLims)
-
+"""
 """
 for index in range(min(tLims), max(tLims) + 1) :
     PlotTracks(true_tracks, mhtTracks, min(tLims), index)
@@ -161,12 +162,12 @@ strmTracks = []
 for aVol in volume_data :
     scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
     
-
+"""
 pylab.figure()
 PlotTracks(true_tracks, strmTracks, min(tLims), max(tLims))
 pylab.xlim(xLims)
 pylab.ylim(yLims)
-
+"""
 """
 for index in range(min(tLims), max(tLims) + 1) :
     PlotTracks(true_tracks, strmTracks, min(tLims), index)
@@ -176,9 +177,17 @@ for index in range(min(tLims), max(tLims) + 1) :
     pylab.savefig('SCIT_Tracks_%.2d.png' % index)
     pylab.clf()
 """
+theFig = pylab.figure(figsize = (15.0, 6.0))
+
+
+perform_animation(true_tracks, mhtTracks, xLims, yLims, tLims, speed=0.1, hold = 4.0, axis=pylab.subplot(121))
+pylab.title('MHT')
+#perform_animation(true_tracks, strmTracks, xLims, yLims, tLims, speed=0.1, hold = 2.0, axis=pylab.subplot(122))
+PlotTracks(true_tracks, strmTracks, xLims, yLims, tLims, min(tLims), max(tLims), axis=pylab.subplot(122))
+pylab.title('SCIT')
+
+
 
 pylab.show()
-#perform_animation(tracks, 1, frameCnt)
-
 
 

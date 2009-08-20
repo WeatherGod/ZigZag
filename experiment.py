@@ -5,38 +5,61 @@ matplotlib.use('GTKAgg')
 
 import pylab
 
-def perform_animation(tracks, startFrame, endFrame) :
-    fig = pylab.figure()
-    ax = fig.add_subplot(111)
-    canvas = fig.canvas
+def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
+    if (axis is None) :
+       axis = pylab.gca()
 
-#    fig.subplots_adjust(left=0.3, bottom=0.3) # check for flipy bugs
-    ax.grid() # to ensure proper background restore
-
-    # create the initial lines
-    ax.hold(True)
     lines = []
     for aTrack in tracks :
-        lines.append(ax.plot([cell['xLoc'] for cell in aTrack['track'] if cell['type'] == 'M' and cell['frameNum'] >= startFrame and cell['frameNum'] <= endFrame],
-                             [cell['yLoc'] for cell in aTrack['track'] if cell['type'] == 'M' and cell['frameNum'] >= startFrame and cell['frameNum'] <= endFrame], 
-			     animated=True, linewidth=1.5, marker='x')[0])
+        lines.append(axis.plot([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum >= min(tLims) and frameNum <= max(tLims)],
+			       [yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum >= min(tLims) and frameNum <= max(tLims)],
+			       **kwargs)[0])
+    axis.set_xlim(xLims)
+    axis.set_ylim(yLims)
 
-    ax.hold(False)
+    return(lines)
+
+
+def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame, endFrame,
+	       axis = None, animated=False) :
+
+    trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
+			  linestyle='dashed', color='k', linewidth=1.5, zorder=1, axis = axis)
+    modelLines = PlotTrack(model_tracks, xLims, yLims, (startFrame, endFrame), 
+			   marker='x', markersize=8.0, linewidth=2.0, alpha=0.75, zorder=2, animated=animated, axis = axis)
+    return({'trueLines': trueLines, 'modelLines': modelLines})
+
+
+def perform_animation(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.0, hold = 2.0, axis = None) :
+    if (axis is None) :
+       axis = pylab.gca()
+
+    startFrame = min(tLims)
+    endFrame = max(tLims)
+
+    canvas = pylab.gcf().canvas
+
+    # create the initial lines
+    
+    theLines = PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, 
+			  startFrame, startFrame, axis = axis)
     canvas.draw()
+    
 
     def update_line(*args) :
         if update_line.background is None:
-           update_line.background = canvas.copy_from_bbox(ax.bbox)
+           update_line.background = canvas.copy_from_bbox(axis.bbox)
         canvas.restore_region(update_line.background)
-        for (line, aTrack) in zip(lines, tracks) :
-           line.set_xdata([cell['xLoc'] for cell in aTrack['track'] if cell['type'] == 'M' and cell['frameNum'] <= update_line.cnt and cell['frameNum'] >= startFrame])
-           line.set_ydata([cell['yLoc'] for cell in aTrack['track'] if cell['type'] == 'M' and cell['frameNum'] <= update_line.cnt and cell['frameNum'] >= startFrame])
-           ax.draw_artist(line)
-        canvas.blit(ax.bbox)
-        if update_line.cnt == endFrame :
-           update_line.cnt = startFrame - 1
+        for (line, aTrack) in zip(theLines['modelLines'], model_tracks) :
+           line.set_xdata([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
+           line.set_ydata([yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
+           axis.draw_artist(line)
 
-        update_line.cnt += 1
+        canvas.blit(axis.bbox)
+        if update_line.cnt >= (endFrame + (hold - speed)):
+           update_line.cnt = startFrame - speed
+
+        update_line.cnt += speed
         return(True)
 
     update_line.cnt = endFrame
@@ -47,7 +70,6 @@ def perform_animation(tracks, startFrame, endFrame) :
         gobject.idle_add(update_line)
         canvas.mpl_disconnect(start_anim.cid)
 
-
     start_anim.cid = canvas.mpl_connect('draw_event', start_anim)
-    pylab.show()
+
 
