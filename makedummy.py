@@ -109,7 +109,8 @@ tLims = [1, frameCnt]
 xLims = [0, 255]
 yLims = [0, 255]
 
-theSeed = 92395 #random.randint(0, 99999)
+theSeed = 92395
+#theSeed = random.randint(0, 99999)
 print "The Seed: ", theSeed
 
 random.seed(theSeed)
@@ -133,7 +134,7 @@ dataFile.close()
 
 
 
-os.system("~/Programs/MHT/tracking/trackCorners %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
+os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
 (raw_tracks, falseAlarms) = read_tracks(outputResults)
 mhtTracks = FilterMHTTracks(raw_tracks)
 
