@@ -1,15 +1,38 @@
 #!/usr/bin/env python
 
+def SaveTracks(simTrackFile, tracks, falarms = None) :
+    dataFile = open(simTrackFile, 'r')
+    
+    dataFile.write("%d" % (len(tracks)))
 
-#import sys			# for sys.argv
+    if falarms is None :
+        dataFile.write("0")
+    else :
+        dataFile.write("%d" % (len(falarms)))
+
+    for (index, track) in enumerate(tracks) :
+        dataFile.write("%d %d" % (index, len(track)))
+        
 
 
-#fileName = sys.argv[1]
+    dataFile.close()
 
 
 
+def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
+    dataFile = open(inputDataFile, 'w')
+    dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, 1))
 
-def read_tracks(fileName) :
+    for (frameNo, aVol) in enumerate(volume_data) :
+        outFile = open("%s.%d" % (corner_filestem, frameNo + 1), 'w')
+        for strmCell in aVol['stormCells'] :
+            outFile.write("%d %d " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
+        outFile.close()
+        dataFile.write(str(len(aVol['stormCells'])) + '\n')
+
+    dataFile.close()
+
+def ReadTracks(fileName) :
     contourCnt = None
     falseAlarmCnt = None
 
@@ -68,6 +91,20 @@ def FilterMHTTracks(raw_tracks) :
 		       'frameNums': [frameNum for (frameNum, type) in zip(aTrack['frameNums'], aTrack['types']) if type == 'M']})
 
     return(tracks)
+
+
+def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
+    dataFile = open(inputDataFile, 'w')
+    dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, 1))
+
+    for (frameNo, aVol) in enumerate(volume_data) :
+        outFile = open("%s.%d" % (corner_filestem, frameNo + 1), 'w')
+        for strmCell in aVol['stormCells'] :
+            outFile.write("%d %d " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
+        outFile.close()
+        dataFile.write(str(len(aVol['stormCells'])) + '\n')
+
+    dataFile.close()
 
 
 

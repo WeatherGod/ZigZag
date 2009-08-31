@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from TrackPlot import *			# for plotting the tracks
+from experiment import *
 
 import random
 import pylab
 import os
 
-from TrackFileUtils import *		# for reading track files
+from drawTracks import *
 import scit
 
 
@@ -120,12 +120,22 @@ true_tracks = TracksGenerator(totalTracks, tLims, xLims, yLims, speed_variance, 
 volume_data = CreateVolData(true_tracks, tLims, xLims, yLims)
 
 
-SaveTracks(simTrackFile, true_tracks)
-SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data)
+dataFile = open(inputDataFile, 'w')
+dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, 1))
+
+for (frameNo, aVol) in enumerate(volume_data) :
+    outFile = open("%s.%d" % (corner_filestem, frameNo + 1), 'w')
+    for strmCell in aVol['stormCells'] :
+        outFile.write("%d %d " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
+    outFile.close()
+    dataFile.write(str(len(aVol['stormCells'])) + '\n')
+
+dataFile.close()
+
 
 
 os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
-(raw_tracks, falseAlarms) = ReadTracks(outputResults)
+(raw_tracks, falseAlarms) = read_tracks(outputResults)
 mhtTracks = FilterMHTTracks(raw_tracks)
 
 """
