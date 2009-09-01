@@ -20,8 +20,11 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     return(lines)
 
 
-def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame, endFrame,
+def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, endFrame=None,
 	       axis = None, animated=False) :
+
+    if startFrame is None : startFrame = min(tLims)
+    if endFrame is None : endFrame = max(tLims)
 
     trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
 			  linestyle='dashed', color='k', linewidth=1.5, zorder=1, axis = axis)

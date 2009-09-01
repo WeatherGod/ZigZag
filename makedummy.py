@@ -99,6 +99,7 @@ corner_filestem = "corners"
 inputDataFile = "InDataFile"
 outputResults = "testyResults"
 paramFile = "Parameters"
+simTrackFile = "true_tracks"
 
 frameCnt = 9
 totalTracks = 25

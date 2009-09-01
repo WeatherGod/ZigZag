@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 
-from experiment import *
-
 import random
-import pylab
-import os
-
-from drawTracks import *
-import scit
+from TrackFileUtils import *		# for writing the track data
 
 
 
@@ -58,9 +52,6 @@ def MakeTrack(tLims, xSpdLims, ySpdLims,
     return(aTrack)
 
 
-
-
-
 def CreateVolData(true_tracks, tLims, xLims, yLims) :
     volData = []
     allCells = {'frameNums': [], 'xLocs': [], 'yLocs': []}
@@ -79,26 +70,13 @@ def CreateVolData(true_tracks, tLims, xLims, yLims) :
 
     return(volData)
 
-"""
-def PlotTracks(true_tracks, model_tracks, startFrame, endFrame) :
 
-    for track in true_tracks :
-        pylab.plot([xLoc for (xLoc, frameNum) in zip(track['xLocs'], track['frameNums'])],
-		   [yLoc for (yLoc, frameNum) in zip(track['yLocs'], track['frameNums'])],
-                   'k--.', linewidth=1.5, zorder=1, hold=True)
 
-    for track in model_tracks :
-        pylab.plot([xLoc for (xLoc, frameNum) in zip(track['xLocs'], track['frameNums']) if frameNum >= startFrame and frameNum <= endFrame],
-                   [yLoc for (yLoc, frameNum) in zip(track['yLocs'], track['frameNums']) if frameNum >= startFrame and frameNum <= endFrame],
-                   linewidth = 2.0, marker='x', alpha=0.75, zorder=2, hold=True)
-    
-"""
 
 
 corner_filestem = "corners"
 inputDataFile = "InDataFile"
-outputResults = "testyResults"
-paramFile = "Parameters"
+simTrackFile = "true_tracks"
 
 frameCnt = 9
 totalTracks = 25
@@ -119,76 +97,7 @@ random.seed(theSeed)
 true_tracks = TracksGenerator(totalTracks, tLims, xLims, yLims, speed_variance, endTrackProb)
 volume_data = CreateVolData(true_tracks, tLims, xLims, yLims)
 
-
-dataFile = open(inputDataFile, 'w')
-dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, 1))
-
-for (frameNo, aVol) in enumerate(volume_data) :
-    outFile = open("%s.%d" % (corner_filestem, frameNo + 1), 'w')
-    for strmCell in aVol['stormCells'] :
-        outFile.write("%d %d " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
-    outFile.close()
-    dataFile.write(str(len(aVol['stormCells'])) + '\n')
-
-dataFile.close()
-
-
-
-os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (outputResults, paramFile, inputDataFile))
-(raw_tracks, falseAlarms) = read_tracks(outputResults)
-mhtTracks = FilterMHTTracks(raw_tracks)
-
-"""
-# Comparison for the MHT tracker against the true tracks
-pylab.figure()
-PlotTracks(true_tracks, mhtTracks, min(tLims), max(tLims))
-pylab.xlim(xLims)
-pylab.ylim(yLims)
-"""
-"""
-for index in range(min(tLims), max(tLims) + 1) :
-    PlotTracks(true_tracks, mhtTracks, min(tLims), index)
-    pylab.xlim(xLims)
-    pylab.ylim(yLims)
-    pylab.title('MHT  t = %d' % index)
-    pylab.savefig('MHT_Tracks_%.2d.png' % index)
-    pylab.clf()
-"""
-
-# Getting SCIT's results from the same track data
-strmAdap = {'distThresh': 38}
-stateHist = []
-strmTracks = []
-
-for aVol in volume_data :
-    scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
-    
-"""
-pylab.figure()
-PlotTracks(true_tracks, strmTracks, min(tLims), max(tLims))
-pylab.xlim(xLims)
-pylab.ylim(yLims)
-"""
-"""
-for index in range(min(tLims), max(tLims) + 1) :
-    PlotTracks(true_tracks, strmTracks, min(tLims), index)
-    pylab.xlim(xLims)
-    pylab.ylim(yLims)
-    pylab.title('SCIT  t = %d' % index)
-    pylab.savefig('SCIT_Tracks_%.2d.png' % index)
-    pylab.clf()
-"""
-theFig = pylab.figure(figsize = (15.0, 6.0))
-
-
-perform_animation(true_tracks, mhtTracks, xLims, yLims, tLims, speed=0.1, hold = 4.0, axis=pylab.subplot(121))
-pylab.title('MHT')
-#perform_animation(true_tracks, strmTracks, xLims, yLims, tLims, speed=0.1, hold = 2.0, axis=pylab.subplot(122))
-PlotTracks(true_tracks, strmTracks, xLims, yLims, tLims, min(tLims), max(tLims), axis=pylab.subplot(122))
-pylab.title('SCIT')
-
-
-
-pylab.show()
+SaveTracks(simTrackFile, true_tracks)
+SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data)
 
 
