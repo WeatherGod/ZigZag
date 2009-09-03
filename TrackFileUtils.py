@@ -72,7 +72,7 @@ def ReadTracks(fileName) :
 				     'frameNums': []})
 	    continue
 
-        if (len(tracks['tracks'][-1]['types']) < tracks['lens'][-1]) :
+        if (contourCnt > 0 and len(tracks['tracks'][-1]['types']) < tracks['lens'][-1]) :
             tracks['tracks'][-1]['types'].append(tempList[0])
 	    tracks['tracks'][-1]['xLocs'].append(float(tempList[1]))
 	    tracks['tracks'][-1]['yLocs'].append(float(tempList[2]))
@@ -102,14 +102,39 @@ def FilterMHTTracks(raw_tracks) :
 
 
 def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
+    startFrame = volume_data[0]['volTime']
     dataFile = open(inputDataFile, 'w')
-    dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, 1))
+    dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, startFrame))
 
     for (frameNo, aVol) in enumerate(volume_data) :
-        outFile = open("%s.%d" % (corner_filestem, frameNo + 1), 'w')
+        outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write("%d %d " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
+            outFile.write("%f %f " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
 
     dataFile.close()
+
+def ReadCorners(inputDataFile) :
+    dataFile = open(inputDataFile, 'r')
+    headerList = dataFile.readline().split()
+    corner_filestem = headerList[0]
+    frameCnt = int(headerList[1])
+    startFrame = int(headerList[2])
+
+    volume_data = []
+    dataFile.close()
+
+    for frameNum in range(startFrame, frameCnt + startFrame) :
+        aVol = {'volTime': frameNum, 'stormCells': []}
+        for lineRead in open("%s.%d" % (corner_filestem, frameNum), 'r') :
+	    lineSplit = lineRead.split()
+	    aVol['stormCells'].append({'xLoc': float(lineSplit[0]),
+				       'yLoc': float(lineSplit[1])})
+
+        volume_data.append(aVol)
+	
+
+    return({'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data})
+
+

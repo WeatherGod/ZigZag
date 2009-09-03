@@ -27,9 +27,9 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
     if endFrame is None : endFrame = max(tLims)
 
     trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
-			  linestyle='dashed', color='k', linewidth=1.5, zorder=1, axis = axis)
+			  marker='.', markersize=7.0, linestyle='solid', color='gray', linewidth=1.5, zorder=1, axis = axis)
     modelLines = PlotTrack(model_tracks, xLims, yLims, (startFrame, endFrame), 
-			   marker='x', markersize=8.0, linewidth=2.0, alpha=0.75, zorder=2, animated=animated, axis = axis)
+			   marker='.', markersize=6.0, color='r', linewidth=1.5, alpha=0.5, zorder=2, animated=animated, axis = axis)
     return({'trueLines': trueLines, 'modelLines': modelLines})
 
 
