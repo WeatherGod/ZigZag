@@ -5,6 +5,21 @@ matplotlib.use('GTKAgg')
 
 import pylab
 
+def PlotSegments(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
+    if (axis is None) :
+       axis = pylab.gca()
+
+    lines = []
+    for (segXLocs, segYLocs, segFrameNums) in zip(lineSegs['xLocs'], lineSegs['yLocs'], lineSegs['frameNums']) :
+	if (min(segFrameNums) >= min(tLims) and max(segFrameNums) <= max(tLims)) :
+	    lines.append(axis.plot(segXLocs, segYLocs, **kwargs)[0])
+
+    axis.set_xlim(xLims)
+    axis.set_ylim(yLims)
+
+    return lines
+
+
 def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     if (axis is None) :
        axis = pylab.gca()
@@ -17,7 +32,7 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     axis.set_xlim(xLims)
     axis.set_ylim(yLims)
 
-    return(lines)
+    return lines
 
 
 def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, endFrame=None,
@@ -33,7 +48,7 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
     return({'trueLines': trueLines, 'modelLines': modelLines})
 
 
-def perform_animation(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.0, hold = 2.0, axis = None) :
+def perform_animation(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.0, hold_loop = 2.0, axis = None) :
     if (axis is None) :
        axis = pylab.gca()
 
@@ -59,7 +74,7 @@ def perform_animation(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.
            axis.draw_artist(line)
 
         canvas.blit(axis.bbox)
-        if update_line.cnt >= (endFrame + (hold - speed)):
+        if update_line.cnt >= (endFrame + (hold_it - speed)):
            update_line.cnt = startFrame - speed
 
         update_line.cnt += speed
