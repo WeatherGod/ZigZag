@@ -1,26 +1,3 @@
-#!/usr/bin/env python
-
-def DomainFromTracks(tracks) :
-
-    minTrackX = []
-    maxTrackX = []
-    minTrackY = []
-    maxTrackY = []
-    minTrackT = []
-    maxTrackT = []
-
-    for track in tracks :
-	minTrackX.append(min(track['xLocs']))
-	maxTrackX.append(max(track['xLocs']))
-	minTrackY.append(min(track['yLocs']))
-	maxTrackY.append(max(track['yLocs']))
-	minTrackT.append(min(track['frameNums']))
-	maxTrackT.append(max(track['frameNums']))
-
-
-    return( [min(minTrackX), max(maxTrackX)],
-	    [min(minTrackY), max(maxTrackY)],
-	    [min(minTrackT), max(maxTrackT)] )
 
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
@@ -34,7 +11,7 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
 	    dataFile.write("M %f %f 0.0 0.0 0.0 0 %d CONSTANT VELOCITY\n" % (xLoc, yLoc, frameNum))
 
     for false_alarm in falarms :
-	dataFile.write("%f %f %d\n" % (false_alarm['xLoc'], false_alarm['yLoc'], false_alarm['frameNums']))
+	dataFile.write("%f %f %d\n" % (false_alarm['xLoc'][0], false_alarm['yLoc'][0], false_alarm['frameNums'][0]))
         
     dataFile.close()
 
@@ -82,23 +59,11 @@ def ReadTracks(fileName) :
 	    continue
 
         if (len(falseAlarms) < falseAlarmCnt) :
-	    falseAlarms.append({'xLocs': float(tempList[0]),
-			        'yLocs': float(tempList[1]),
-			        'frameNums': int(tempList[2])})
+	    falseAlarms.append({'xLocs': [float(tempList[0])],
+			        'yLocs': [float(tempList[1])],
+			        'frameNums': [int(tempList[2])]})
 
     return(tracks, falseAlarms)
-
-
-def FilterMHTTracks(raw_tracks) :
-    tracks = []
-
-    for aTrack in raw_tracks['tracks'] :
-        tracks.append({'xLocs': [xLoc for (xLoc, type) in zip(aTrack['xLocs'], aTrack['types']) if type == 'M'],
-		       'yLocs': [yLoc for (yLoc, type) in zip(aTrack['yLocs'], aTrack['types']) if type == 'M'],
-		       'frameNums': [frameNum for (frameNum, type) in zip(aTrack['frameNums'], aTrack['types']) if type == 'M']})
-
-    return(tracks)
-
 
 
 def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :

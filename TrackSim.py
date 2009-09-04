@@ -6,7 +6,6 @@ import numpy
 import copy				# for deep copying
 import math
 
-from TrackPlot import *
 
 def IncrementPoint(dataPoint, deltaT, pos_noise, speed_noise) :
     return({'time': dataPoint['time'] + deltaT,
@@ -76,6 +75,31 @@ def CreateVolData(tracks, tLims, xLims, yLims) :
 
     return(volData)
 
+def ClipTracks(tracks, xLims, yLims, tLims) :
+    clippedTracks = copy.deepcopy(tracks)
+    for aTrack in clippedTracks :
+	for (index, (xLoc, yLoc, frameNum)) in enumerate(zip(aTrack['xLocs'], aTrack['yLocs'], aTrack['frameNums'])) :
+	    if (xLoc < min(xLims) or xLoc > max(xLims) or
+		yLoc < min(yLims) or yLoc > max(yLims) or
+		frameNum < min(tLims) or frameNum > max(tLims)) :
+		# Flag this track as one to get rid of.
+		for aKey in aTrack : aTrack[aKey][index] = None
+
+
+
+    RebuildTracks(clippedTracks)
+    return clippedTracks
+
+
+def RebuildTracks(tracks) :
+    """
+    Rebuild the track list, effectively removing the storms flagged by a 'None'
+    """
+    for (trackID, aTrack) in enumerate(tracks) :
+	for aKey in aTrack :
+	    tracks[trackID][aKey] = [someVal for someVal in aTrack[aKey] if someVal is not None]
+
+
 def DisturbTracks(true_tracks, true_volData, noise_params) :
     
     tracks = copy.deepcopy(true_tracks)
@@ -110,10 +134,7 @@ def DisturbTracks(true_tracks, true_volData, noise_params) :
 
     # rebuild the tracks list, effectively removing the storms
     # flagged as a false merger
-    for (trackID, aTrack) in enumerate(tracks) :
-        tracks[trackID]['frameNums'] = [frameNum for frameNum in aTrack['frameNums'] if frameNum is not None]
-        tracks[trackID]['xLocs'] = [xLoc for xLoc in aTrack['xLocs'] if xLoc is not None]
-        tracks[trackID]['yLocs'] = [yLoc for yLoc in aTrack['yLocs'] if yLoc is not None]
+    RebuildTracks(tracks)
 
     return(tracks, volData)
 		    
@@ -123,6 +144,7 @@ def DisturbTracks(true_tracks, true_volData, noise_params) :
 corner_filestem = "corners"
 inputDataFile = "InDataFile"
 simTrackFile = "true_tracks"
+noisyTrackFile = "noise_tracks"
 
 frameCnt = 9
 totalTracks = 30
@@ -147,11 +169,10 @@ true_tracks = TracksGenerator(totalTracks, tLims, xLims, yLims, speedLims,
 			      speed_variance, mean_dir, angle_variance, endTrackProb)
 volume_data = CreateVolData(true_tracks, tLims, xLims, yLims)
 (fake_tracks, fake_volData) = DisturbTracks(true_tracks, volume_data, {'false_merge_dist': 5.0, 'false_merge_prob': 0.2})
-
-#PlotTracks(true_tracks, fake_tracks, xLims, yLims, tLims)
-#pylab.show()
+fake_tracks = ClipTracks(fake_tracks, xLims, yLims, tLims)
 
 SaveTracks(simTrackFile, true_tracks)
-SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data)
+SaveTracks(noisyTrackFile, fake_tracks)
+SaveCorners(inputDataFile, corner_filestem, frameCnt, fake_volData)
 
 

@@ -7,6 +7,7 @@ import pylab
 import os
 
 from TrackFileUtils import *		# for reading track files
+from TrackUtils import *		# for FilterMHTTracks()
 import scit
 
 
@@ -78,21 +79,6 @@ def CreateVolData(true_tracks, tLims, xLims, yLims) :
 								    yLoc >= min(yLims) and yLoc <= max(yLims))]})
 
     return(volData)
-
-"""
-def PlotTracks(true_tracks, model_tracks, startFrame, endFrame) :
-
-    for track in true_tracks :
-        pylab.plot([xLoc for (xLoc, frameNum) in zip(track['xLocs'], track['frameNums'])],
-		   [yLoc for (yLoc, frameNum) in zip(track['yLocs'], track['frameNums'])],
-                   'k--.', linewidth=1.5, zorder=1, hold=True)
-
-    for track in model_tracks :
-        pylab.plot([xLoc for (xLoc, frameNum) in zip(track['xLocs'], track['frameNums']) if frameNum >= startFrame and frameNum <= endFrame],
-                   [yLoc for (yLoc, frameNum) in zip(track['yLocs'], track['frameNums']) if frameNum >= startFrame and frameNum <= endFrame],
-                   linewidth = 2.0, marker='x', alpha=0.75, zorder=2, hold=True)
-    
-"""
 
 
 corner_filestem = "corners"
