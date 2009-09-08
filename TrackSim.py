@@ -2,9 +2,15 @@
 
 import random
 from TrackFileUtils import *		# for writing the track data
+from TrackUtils import *		# for ClipTracks(), CreateVolData(), and CleanupTracks()
+from SimUtils import *			# for SaveSimulationParams()
 import numpy
 import copy				# for deep copying
-import math
+import math				# for cos(), sin(), and pi
+
+from optparse import OptionParser	# Command-line parsing
+import os				# for os.sep.join(), os.mkdir(), os.access()
+
 
 
 def IncrementPoint(dataPoint, deltaT, pos_noise, speed_noise) :
@@ -28,8 +34,8 @@ def MakePoint(tLims, xLocLims, yLocLims, angleLims, speedLims) :
     speed = random.uniform(min(speedLims), max(speedLims))
     angle = random.uniform(min(angleLims), max(angleLims)) * (math.pi / 180.0)
     return({'time': random.randrange(min(tLims), max(tLims)),
-	    'pos': [random.uniform(min(xLims), max(xLims)),
-		    random.uniform(min(yLims), max(yLims))],
+	    'pos': [random.uniform(min(xLocLims), max(xLocLims)),
+		    random.uniform(min(yLocLims), max(yLocLims))],
 	    'speed': [speed * math.cos(angle),
 		      speed * math.sin(angle)]})
 
@@ -56,53 +62,10 @@ def MakeTrack(tLims, angleLims, speedLims,
     return(aTrack)
 
 
-def CreateVolData(tracks, tLims, xLims, yLims) :
-    volData = []
-    allCells = {'frameNums': [], 'trackID': [], 'xLocs': [], 'yLocs': []}
-    for (trackID, aTrack) in enumerate(tracks) :
-        allCells['frameNums'].extend(aTrack['frameNums'])
-	allCells['trackID'].extend([trackID] * len(aTrack['frameNums']))
-	allCells['xLocs'].extend(aTrack['xLocs'])
-	allCells['yLocs'].extend(aTrack['yLocs'])
-    
-    
-    for volTime in range(min(tLims), max(tLims) + 1) :
-        volData.append({'volTime': volTime,
-                        'stormCells': [{'xLoc': xLoc, 'yLoc': yLoc, 'trackID': trackID}
-                                       for (xLoc, yLoc, frameNum, trackID) in zip(allCells['xLocs'], allCells['yLocs'], allCells['frameNums'], allCells['trackID'])
-					if (frameNum == volTime and xLoc >= min(xLims) and xLoc <= max(xLims) and
-								    yLoc >= min(yLims) and yLoc <= max(yLims))]})
-
-    return(volData)
-
-def ClipTracks(tracks, xLims, yLims, tLims) :
-    clippedTracks = copy.deepcopy(tracks)
-    for aTrack in clippedTracks :
-	for (index, (xLoc, yLoc, frameNum)) in enumerate(zip(aTrack['xLocs'], aTrack['yLocs'], aTrack['frameNums'])) :
-	    if (xLoc < min(xLims) or xLoc > max(xLims) or
-		yLoc < min(yLims) or yLoc > max(yLims) or
-		frameNum < min(tLims) or frameNum > max(tLims)) :
-		# Flag this track as one to get rid of.
-		for aKey in aTrack : aTrack[aKey][index] = None
-
-
-
-    RebuildTracks(clippedTracks)
-    return clippedTracks
-
-
-def RebuildTracks(tracks) :
-    """
-    Rebuild the track list, effectively removing the storms flagged by a 'None'
-    """
-    for (trackID, aTrack) in enumerate(tracks) :
-	for aKey in aTrack :
-	    tracks[trackID][aKey] = [someVal for someVal in aTrack[aKey] if someVal is not None]
-
-
-def DisturbTracks(true_tracks, true_volData, noise_params) :
+def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
     
     tracks = copy.deepcopy(true_tracks)
+    falarms = copy.deepcopy(true_falarms)
     volData = copy.deepcopy(true_volData)
 
     for (volIndex, aVol) in enumerate(volData) :
@@ -115,7 +78,8 @@ def DisturbTracks(true_tracks, true_volData, noise_params) :
 	for index1 in range(len(aVol['stormCells'])) :
 	    for index2 in range(index1 + 1, len(aVol['stormCells'])) :
 		if (distMatrix[index1, index2] <= noise_params['false_merge_dist'] and
-		          random.uniform(0, 1) * (distMatrix[index1, index2] / noise_params['false_merge_dist']) <= noise_params['false_merge_prob']) :
+		          random.uniform(0, 1) * (distMatrix[index1, index2] / noise_params['false_merge_dist']) < noise_params['false_merge_prob']) :
+		    print "\nWe have Occlusion!\n"
 		    trackID = aVol['stormCells'][index1]['trackID']
 		    strmID = tracks[trackID]['frameNums'].index(aVol['volTime'])
 		    tracks[trackID]['frameNums'][strmID] = None
@@ -134,45 +98,64 @@ def DisturbTracks(true_tracks, true_volData, noise_params) :
 
     # rebuild the tracks list, effectively removing the storms
     # flagged as a false merger
-    RebuildTracks(tracks)
+    (tracks, falarms) = CleanupTracks(tracks, falarms)
 
-    return(tracks, volData)
+    return(tracks, falarms, volData)
 		    
 
+parser = OptionParser()
+parser.add_option("-s", "--sim", dest="simName",
+		  help="Generate Tracks for SIMNAME", 
+		  metavar="SIMNAME", default="NewSim")
+
+(options, args) = parser.parse_args()
+
+simParams = dict(corner_filestem = os.sep.join([options.simName, "corners"]),
+		 inputDataFile = os.sep.join([options.simName, "InDataFile"]),
+		 simTrackFile = os.sep.join([options.simName, "true_tracks"]),
+		 noisyTrackFile = os.sep.join([options.simName, "noise_tracks"]),
+		 result_filestem = os.sep.join([options.simName, "testResults"]),
+		 frameCnt = 9,
+		 totalTracks = 30,
+		 speed_variance = 1.5,
+		 mean_dir = 50.0,
+		 angle_variance = 30.0,
+		 endTrackProb = 0.1,
+		 xLims = [0, 255],
+		 yLims = [0, 255],
+		 speedLims = [5, 25],
+		 false_merge_dist = 10.,
+		 false_merge_prob = 0.0,
+		 #theSeed = 92395
+		 theSeed = random.randint(0, 99999))
+
+print simParams
+
+tLims = [1, simParams['frameCnt']]
+print "The Seed: ", simParams['theSeed']
+
+random.seed(simParams['theSeed'])
 
 
-corner_filestem = "corners"
-inputDataFile = "InDataFile"
-simTrackFile = "true_tracks"
-noisyTrackFile = "noise_tracks"
+true_tracks = TracksGenerator(simParams['totalTracks'], tLims, simParams['xLims'], simParams['yLims'],
+			      simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
+			      simParams['angle_variance'], simParams['endTrackProb'])
+true_falarms = []
+(fake_tracks, fake_falarms) = ClipTracks(true_tracks, true_falarms, simParams['xLims'], simParams['yLims'], tLims)
+volume_data = CreateVolData(fake_tracks, fake_falarms, tLims, simParams['xLims'], simParams['yLims'])
+(fake_tracks, fake_falarms, fake_volData) = DisturbTracks(fake_tracks, fake_falarms, volume_data, 
+							  {'false_merge_dist': simParams['false_merge_dist'], 
+							   'false_merge_prob': simParams['false_merge_prob']})
+#(fake_tracks, fake_falarms) = ClipTracks(fake_tracks, fake_falarms, simParams['xLims'], simParams['yLims'], tLims)
 
-frameCnt = 9
-totalTracks = 30
-speed_variance = 1.5
-mean_dir = 50.0
-angle_variance = 30.0
-endTrackProb = 0.1
+if (not os.access(options.simName, os.F_OK)) :
+    os.mkdir(options.simName)
 
-tLims = [1, frameCnt]
-xLims = [0, 255]
-yLims = [0, 255]
-speedLims = [5, 25]
-
-#theSeed = 92395
-theSeed = random.randint(0, 99999)
-print "The Seed: ", theSeed
-
-random.seed(theSeed)
+SaveSimulationParams(os.sep.join([options.simName, "simParams"]), simParams)
 
 
-true_tracks = TracksGenerator(totalTracks, tLims, xLims, yLims, speedLims, 
-			      speed_variance, mean_dir, angle_variance, endTrackProb)
-volume_data = CreateVolData(true_tracks, tLims, xLims, yLims)
-(fake_tracks, fake_volData) = DisturbTracks(true_tracks, volume_data, {'false_merge_dist': 5.0, 'false_merge_prob': 0.2})
-fake_tracks = ClipTracks(fake_tracks, xLims, yLims, tLims)
-
-SaveTracks(simTrackFile, true_tracks)
-SaveTracks(noisyTrackFile, fake_tracks)
-SaveCorners(inputDataFile, corner_filestem, frameCnt, fake_volData)
+SaveTracks(simParams['simTrackFile'], true_tracks, true_falarms)
+SaveTracks(simParams['noisyTrackFile'], fake_tracks, fake_falarms)
+SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], fake_volData)
 
 

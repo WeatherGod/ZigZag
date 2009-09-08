@@ -4,14 +4,21 @@ from TrackPlot import *			# for plotting tracks
 from TrackFileUtils import *		# for reading track files
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 
-import glob
+from optparse import OptionParser	# Command-line parsing
+import os				# for os.sep.join()
+import glob				# for globbing
+
+parser = OptionParser()
+parser.add_option("-s", "--sim", dest="simName",
+                  help="Generate Tracks for SIMNAME",
+                  metavar="SIMNAME", default="NewSim")
+
+(options, args) = parser.parse_args()
 
 
-
-
-outputResults = "testyResults"
+outputResults = os.sep.join([options.simName, "testResults"])
 trackFile_scit = outputResults + "_SCIT"
-simTrackFile = "noise_tracks"
+simTrackFile = os.sep.join([options.simName, "noise_tracks"])
 
 
 fileList = glob.glob(outputResults + "_MHT" + "*")

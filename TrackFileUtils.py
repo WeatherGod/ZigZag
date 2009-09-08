@@ -11,7 +11,7 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
 	    dataFile.write("M %f %f 0.0 0.0 0.0 0 %d CONSTANT VELOCITY\n" % (xLoc, yLoc, frameNum))
 
     for false_alarm in falarms :
-	dataFile.write("%f %f %d\n" % (false_alarm['xLoc'][0], false_alarm['yLoc'][0], false_alarm['frameNums'][0]))
+	dataFile.write("%f %f %d\n" % (false_alarm['xLocs'][0], false_alarm['yLocs'][0], false_alarm['frameNums'][0]))
         
     dataFile.close()
 
