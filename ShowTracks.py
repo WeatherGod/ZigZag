@@ -35,22 +35,13 @@ true_segs = CreateSegments(true_tracks['tracks'], true_falarms)
 mht_segs = CreateSegments(finalmhtTracks, mhtFAlarms)
 
 
-compareResults_mht = CompareSegments(true_segs, true_falarms, mht_segs, mhtFAlarms)
+truthtable_mht = CompareSegments(true_segs, true_falarms, mht_segs, mhtFAlarms)
 
 
-pylab.figure()
+pylab.subplot(121)
 
-# Correct Stuff
-PlotSegments(compareResults_mht['assocs_Correct'], xLims, yLims, tLims,
-	     linewidth=1.5, color= 'green', marker='.', markersize=7.0)
-PlotSegments(compareResults_mht['falarms_Correct'], xLims, yLims, tLims,
-	     color='green', marker='.', linestyle=' ', markersize=7.0)
-
-# Wrong Stuff
-PlotSegments(compareResults_mht['falarms_Wrong'], xLims, yLims, tLims,
-	     linewidth=1.5, color='gray', marker='.', markersize=8.0, linestyle=':')
-PlotSegments(compareResults_mht['assocs_Wrong'], xLims, yLims, tLims,
-	     linewidth=1.5, color='red', marker='.', markersize=8.0)
+#PlotSegments(truthtable_mht, xLims, yLims, tLims)
+Animate_Segments(truthtable_mht, xLims, yLims, tLims, speed = 0.1, hold_loop = 2.0)
 
 pylab.title("MHT")
 
@@ -77,18 +68,18 @@ scit_segs = CreateSegments(scitTracks['tracks'], scitFAlarms)
 
 compareResults_scit = CompareSegments(true_segs, true_falarms, scit_segs, scitFAlarms)
 
-pylab.figure()
+pylab.subplot(122)
 
 # Correct Stuff
-PlotSegments(compareResults_scit['assocs_Correct'], xLims, yLims, tLims, 
+PlotSegment(compareResults_scit['assocs_Correct'], xLims, yLims, tLims, 
 	     linewidth=1.5, color= 'green', marker='.', markersize=7.0)
-PlotSegments(compareResults_scit['falarms_Correct'], xLims, yLims, tLims,
+PlotSegment(compareResults_scit['falarms_Correct'], xLims, yLims, tLims,
 	     color='green', marker='.', linestyle=' ', markersize=7.0)
 
 # Wrong Stuff
-PlotSegments(compareResults_scit['falarms_Wrong'], xLims, yLims, tLims,
+PlotSegment(compareResults_scit['falarms_Wrong'], xLims, yLims, tLims,
 	     linewidth=1.5, color='gray', marker='.', markersize=8.0, linestyle=':')
-PlotSegments(compareResults_scit['assocs_Wrong'], xLims, yLims, tLims, 
+PlotSegment(compareResults_scit['assocs_Wrong'], xLims, yLims, tLims, 
 	     linewidth=1.5, color='red', marker='.', markersize=8.0)
 
 pylab.title("SCIT")

@@ -24,7 +24,7 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     lastID = max(allCells['trackID'])
     lastID += 1
     for aFAlarm in falarms :
-	print "THIS FALARM: ", aFAlarm
+	#print "THIS FALARM: ", aFAlarm
 	allCells['frameNums'].extend(aFAlarm['frameNums'])
 	allCells['trackID'].extend([lastID] * len(aFAlarm['frameNums']))
 	allCells['xLocs'].extend(aFAlarm['xLocs'])

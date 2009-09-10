@@ -150,6 +150,8 @@ volume_data = CreateVolData(fake_tracks, fake_falarms, tLims, simParams['xLims']
 
 if (not os.access(options.simName, os.F_OK)) :
     os.mkdir(options.simName)
+    # TODO: Automatically build this file!
+    os.system("cp ./Parameters %s/Parameters" % options.simName)
 
 SaveSimulationParams(os.sep.join([options.simName, "simParams"]), simParams)
 
