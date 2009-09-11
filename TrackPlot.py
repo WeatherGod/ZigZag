@@ -18,7 +18,7 @@ def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
 	if (min(segFrameNums) >= min(tLims) and max(segFrameNums) <= max(tLims)) :
 	    lines.append(axis.plot(segXLocs, segYLocs, **kwargs)[0])
 	else :
-	    # This guarrentees that the lines list will be the same length
+	    # This guarantees that the lines list will be the same length
 	    # as the lineSegs list.
 	    lines.append(axis.plot([], [])[0])
 
@@ -63,8 +63,12 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
 
     canvas = pylab.gcf().canvas
 
+
+    # Placed before the initial creation of line segments in
+    # order to avoid having it mess up the axes...
+    emptyLine = axis.plot([], [])[0]
+
     # create the initial lines
-    
     tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated=True)
     canvas.draw()
 
@@ -74,7 +78,7 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
 #			  + len(truthTable['falarms_Correct'])
 #			  + len(truthTable['assocs_Wrong'])
 #			  + len(truthTable['falarms_Wrong']))
-    emptyLine = axis.plot([], [])[0]
+
 
     theLines += tableLines['assocs_Correct']
     theSegs['frameNums'] += truthTable['assocs_Correct']['frameNums']

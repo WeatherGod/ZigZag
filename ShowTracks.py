@@ -31,17 +31,19 @@ fileList.sort()
 (finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
 (xLims, yLims, tLims) = DomainFromTracks(true_tracks['tracks'])
 
+
 true_segs = CreateSegments(true_tracks['tracks'], true_falarms)
 mht_segs = CreateSegments(finalmhtTracks, mhtFAlarms)
 
 
+
 truthtable_mht = CompareSegments(true_segs, true_falarms, mht_segs, mhtFAlarms)
 
-
-pylab.subplot(121)
+pylab.figure(figsize=(12, 6))
+curAxis = pylab.subplot(121)
 
 #PlotSegments(truthtable_mht, xLims, yLims, tLims)
-Animate_Segments(truthtable_mht, xLims, yLims, tLims, speed = 0.1, hold_loop = 2.0)
+Animate_Segments(truthtable_mht, xLims, yLims, tLims, axis = curAxis, speed = 0.01, hold_loop = 10.0)
 
 pylab.title("MHT")
 
@@ -64,27 +66,16 @@ for (index, trackFile_MHT) in enumerate(fileList) :
 """
 
 (scitTracks, scitFAlarms) = ReadTracks(trackFile_scit)
-scit_segs = CreateSegments(scitTracks['tracks'], scitFAlarms)
 
+scit_segs = CreateSegments(scitTracks['tracks'], scitFAlarms)
 compareResults_scit = CompareSegments(true_segs, true_falarms, scit_segs, scitFAlarms)
 
-pylab.subplot(122)
+curAxis = pylab.subplot(122)
 
-# Correct Stuff
-PlotSegment(compareResults_scit['assocs_Correct'], xLims, yLims, tLims, 
-	     linewidth=1.5, color= 'green', marker='.', markersize=7.0)
-PlotSegment(compareResults_scit['falarms_Correct'], xLims, yLims, tLims,
-	     color='green', marker='.', linestyle=' ', markersize=7.0)
-
-# Wrong Stuff
-PlotSegment(compareResults_scit['falarms_Wrong'], xLims, yLims, tLims,
-	     linewidth=1.5, color='gray', marker='.', markersize=8.0, linestyle=':')
-PlotSegment(compareResults_scit['assocs_Wrong'], xLims, yLims, tLims, 
-	     linewidth=1.5, color='red', marker='.', markersize=8.0)
-
+PlotSegments(compareResults_scit, xLims, yLims, tLims, axis = curAxis)
 pylab.title("SCIT")
 
-pylab.show()
+
 
 """
 for index in range(min(tLims), max(tLims) + 1) :
@@ -94,3 +85,15 @@ for index in range(min(tLims), max(tLims) + 1) :
     pylab.clf()
 
 """
+
+print "      MHT"
+PrintTruthTable(truthtable_mht)
+print "HSS: ", CalcHeidkeSkillScore(truthtable_mht), "\n\n"
+
+print "     SCIT"
+PrintTruthTable(compareResults_scit)
+print "HSS: ", CalcHeidkeSkillScore(compareResults_scit), "\n\n"
+
+
+
+pylab.show()

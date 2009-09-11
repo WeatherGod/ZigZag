@@ -41,6 +41,7 @@ def ReadTracks(fileName) :
         tempList = line.split()
     
         if (len(tracks['tracks']) == trackCounter and trackCounter < contourCnt) :
+            #print "Reading Begining of track   curTrackCnt: %d   trackCounter: %d    contourCnt: %d" % (len(tracks['tracks']), trackCounter, contourCnt)
 	    tracks['ids'].append(int(tempList[0]))
 	    tracks['lens'].append(int(tempList[1]))
 	    tracks['tracks'].append({'types': [],
@@ -50,6 +51,7 @@ def ReadTracks(fileName) :
 	    continue
 
         if (contourCnt > 0 and len(tracks['tracks'][-1]['types']) < tracks['lens'][-1]) :
+            #print "Reading Track Element   contourCnt: %d   curTrackLen: %d    trackLen: %d" % (contourCnt, len(tracks['tracks'][-1]['types']), tracks['lens'][-1])
             tracks['tracks'][-1]['types'].append(tempList[0])
 	    tracks['tracks'][-1]['xLocs'].append(float(tempList[1]))
 	    tracks['tracks'][-1]['yLocs'].append(float(tempList[2]))
@@ -59,9 +61,12 @@ def ReadTracks(fileName) :
 	    continue
 
         if (len(falseAlarms) < falseAlarmCnt) :
+            #print "Reading FAlarm"
 	    falseAlarms.append({'xLocs': [float(tempList[0])],
 			        'yLocs': [float(tempList[1])],
 			        'frameNums': [int(tempList[2])]})
+
+    #print "\n\n\n"
 
     return(tracks, falseAlarms)
 
