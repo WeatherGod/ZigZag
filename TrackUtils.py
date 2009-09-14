@@ -13,23 +13,24 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     """
     volData = []
     allCells = {'frameNums': [], 'trackID': [], 'xLocs': [], 'yLocs': []}
-    for (trackID, aTrack) in enumerate(tracks) :
+    #print "Tracks:"
+    for aTrack in tracks :
+	#print aTrack['trackID'], '\t', aTrack['frameNums']
 	#print "THIS TRACK:   ", aTrack
         allCells['frameNums'].extend(aTrack['frameNums'])
-        allCells['trackID'].extend([trackID] * len(aTrack['frameNums']))
+        allCells['trackID'].extend([aTrack['trackID']] * len(aTrack['frameNums']))
         allCells['xLocs'].extend(aTrack['xLocs'])
         allCells['yLocs'].extend(aTrack['yLocs'])
 
-    
-    lastID = max(allCells['trackID'])
-    lastID += 1
+    #print "\n\nFAlarms"
     for aFAlarm in falarms :
+	#print aFAlarm['trackID'], '\t', aFAlarm['frameNums']
 	#print "THIS FALARM: ", aFAlarm
 	allCells['frameNums'].extend(aFAlarm['frameNums'])
-	allCells['trackID'].extend([lastID] * len(aFAlarm['frameNums']))
+	allCells['trackID'].extend([aFAlarm['trackID']] * len(aFAlarm['frameNums']))
 	allCells['xLocs'].extend(aFAlarm['xLocs'])
 	allCells['yLocs'].extend(aFAlarm['yLocs'])
-	lastID += 1
+
 
 
     for volTime in range(min(tLims), max(tLims) + 1) :
@@ -57,7 +58,8 @@ def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
                 yLoc < min(yLims) or yLoc > max(yLims) or
                 frameNum < min(tLims) or frameNum > max(tLims)) :
                 # Flag this track as one to get rid of.
-                for aKey in aTrack : aTrack[aKey][index] = None
+                for aKey in aTrack : 
+		    if aKey != 'trackID' : aTrack[aKey][index] = None
 
 
 
@@ -72,14 +74,28 @@ def CleanupTracks(tracks, falarms) :
     Also handles tracks that were shortened or effectively removed to the
     falarms list.
     """
+    # This will indicate how much to change the trackID
+    # number for each track as tracks are removed.
+    # This allows for other code to use the trackID number
+    # associated with a strmCell
+    # as a list index into the track list.
+    modifyTrackID = 0
     for trackID in range(len(tracks)) :
-        for aKey in tracks[trackID] : tracks[trackID][aKey] = [someVal for someVal in tracks[trackID][aKey] if someVal is not None]
+        for aKey in tracks[trackID] : 
+	    if aKey != "trackID" : tracks[trackID][aKey] = [someVal for someVal in tracks[trackID][aKey] if someVal is not None]
+	    else : tracks[trackID]['trackID'] -= modifyTrackID
 	
+	# move any length-1 tracks to the falarms category
 	if len(tracks[trackID]['frameNums']) == 1 :
+	    tracks[trackID]['trackID'] = -1
 	    falarms.append(tracks[trackID].copy())
-	    for aKey in tracks[trackID] : tracks[trackID][aKey] = []
+	    for aKey in tracks[trackID] : 
+		if aKey != "trackID" : tracks[trackID][aKey] = []
         
+	# completely remove any length-0 tracks
+	#  (or the tracks that were moved to falarms)
 	if len(tracks[trackID]['frameNums']) == 0 :
+	    modifyTrackID += 1
 	    # Flag for removal.
 	    tracks[trackID] = None
         
@@ -105,6 +121,10 @@ def CreateSegments(tracks, falarms) :
     yLocs = []
     frameNums = []
     for aTrack in tracks :
+        # Length-1 and Length-0 tracks shouldn't happen,
+	# but there is nothing stopping it, so in case it does, modify falarms.
+	# TODO: This does modify falarms without a corresponding
+	#       change to tracks.  This could be a BIG problem...
         if len(aTrack['frameNums']) > 1 :
             for index2 in range(1, len(aTrack['frameNums'])) :
                 index1 = index2 - 1
@@ -112,7 +132,8 @@ def CreateSegments(tracks, falarms) :
                 yLocs.append([aTrack['yLocs'][index1], aTrack['yLocs'][index2]])
                 frameNums.append([aTrack['frameNums'][index1], aTrack['frameNums'][index2]])
 	else :
-	    #print "Appending: ", aTrack['xLocs'], aTrack['frameNums']
+	    print "Appending: ", aTrack['xLocs'], aTrack['frameNums']
+	    aTrack['trackID'] = -1
 	    falarms.append(aTrack)
 
 
@@ -217,11 +238,12 @@ def CompareSegments(realSegments, realFAlarms, predSegments, predFAlarms) :
 		# Break out of this loop
 		break
 
-	# This FAlarm represents those that may have been falsely associated...
-	# Not sure if there is anything I want to do about these for now...
+	# This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
+	# TODO: Not sure if there is anything I want to do about these for now...
+	#       They might already be accounted for earlier.
 
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-	    'falarms_Correct': falarms_Correct, 'falarms_Wrong': falarms_Wrong}
+	    'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
 
 def CalcHeidkeSkillScore(truthTable) :
     """
@@ -242,8 +264,8 @@ Forecasted
 
     a = float(len(truthTable['assocs_Correct']['xLocs']))
     b = float(len(truthTable['assocs_Wrong']['xLocs']))
-    c = float(len(truthTable['falarms_Correct']['xLocs']))
-    d = float(len(truthTable['falarms_Wrong']['xLocs']))
+    c = float(len(truthTable['falarms_Wrong']['xLocs']))
+    d = float(len(truthTable['falarms_Correct']['xLocs']))
     return 2. * ((a * d) - (b * c)) / (((a + c) * (c + d)) + ((a + b) * (b + d)))
 
 
@@ -264,7 +286,8 @@ def FilterMHTTracks(raw_tracks, raw_falarms) :
         for index in range(len(aTrack['types'])) :
             if aTrack['types'][index] != 'M' :
 		# Flag this element of the track as one to get rid of.
-                for aKey in aTrack : aTrack[aKey][index] = None
+                for aKey in aTrack : 
+		    if aKey != 'trackID' : aTrack[aKey][index] = None
 		
     (tracks, falarms) = CleanupTracks(tracks, falarms)
     return(tracks, falarms)
@@ -304,4 +327,4 @@ def is_eq(val1, val2) :
 
     TODO: Come up with a better way!
     """
-    return int(round(val1 * 100, 0)) == int(round(val2 * 100, 0))
+    return int(round(val1 * 100, 1)) == int(round(val2 * 100, 1))

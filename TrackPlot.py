@@ -13,14 +13,18 @@ def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
     if (axis is None) :
        axis = pylab.gca()
 
+
+
     lines = []
     for (segXLocs, segYLocs, segFrameNums) in zip(lineSegs['xLocs'], lineSegs['yLocs'], lineSegs['frameNums']) :
-	if (min(segFrameNums) >= min(tLims) and max(segFrameNums) <= max(tLims)) :
-	    lines.append(axis.plot(segXLocs, segYLocs, **kwargs)[0])
-	else :
+	#if (min(segFrameNums) >= min(tLims) and max(segFrameNums) <= max(tLims)) :
+	lines.append(axis.plot([segXLoc for (segXLoc, frameNum) in zip(segXLocs, segFrameNums) if min(tLims) <= frameNum <= max(tLims)],
+			       [segYLoc for (segYLoc, frameNum) in zip(segYLocs, segFrameNums) if min(tLims) <= frameNum <= max(tLims)],
+			       **kwargs)[0])
+	#else :
 	    # This guarantees that the lines list will be the same length
 	    # as the lineSegs list.
-	    lines.append(axis.plot([], [])[0])
+	    #lines.append(axis.plot([], [])[0])
 
     axis.set_xlim(xLims)
     axis.set_ylim(yLims)
@@ -66,14 +70,16 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
 
     # Placed before the initial creation of line segments in
     # order to avoid having it mess up the axes...
-    emptyLine = axis.plot([], [])[0]
+    #emptyLine = axis.plot([], [])[0]
 
     # create the initial lines
     tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated=True)
     canvas.draw()
 
     theLines = []
-    theSegs = {'frameNums': []}
+    theSegs_frames = []
+    theSegs_xLocs = []
+    theSegs_yLocs = []
 #    areShowing = [True] * (len(truthTable['assocs_Correct'])
 #			  + len(truthTable['falarms_Correct'])
 #			  + len(truthTable['assocs_Wrong'])
@@ -81,28 +87,45 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
 
 
     theLines += tableLines['assocs_Correct']
-    theSegs['frameNums'] += truthTable['assocs_Correct']['frameNums']
+    theSegs_frames += truthTable['assocs_Correct']['frameNums']
+    theSegs_xLocs += truthTable['assocs_Correct']['xLocs']
+    theSegs_yLocs += truthTable['assocs_Correct']['yLocs']
+
 
     theLines += tableLines['falarms_Correct']
-    theSegs['frameNums'] += truthTable['falarms_Correct']['frameNums']
+    theSegs_frames += truthTable['falarms_Correct']['frameNums']
+    theSegs_xLocs += truthTable['falarms_Correct']['xLocs']
+    theSegs_yLocs += truthTable['falarms_Correct']['yLocs']
     
     theLines += tableLines['assocs_Wrong']
-    theSegs['frameNums'] += truthTable['assocs_Wrong']['frameNums']
+    theSegs_frames += truthTable['assocs_Wrong']['frameNums']
+    theSegs_xLocs += truthTable['assocs_Wrong']['xLocs']
+    theSegs_yLocs += truthTable['assocs_Wrong']['yLocs']
     
     theLines += tableLines['falarms_Wrong']
-    theSegs['frameNums'] += truthTable['falarms_Wrong']['frameNums']
-
+    theSegs_frames += truthTable['falarms_Wrong']['frameNums']
+    theSegs_xLocs += truthTable['falarms_Wrong']['xLocs']
+    theSegs_yLocs += truthTable['falarms_Wrong']['yLocs']
 
     def update_line(*args) :
         if update_line.background is None:
             update_line.background = canvas.copy_from_bbox(axis.bbox)
 
-	if (update_line.cnt - 1. > update_line.lastFrame) :
-	    update_line.lastFrame = update_line.cnt
-
+        
+	if (int(update_line.cnt) > update_line.currFrame) :
+	    update_line.currFrame = int(update_line.cnt)
 
             canvas.restore_region(update_line.background)
 
+	    for (line, segFrameNums, segXLocs, segYLocs) in zip(theLines, theSegs_frames, 
+								theSegs_xLocs, theSegs_yLocs) :
+                line.set_xdata([xLoc for (xLoc, frameNum) in zip(segXLocs, segFrameNums) if frameNum <= update_line.currFrame 
+											    and frameNum >= startFrame])
+                line.set_ydata([yLoc for (yLoc, frameNum) in zip(segYLocs, segFrameNums) if frameNum <= update_line.currFrame 
+											    and frameNum >= startFrame])
+                axis.draw_artist(line)
+		
+	    """
             for (line, frameNums) in zip(theLines, theSegs['frameNums']) :
 	        if min(frameNums) >= startFrame and max(frameNums) <= update_line.cnt :
 		    axis.draw_artist(line)
@@ -113,19 +136,18 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
 		    axis.draw_artist(emptyLine)
 #		     line.set_xdata(aSeg['xLocs'])
 #		     line.set_ydata(aSeg['yLocs'])
-#                    axis.draw_artist(line)
-
+	    """
         canvas.blit(axis.bbox)
 
         if update_line.cnt >= (endFrame + (hold_loop - speed)):
-            update_line.cnt = startFrame - speed
-	    update_line.lastFrame = startFrame
+            update_line.cnt = startFrame
+	    update_line.currFrame = startFrame - 1.
 
         update_line.cnt += speed
         return(True)
 
     update_line.cnt = endFrame
-    update_line.lastFrame = startFrame
+    update_line.currFrame = startFrame - 1.
     update_line.background = None
     
  

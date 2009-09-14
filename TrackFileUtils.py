@@ -47,7 +47,8 @@ def ReadTracks(fileName) :
 	    tracks['tracks'].append({'types': [],
 				     'xLocs': [],
 				     'yLocs': [],
-				     'frameNums': []})
+				     'frameNums': [],
+				     'trackID': trackCounter})
 	    continue
 
         if (contourCnt > 0 and len(tracks['tracks'][-1]['types']) < tracks['lens'][-1]) :
@@ -64,7 +65,8 @@ def ReadTracks(fileName) :
             #print "Reading FAlarm"
 	    falseAlarms.append({'xLocs': [float(tempList[0])],
 			        'yLocs': [float(tempList[1])],
-			        'frameNums': [int(tempList[2])]})
+			        'frameNums': [int(tempList[2])],
+				'trackID': -1})
 
     #print "\n\n\n"
 
