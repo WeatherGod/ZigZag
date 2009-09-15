@@ -7,6 +7,7 @@ from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromT
 from optparse import OptionParser	# Command-line parsing
 import os				# for os.sep.join()
 import glob				# for globbing
+import pylab
 
 parser = OptionParser()
 parser.add_option("-s", "--sim", dest="simName",
@@ -42,8 +43,8 @@ truthtable_mht = CompareSegments(true_segs, true_falarms, mht_segs, mhtFAlarms)
 pylab.figure(figsize=(12, 6))
 curAxis = pylab.subplot(121)
 
-#PlotSegments(truthtable_mht, xLims, yLims, tLims)
-Animate_Segments(truthtable_mht, xLims, yLims, tLims, axis = curAxis, speed = 0.01, hold_loop = 10.0)
+PlotSegments(truthtable_mht, xLims, yLims, tLims)
+#Animate_Segments(truthtable_mht, xLims, yLims, tLims, axis = curAxis, speed = 0.01, hold_loop = 10.0)
 
 pylab.title("MHT")
 
@@ -95,5 +96,5 @@ PrintTruthTable(compareResults_scit)
 print "HSS: ", CalcHeidkeSkillScore(compareResults_scit), "\n\n"
 
 
-
+#pylab.savefig("%s/WorseTracking.png" % options.simName)
 pylab.show()

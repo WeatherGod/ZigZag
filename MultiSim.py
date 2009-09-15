@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from TrackSim import TrackSim
+from SimUtils import SaveSimulationParams
 from DoTracking import DoTracking
 from TrackFileUtils import *
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), 
@@ -14,6 +15,7 @@ parser = OptionParser()
 parser.add_option("-s", "--sim", dest="simName",
                   help="Generate Tracks for SIMNAME",
                   metavar="SIMNAME", default="NewSim")
+# TODO: Force to be an integer.
 parser.add_option("-n", "--num", dest="simCnt",
 		  help="Repeat Simulation N times.",
 		  metavar="N", default=1)
@@ -41,13 +43,15 @@ simParams = dict(corner_filestem = os.sep.join(["%s", "corners"]),
                  yLims = [0., 255.],
                  speedLims = [5, 25],
                  false_merge_dist = 15.,
-                 false_merge_prob = 0.3,
-		 #theSeed = 12345
+                 false_merge_prob = 0.,
+		 #theSeed = 16315
                  theSeed = random.randint(0, 99999)
                 )
 
 simParams['tLims'] = [1, simParams['frameCnt']]
 print "The Seed: ", simParams['theSeed']
+
+
 
 random.seed(simParams['theSeed'])
 
@@ -62,6 +66,7 @@ for index in range(0, options.simCnt) :
 	simParams_mod[aKey] = simParams_mod[aKey] % (simName)
     
     TrackSim(simParams_mod, simName)
+    SaveSimulationParams(os.sep.join([simName, 'simParams.txt']), simParams)
     DoTracking(simParams_mod, simName)
     (true_tracks, true_falarms) = ReadTracks(simParams_mod['noisyTrackFile'])
     true_segs = CreateSegments(true_tracks['tracks'], true_falarms)
@@ -76,8 +81,13 @@ for index in range(0, options.simCnt) :
 
         skillScores[aTracker].append(CalcHeidkeSkillScore(truthTable))
 
-print "MHT:\n"
-print skillScores['MHT']
+winCnt = 0
+print "  MHT        SCIT"
+for (val1, val2) in zip(skillScores['MHT'], skillScores['SCIT']) :
+    print "%7.4f    %7.4f   %s" % (val1, val2, str(val1 > val2))
+    if val1 > val2 : winCnt += 1
 
-print "\n\nSCIT:\n"
-print skillScores['SCIT']
+print "------------------------"
+print "%7.4f    %7.4f    %5.3f" % (sum(skillScores['MHT'])/options.simCnt,
+				   sum(skillScores['SCIT'])/options.simCnt,
+				   float(winCnt) / options.simCnt)

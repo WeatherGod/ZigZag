@@ -12,7 +12,7 @@ def DoTracking(simParams, simName) :
     print "~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (simParams['result_filestem'] + "_MHT",
                                                                       paramFile,
                                                                       simParams['inputDataFile'])
-    os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (simParams['result_filestem'] + "_MHT",
+    os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s > /dev/null" % (simParams['result_filestem'] + "_MHT",
 								          paramFile,
 								          simParams['inputDataFile']))
 

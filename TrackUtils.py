@@ -1,4 +1,4 @@
-
+import math
 import copy                             # for deep copying
 
 
@@ -132,7 +132,7 @@ def CreateSegments(tracks, falarms) :
                 yLocs.append([aTrack['yLocs'][index1], aTrack['yLocs'][index2]])
                 frameNums.append([aTrack['frameNums'][index1], aTrack['frameNums'][index2]])
 	else :
-	    print "Appending: ", aTrack['xLocs'], aTrack['frameNums']
+	    #print "Appending: ", aTrack['xLocs'], aTrack['frameNums']
 	    aTrack['trackID'] = -1
 	    falarms.append(aTrack)
 
@@ -189,6 +189,18 @@ def CompareSegments(realSegments, realFAlarms, predSegments, predFAlarms) :
 							   realSegments['frameNums']) :
 	foundMatch = False
 	for predIndex in unmatchedPredSegs :
+	    """
+	    if ((120.0 <= realSegXLoc[1] <= 121.0) and (92.0 <= realSegYLoc[1] <= 93.0)
+		and (120.0 <= predSegments['xLocs'][predIndex][1] <= 121.0)
+		and (92.0 <= predSegments['yLocs'][predIndex][1] <= 93.0)) :
+		print "Real XLocs: ", realSegXLoc, "   Rounded: ", int(round(realSegXLoc[1] * 1000., 1))
+		print "Pred XLocs: ", predSegments['xLocs'][predIndex], "   Rounded: ", int(round(predSegments['xLocs'][predIndex][1] * 1000., 1))
+		print "Real YLocs: ", realSegYLoc, "   Rounded: ", int(round(realSegYLoc[1] * 1000., 1))
+		print "Pred XLocs: ", predSegments['yLocs'][predIndex], "   Rounded: ", int(round(predSegments['yLocs'][predIndex][1] * 1000., 1))
+	    """
+
+
+		
 	    if (is_eq(realSegXLoc[0], predSegments['xLocs'][predIndex][0]) and
 	        is_eq(realSegXLoc[1], predSegments['xLocs'][predIndex][1]) and
 	        is_eq(realSegYLoc[0], predSegments['yLocs'][predIndex][0]) and
@@ -327,4 +339,5 @@ def is_eq(val1, val2) :
 
     TODO: Come up with a better way!
     """
-    return int(round(val1 * 100, 1)) == int(round(val2 * 100, 1))
+#    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
+    return math.fabs(val1 - val2) <= 0.0001

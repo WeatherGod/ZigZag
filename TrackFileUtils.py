@@ -8,10 +8,10 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
     for (index, track) in enumerate(tracks) :
         dataFile.write("%d %d\n" % (index, len(track['xLocs'])))
 	for (xLoc, yLoc, frameNum) in zip(track['xLocs'], track['yLocs'], track['frameNums']) :
-	    dataFile.write("M %f %f 0.0 0.0 0.0 0 %d CONSTANT VELOCITY\n" % (xLoc, yLoc, frameNum))
+	    dataFile.write("M %.10f %.10f 0.0 0.0 0.0 0 %d CONSTANT VELOCITY\n" % (xLoc, yLoc, frameNum))
 
     for false_alarm in falarms :
-	dataFile.write("%f %f %d\n" % (false_alarm['xLocs'][0], false_alarm['yLocs'][0], false_alarm['frameNums'][0]))
+	dataFile.write("%.10f %.10f %d\n" % (false_alarm['xLocs'][0], false_alarm['yLocs'][0], false_alarm['frameNums'][0]))
         
     dataFile.close()
 
@@ -81,7 +81,7 @@ def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
     for (frameNo, aVol) in enumerate(volume_data) :
         outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write("%f %f " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
+            outFile.write("%.10f %.10f " % (strmCell['xLoc'], strmCell['yLoc']) + ' '.join(['0'] * 25) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
 

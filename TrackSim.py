@@ -92,8 +92,8 @@ def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
 		    len(tracks[trackID1]['frameNums']) > 3 and len(tracks[trackID2]['frameNums']) > 2 and
 		    random.uniform(0., 1.) * (distMatrix[index1, index2] / noise_params['false_merge_dist']) < noise_params['false_merge_prob']) :
 
-		    print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
-		    print tracks[trackID1]['frameNums']
+		    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
+		    #print tracks[trackID1]['frameNums']
 		    strmID = tracks[trackID1]['frameNums'].index(aVol['volTime'])
 		    for aKey in tracks[trackID1] :
 			if aKey != 'trackID' : tracks[trackID1][aKey][strmID] = None
