@@ -3,7 +3,7 @@
 import random
 from TrackFileUtils import *		# for writing the track data
 from TrackUtils import *		# for ClipTracks(), CreateVolData(), and CleanupTracks()
-from SimUtils import *			# for SaveSimulationParams()
+import SimUtils 			# for SaveSimulationParams(), SetupParser(), ReadSimulationParams()
 import numpy
 import copy				# for deep copying
 import math				# for cos(), sin(), and pi
@@ -127,10 +127,10 @@ def TrackSim(simParams, simName) :
 							      {'false_merge_dist': simParams['false_merge_dist'], 
 							       'false_merge_prob': simParams['false_merge_prob']})
 
-    if (not os.path.exists(simName)) :
-        os.makedirs(simName)
-        # TODO: Automatically build this file, instead!
-        os.system("cp ./Parameters %s/Parameters" % simName)
+    #if (not os.path.exists(simName)) :
+    #    os.makedirs(simName)
+    # TODO: Automatically build this file, instead!
+    os.system("cp ./Parameters %s/Parameters" % simName)
 
 
 
@@ -149,9 +149,16 @@ if __name__ == '__main__' :
     parser.add_option("-s", "--sim", dest="simName",
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
+    SimUtils.SetupParser(parser)
 
     (options, args) = parser.parse_args()
 
+    simParams = SimUtils.ParamsFromOptions(options)
+
+    if (not os.path.exists(options.simName)) :
+        os.makedirs(options.simName)
+
+    """
     simParams = dict(corner_filestem = os.sep.join([options.simName, "corners"]),
 		     inputDataFile = os.sep.join([options.simName, "InDataFile"]),
 		     simTrackFile = os.sep.join([options.simName, "true_tracks"]),
@@ -172,10 +179,10 @@ if __name__ == '__main__' :
 		     #theSeed = 43074
 		     theSeed = random.randint(0, 99999)
                     )
-
+    """
     #print simParams
 
-    simParams['tLims'] = [1, simParams['frameCnt']]
+    #simParams['tLims'] = [1, simParams['frameCnt']]
     print "The Seed: ", simParams['theSeed']
 
     random.seed(simParams['theSeed'])
@@ -183,4 +190,4 @@ if __name__ == '__main__' :
 
     TrackSim(simParams, options.simName)
 
-    SaveSimulationParams(os.sep.join([options.simName, "simParams"]), simParams)
+    SimUtils.SaveSimulationParams(os.sep.join([options.simName, "simParams"]), simParams)

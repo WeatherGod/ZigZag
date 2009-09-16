@@ -33,10 +33,10 @@ if __name__ == "__main__" :
     parser.add_option("-s", "--sim", dest="simName",
                       help="Generate Tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
-
+    #SetupSimParser(parser)
     (options, args) = parser.parse_args()
 
-    simParams = ReadSimulationParams(options.simName)
+    simParams = ReadSimulationParams(os.sep.join([options.simName, "simParams"]))
 
     DoTracking(simParams, options.simName)
 

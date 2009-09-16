@@ -340,4 +340,4 @@ def is_eq(val1, val2) :
     TODO: Come up with a better way!
     """
 #    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
-    return math.fabs(val1 - val2) <= 0.0001
+    return math.fabs(val1 - val2) < 0.000000001

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from TrackSim import TrackSim
-from SimUtils import SaveSimulationParams
+from SimUtils import *			# for SaveSimulationParams, SetupSimParser,
+					# ParamsFromOptions
 from DoTracking import DoTracking
 from TrackFileUtils import *
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), 
@@ -12,22 +13,20 @@ import random
 
 
 parser = OptionParser()
-parser.add_option("-s", "--sim", dest="simName",
+parser.add_option("-s", "--sim", dest="simName", type = "string",
                   help="Generate Tracks for SIMNAME",
                   metavar="SIMNAME", default="NewSim")
-# TODO: Force to be an integer.
-parser.add_option("-n", "--num", dest="simCnt",
+parser.add_option("-n", "--num", dest="simCnt", type = "int",
 		  help="Repeat Simulation N times.",
 		  metavar="N", default=1)
+SetupParser(parser)
 
 (options, args) = parser.parse_args()
 
-options.simCnt = int(options.simCnt)
-
 if options.simCnt <= 0 :
-    print "ERROR: Invalid count: %d" % (options.simCnt)
+    parser.error("ERROR: Invalid N value: %d" % (options.simCnt))
 
-
+"""
 simParams = dict(corner_filestem = os.sep.join(["%s", "corners"]),
                  inputDataFile = os.sep.join(["%s", "InDataFile"]),
                  simTrackFile = os.sep.join(["%s", "true_tracks"]),
@@ -47,32 +46,43 @@ simParams = dict(corner_filestem = os.sep.join(["%s", "corners"]),
 		 #theSeed = 16315
                  theSeed = random.randint(0, 99999)
                 )
+"""
 
-simParams['tLims'] = [1, simParams['frameCnt']]
-print "The Seed: ", simParams['theSeed']
+#simParams['tLims'] = [1, simParams['frameCnt']]
+#print "The Seed: ", simParams['theSeed']
 
 
 
-random.seed(simParams['theSeed'])
+
 
 theTrackers = ("MHT", "SCIT")
 
 skillScores = {'MHT': [], 'SCIT': []}
 
 for index in range(0, options.simCnt) :
-    simName = options.simName + ("_%.3d" % (index))
+    
+    simName = options.simName + ("%s%.3d" % (os.sep, index))
+    simParams = ParamsFromOptions(options, simName = simName)
+
+    if (not os.path.exists(simName)) :
+        os.makedirs(simName)
+
+
+    SaveSimulationParams(os.sep.join([simName, 'simParams.txt']), simParams)
+    """
     simParams_mod = simParams.copy()
     for aKey in ('simTrackFile', 'inputDataFile', 'corner_filestem', 'noisyTrackFile', 'result_filestem') :
 	simParams_mod[aKey] = simParams_mod[aKey] % (simName)
+    """
     
-    TrackSim(simParams_mod, simName)
-    SaveSimulationParams(os.sep.join([simName, 'simParams.txt']), simParams)
-    DoTracking(simParams_mod, simName)
-    (true_tracks, true_falarms) = ReadTracks(simParams_mod['noisyTrackFile'])
+    TrackSim(simParams, simName)
+
+    DoTracking(simParams, simName)
+    (true_tracks, true_falarms) = ReadTracks(simParams['noisyTrackFile'])
     true_segs = CreateSegments(true_tracks['tracks'], true_falarms)
 
     for aTracker in theTrackers :
-        (finalTracks, finalFAlarms) = ReadTracks(simParams_mod['result_filestem'] + '_' + aTracker)
+        (finalTracks, finalFAlarms) = ReadTracks(simParams['result_filestem'] + '_' + aTracker)
         (finalTracks, finalFAlarms) = FilterMHTTracks(finalTracks, finalFAlarms)
         
         trackerSegs = CreateSegments(finalTracks, finalFAlarms)
@@ -91,3 +101,4 @@ print "------------------------"
 print "%7.4f    %7.4f    %5.3f" % (sum(skillScores['MHT'])/options.simCnt,
 				   sum(skillScores['SCIT'])/options.simCnt,
 				   float(winCnt) / options.simCnt)
+
