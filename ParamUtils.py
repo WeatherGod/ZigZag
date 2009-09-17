@@ -20,32 +20,60 @@ def SaveSimulationParams(simParamName, simParams) :
 
     simParamFile.write("simTrackFile = " + simParams['simTrackFile'] + "\n")
     simParamFile.write("noisyTrackFile = " + simParams['noisyTrackFile'] + "\n")
+    simParamFile.write("trackers = " + ' '.join(simParams['trackers']) + "\n")
 
     simParamFile.close()
 
 def ReadSimulationParams(simParamName) :
+
+    # TODO: It is still possible for a file to have missing parameters,
+    #       which would cause this function to return an incomplete
+    #	    set of parameters.  This can be solved by having this function
+    #       Initialize with a set of default values for all of the keys,
+    #	    however, currently, the defaults are held by the command-line
+    #	    system.
+    #	    Maybe I should have some sort of internal param list that contains
+    #	    the complete list of keys, and default values that ALL functions
+    #	    can use as the default list, in order to maintain consistency.
     simParams = {}
     for aLine in open(simParamName, 'r') :
+        # Split string by the equal sign.
 	lineSplit = aLine.split('=')
-	keyVal = lineSplit[0].strip()
-	assignVal = ''.join(lineSplit[1:]).strip()
+        # The first field will be the key name (stripped of whitespace)
+	keyName = lineSplit[0].strip()
+        # The rest of the fields (in case there is an equal sign somewhere else)
+	#     are reconstructed back together, with whitespace stripped AFTER
+        #     the reconstruction.  This produces a key/value pair.
+	assignVal = '='.join(lineSplit[1:]).strip()
 
-	if (keyVal == 'seed' or keyVal == 'frameCnt' or keyVal == 'totalTracks') :
+	if (keyName == 'seed' or keyName == 'frameCnt' or keyName == 'totalTracks') :
+	    # Grab single integer
 	    assignVal = int(assignVal)
-	elif (keyVal == 'speed_variance' or keyVal == 'mean_dir' or 
-	      keyVal == 'angle_variance' or keyVal == 'endTrackProb' or
-	      keyVal == 'false_merge_dist' or keyVal == 'false_merge_prob') :
+	elif (keyName == 'speed_variance' or keyName == 'mean_dir' or 
+	      keyName == 'angle_variance' or keyName == 'endTrackProb' or
+	      keyName == 'false_merge_dist' or keyName == 'false_merge_prob') :
+            # Grab single float
 	    assignVal = float(assignVal)
-	elif (keyVal == 'xLims' or keyVal == 'yLims' or keyVal == 'speedLims') :
-	    assignVal = map(float, assignVal.strip().split())
+	elif (keyName == 'xLims' or keyName == 'yLims' or keyName == 'speedLims') :
+            # Grab array of floats, from a spliting by whitespace
+	    assignVal = map(float, assignVal.split())
+	elif (keyName == 'trackers') :
+	    # Grab array of strings, from a spliting by whitespace
+	    assignVal = assignVal.split()
+	    
 
-	simParams[keyVal] = assignVal
+	simParams[keyName] = assignVal
     
     return simParams
 
 def SetupParser(parser) :
     group = OptionGroup(parser, "Simulation Options",
 			"Options for controlling the track simulation.")
+
+    group.add_option("-t", "--tracker", dest="trackers", type="string",
+		     action="append",
+		     help="Tracking algorithms to use, in addition to SCIT.  (Ex: MHT)",
+		     metavar="TRACKER", default = ['SCIT'])
     
     group.add_option("--frames", dest="frameCnt", type="int",
 		     help="Operate for N frames. (default: %default)",
@@ -82,7 +110,6 @@ def SetupParser(parser) :
     group.add_option("--fmerge_prob", dest="false_merge_prob", type="float",
 		     help="Probability of false merger for tracks within the DIST threshold. (default: %default)",
 		     metavar="PROB", default=0.)
-
     group.add_option("--xlims", dest="xLims", type="float",
 		     nargs = 2,
 		     help="Domain limits in x-axis. (default: %default)", 
@@ -98,8 +125,9 @@ def SetupParser(parser) :
 
     parser.add_option_group(group)
 
+    # TODO: Likely will end up in a separate module, or portion
     group2 = OptionGroup(parser, "Tracker Options",
-                        "Options for controlling the trackers.")
+                         "Options for controlling the trackers.")
     group2.add_option("--corner", dest="corner_filestem", type="string",
 		      help="Corner filename stem. (default = %default)",
 		      metavar="CORNER", default=os.sep.join(["%s", "corners"]))
@@ -115,14 +143,18 @@ def SetupParser(parser) :
 
 
 def ParamsFromOptions(options, simName = None) :
+    # NOTE: I do NOT modify the contents of the
+    #       options object! This is important for
+    #       reusability within a multi-simulation program.
+    #       Treat options like a const.
     if simName is None : simName = options.simName
 
+    # Error checking
     if options.frameCnt <= 0 :
         parser.error("ERROR: Invalid FrameCnt value: %d" % (options.frameCnt))
 
     if options.totalTracks <= 0 :
         parser.error("ERROR: Invalid TrackCnt value: %d" % (options.totalTracks))
-
 
     if options.false_merge_dist <= 0. :
         parser.error("ERROR: False Merge Dist must be positive! Value: %d" % (options.false_merge_dist))
@@ -133,12 +165,30 @@ def ParamsFromOptions(options, simName = None) :
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
+    # NOTE: The default value for these two strings contain
+    #       a '%s' in the string.  This will allow for the
+    #       simulation name to be used as a part of the filenames.
+    #       The user, of course, can choose not to use it.
+    # TODO: I can't seem to figure out a generic way to make this work without an 'if/else' statement...
+    if (options.simTrackFile.find('%s') >= 0) : simTrackFile = options.simTrackFile % simName * options.simTrackFile.count('%s')
+    else : simTrackFile = options.simTrackFile
+
+    if (options.noisyTrackFile.find('%s') >= 0) :
+        noisyTrackFile = options.noisyTrackFile % simName * options.noisyTrackFile.count('%s')
+    else :
+        noisyTrackFile = options.noisyTrackFile
+
+    # TODO: Some of these key/values are temporary.
+    #       I will be transistioning to having each tracker
+    #	    with its own parameterization file and controls.
     return dict(corner_filestem = options.corner_filestem % simName,
 		inputDataFile = options.inputDataFile % simName,
 		result_filestem = options.result_filestem % simName,
 
-		simTrackFile = options.simTrackFile % simName,
-                noisyTrackFile = options.noisyTrackFile % simName,
+		simTrackFile = simTrackFile,
+		noisyTrackFile = noisyTrackFile,
+		trackers = options.trackers,
+
                 frameCnt = options.frameCnt,
                 totalTracks = options.totalTracks,
                 speed_variance = options.speed_variance,

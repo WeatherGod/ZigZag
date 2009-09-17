@@ -3,13 +3,13 @@
 import random
 from TrackFileUtils import *		# for writing the track data
 from TrackUtils import *		# for ClipTracks(), CreateVolData(), and CleanupTracks()
-import SimUtils 			# for SaveSimulationParams(), SetupParser(), ReadSimulationParams()
+import ParamUtils 			# for SaveSimulationParams(), SetupParser()
 import numpy
 import copy				# for deep copying
 import math				# for cos(), sin(), and pi
 
 
-import os				# for os.sep.join(), os.makedirs(), os.path.exists()
+import os				# for os.sep, os.makedirs(), os.path.exists()
 
 
 
@@ -127,8 +127,6 @@ def TrackSim(simParams, simName) :
 							      {'false_merge_dist': simParams['false_merge_dist'], 
 							       'false_merge_prob': simParams['false_merge_prob']})
 
-    #if (not os.path.exists(simName)) :
-    #    os.makedirs(simName)
     # TODO: Automatically build this file, instead!
     os.system("cp ./Parameters %s/Parameters" % simName)
 
@@ -138,7 +136,7 @@ def TrackSim(simParams, simName) :
     SaveTracks(simParams['noisyTrackFile'], fake_tracks, fake_falarms)
     SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], fake_volData)
 
-
+    return(fake_tracks, fake_falarms)
 
 
 
@@ -149,45 +147,22 @@ if __name__ == '__main__' :
     parser.add_option("-s", "--sim", dest="simName",
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
-    SimUtils.SetupParser(parser)
+    ParamUtils.SetupParser(parser)
 
     (options, args) = parser.parse_args()
 
-    simParams = SimUtils.ParamsFromOptions(options)
+    simParams = ParamUtils.ParamsFromOptions(options)
 
-    if (not os.path.exists(options.simName)) :
-        os.makedirs(options.simName)
-
-    """
-    simParams = dict(corner_filestem = os.sep.join([options.simName, "corners"]),
-		     inputDataFile = os.sep.join([options.simName, "InDataFile"]),
-		     simTrackFile = os.sep.join([options.simName, "true_tracks"]),
-		     noisyTrackFile = os.sep.join([options.simName, "noise_tracks"]),
-		     result_filestem = os.sep.join([options.simName, "testResults"]),
-		     frameCnt = 12,
-		     totalTracks = 30,
-		     speed_variance = 1.5,
-		     mean_dir = 50.0,
-		     angle_variance = 20.0,
-		     endTrackProb = 0.1,
-		     xLims = [0., 255.],
-		     yLims = [0., 255.],
-		     speedLims = [5, 25],
-		     false_merge_dist = 15.,
-		     false_merge_prob = 0.3,
-		     #theSeed = 92395
-		     #theSeed = 43074
-		     theSeed = random.randint(0, 99999)
-                    )
-    """
-    #print simParams
-
-    #simParams['tLims'] = [1, simParams['frameCnt']]
     print "The Seed: ", simParams['theSeed']
 
+    # Seed the PRNG
     random.seed(simParams['theSeed'])
 
-
+    # Create the simulation directory.
+    if (not os.path.exists(options.simName)) :
+        os.makedirs(options.simName)
+    
+    ParamUtils.SaveSimulationParams(options.simName + os.sep + "simParams", simParams)
     TrackSim(simParams, options.simName)
 
-    SimUtils.SaveSimulationParams(os.sep.join([options.simName, "simParams"]), simParams)
+
