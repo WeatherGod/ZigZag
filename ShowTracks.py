@@ -27,18 +27,26 @@ fileList = glob.glob(outputResults + "_MHT" + "*")
 if len(fileList) == 0 : print "WARNING: No files found for '" + outputResults + "_MHT" + "'"
 fileList.sort()
 
-(true_tracks, true_falarms) = ReadTracks(simTrackFile)
-(finalmhtTracks, mhtFAlarms) = ReadTracks(fileList.pop(0))
-(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
-(xLims, yLims, tLims) = DomainFromTracks(true_tracks['tracks'])
+(true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simTrackFile))
+(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(*ReadTracks(fileList.pop(0)))
+#(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
+(xLims, yLims, tLims) = DomainFromTracks(true_tracks, true_falarms)
+print tLims
 
 
-true_segs = CreateSegments(true_tracks['tracks'], true_falarms)
-mht_segs = CreateSegments(finalmhtTracks, mhtFAlarms)
+true_AssocSegs = CreateSegments(true_tracks)
+true_FAlarmSegs = CreateSegments(true_falarms)
+print "True FAlarms: "
+print true_FAlarmSegs
+mht_AssocSegs = CreateSegments(finalmhtTracks)
+mht_FAlarmSegs = CreateSegments(mhtFAlarms)
+print "\n\nMHT FAlarms: "
+print mht_FAlarmSegs
 
 
-
-truthtable_mht = CompareSegments(true_segs, true_falarms, mht_segs, mhtFAlarms)
+print "\n\nComparing Against MHT"
+truthtable_mht = CompareSegments(true_AssocSegs, true_FAlarmSegs,
+				 mht_AssocSegs, mht_FAlarmSegs)
 
 pylab.figure(figsize=(12, 6))
 curAxis = pylab.subplot(121)
@@ -66,10 +74,15 @@ for (index, trackFile_MHT) in enumerate(fileList) :
     pylab.clf()
 """
 
-(scitTracks, scitFAlarms) = ReadTracks(trackFile_scit)
 
-scit_segs = CreateSegments(scitTracks['tracks'], scitFAlarms)
-compareResults_scit = CompareSegments(true_segs, true_falarms, scit_segs, scitFAlarms)
+(scitTracks, scitFAlarms) = FilterMHTTracks(*ReadTracks(trackFile_scit))
+
+scit_AssocSegs = CreateSegments(scitTracks)
+scit_FAlarmSegs = CreateSegments(scitFAlarms)
+print scit_FAlarmSegs
+print "\n\nComparing Against SCIT"
+compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
+				      scit_AssocSegs, scit_FAlarmSegs)
 
 curAxis = pylab.subplot(122)
 

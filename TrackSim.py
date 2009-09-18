@@ -25,10 +25,12 @@ def IncrementPoint(dataPoint, deltaT, pos_noise, speed_noise) :
 
 def TracksGenerator(trackCnt, tLims, xLims, yLims, speedLims,
 		    speed_variance, meanAngle, angle_variance, prob_track_ends) :
-    return([dict(MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
-		           speedLims, speed_variance, prob_track_ends, 
-		           xLims, yLims),
-		 trackID = index) for index in range(trackCnt)])
+    theTracks = [dict(MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
+		                speedLims, speed_variance, prob_track_ends, 
+		                xLims, yLims),
+		      trackID = index) for index in range(trackCnt)]
+    theFAlarms = []
+    return(CleanupTracks(theTracks, theFAlarms))
 
 
 def MakePoint(tLims, xLocLims, yLocLims, angleLims, speedLims) :
@@ -117,10 +119,10 @@ def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
     return(tracks, falarms, volData)
 
 def TrackSim(simParams, simName) :
-    true_tracks = TracksGenerator(simParams['totalTracks'], simParams['tLims'], simParams['xLims'], simParams['yLims'],
-			          simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
-			          simParams['angle_variance'], simParams['endTrackProb'])
-    true_falarms = []
+    (true_tracks, true_falarms) = TracksGenerator(simParams['totalTracks'],
+						  simParams['tLims'], simParams['xLims'], simParams['yLims'],
+			          		  simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
+			          		  simParams['angle_variance'], simParams['endTrackProb'])
     (fake_tracks, fake_falarms) = ClipTracks(true_tracks, true_falarms, simParams['xLims'], simParams['yLims'], simParams['tLims'])
     volume_data = CreateVolData(fake_tracks, fake_falarms, simParams['tLims'], simParams['xLims'], simParams['yLims'])
     (fake_tracks, fake_falarms, fake_volData) = DisturbTracks(fake_tracks, fake_falarms, volume_data, 
@@ -132,11 +134,11 @@ def TrackSim(simParams, simName) :
 
 
 
-    SaveTracks(simParams['simTrackFile'], true_tracks, true_falarms)
-    SaveTracks(simParams['noisyTrackFile'], fake_tracks, fake_falarms)
-    SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], fake_volData)
 
-    return(fake_tracks, fake_falarms)
+
+    return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
+	    'noisy_tracks': fake_tracks, 'noisy_falarms': fake_falarms,
+	    'true_volumes': volume_data, 'noisy_volumes': fake_volData}
 
 
 
@@ -162,7 +164,14 @@ if __name__ == '__main__' :
     if (not os.path.exists(options.simName)) :
         os.makedirs(options.simName)
     
+
+
+    theSimulation = TrackSim(simParams, options.simName)
+
+
     ParamUtils.SaveSimulationParams(options.simName + os.sep + "simParams", simParams)
-    TrackSim(simParams, options.simName)
+    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
+    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+    SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], theSimulation['noisy_volumes'])
 
 

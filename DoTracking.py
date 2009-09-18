@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from TrackFileUtils import *		# for writing track files, and reading corner files
-from SimUtils import *			# for reading simParams files
+from ParamUtils import *			# for reading simParams files
 import scit
 
 import os                               # for os.sep.join(), os.system()

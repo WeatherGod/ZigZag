@@ -83,7 +83,7 @@ def CleanupTracks(tracks, falarms) :
     for trackID in range(len(tracks)) :
         for aKey in tracks[trackID] : 
 	    if aKey != "trackID" : tracks[trackID][aKey] = [someVal for someVal in tracks[trackID][aKey] if someVal is not None]
-	    else : tracks[trackID]['trackID'] -= modifyTrackID
+	    else : tracks[trackID][aKey] -= modifyTrackID
 	
 	# move any length-1 tracks to the falarms category
 	if len(tracks[trackID]['frameNums']) == 1 :
@@ -100,7 +100,7 @@ def CleanupTracks(tracks, falarms) :
 	    tracks[trackID] = None
         
 
-
+    # Rebuild track list
     tracks = [aTrack for aTrack in tracks if aTrack is not None]
 #    print "Length of tracks: ", len(tracks)
     return(tracks, falarms)
@@ -108,23 +108,16 @@ def CleanupTracks(tracks, falarms) :
 
 
 
-def CreateSegments(tracks, falarms) :
+def CreateSegments(tracks) :
     """
-    Breaks up a track into parallel arrays of locations in 2D space and time.
-    Each element in the arrays represents the start and end point of the segment.
-
-    Note that any track that is of length 1 will be considered a 'false alarm',
-    and the falarms array will be updated accordingly.
+    Breaks up a list of the tracks (or falarms) into an array of segments.
+    Each element in the arrays represents the start and end point of a segment.
     """
 
     xLocs = []
     yLocs = []
     frameNums = []
     for aTrack in tracks :
-        # Length-1 and Length-0 tracks shouldn't happen,
-	# but there is nothing stopping it, so in case it does, modify falarms.
-	# TODO: This does modify falarms without a corresponding
-	#       change to tracks.  This could be a BIG problem...
         if len(aTrack['frameNums']) > 1 :
             for index2 in range(1, len(aTrack['frameNums'])) :
                 index1 = index2 - 1
@@ -132,9 +125,9 @@ def CreateSegments(tracks, falarms) :
                 yLocs.append([aTrack['yLocs'][index1], aTrack['yLocs'][index2]])
                 frameNums.append([aTrack['frameNums'][index1], aTrack['frameNums'][index2]])
 	else :
-	    #print "Appending: ", aTrack['xLocs'], aTrack['frameNums']
-	    aTrack['trackID'] = -1
-	    falarms.append(aTrack)
+	    xLocs.append(aTrack['xLocs'])
+	    yLocs.append(aTrack['yLocs'])
+	    frameNums.append(aTrack['frameNums'])
 
 
     return {'xLocs': xLocs, 'yLocs': yLocs, 'frameNums': frameNums}
@@ -162,7 +155,7 @@ def PrintTruthTable(truthTable) :
        len(truthTable['falarms_Wrong']['xLocs']), len(truthTable['falarms_Correct']['xLocs']))
 
 
-def CompareSegments(realSegments, realFAlarms, predSegments, predFAlarms) :
+def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     """
     This function will compare the line segments and false alarm points and
     categorize them based upon a truth table.  The truth table will determine
@@ -182,38 +175,39 @@ def CompareSegments(realSegments, realFAlarms, predSegments, predFAlarms) :
     assocs_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
     falarms_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
 
-    unmatchedPredSegs = range(len(predSegments['xLocs']))
+    seekX = 246.0
+    seekY = 63.0
 
-    for (realSegXLoc, realSegYLoc, realSegFrameNum) in zip(realSegments['xLocs'], 
-							   realSegments['yLocs'], 
-							   realSegments['frameNums']) :
+    unmatchedPredTrackSegs = range(len(predSegs['xLocs']))
+
+    for (realSegXLoc, realSegYLoc, realSegFrameNum) in zip(realSegs['xLocs'], 
+							   realSegs['yLocs'], 
+							   realSegs['frameNums']) :
 	foundMatch = False
-	for predIndex in unmatchedPredSegs :
+	for predIndex in unmatchedPredTrackSegs :
 	    """
-	    if ((120.0 <= realSegXLoc[1] <= 121.0) and (92.0 <= realSegYLoc[1] <= 93.0)
-		and (120.0 <= predSegments['xLocs'][predIndex][1] <= 121.0)
-		and (92.0 <= predSegments['yLocs'][predIndex][1] <= 93.0)) :
-		print "Real XLocs: ", realSegXLoc, "   Rounded: ", int(round(realSegXLoc[1] * 1000., 1))
-		print "Pred XLocs: ", predSegments['xLocs'][predIndex], "   Rounded: ", int(round(predSegments['xLocs'][predIndex][1] * 1000., 1))
-		print "Real YLocs: ", realSegYLoc, "   Rounded: ", int(round(realSegYLoc[1] * 1000., 1))
-		print "Pred XLocs: ", predSegments['yLocs'][predIndex], "   Rounded: ", int(round(predSegments['yLocs'][predIndex][1] * 1000., 1))
+	    if ((seekX <= realSegXLoc[0] <= 247.0) and (seekY <= realSegYLoc[1] <= seekY + 1.)
+		and (seekX <= predSegs['xLocs'][predIndex][0] <= seekX + 1.)
+		and (seekY <= predSegs['yLocs'][predIndex][0] <= seekY + 1.)) :
+		print "Real XLocs: ", realSegXLoc
+		print "Pred XLocs: ", predSegs['xLocs'][predIndex]
+		print "Real YLocs: ", realSegYLoc
+		print "Pred YLocs: ", predSegs['yLocs'][predIndex]
 	    """
-
-
 		
-	    if (is_eq(realSegXLoc[0], predSegments['xLocs'][predIndex][0]) and
-	        is_eq(realSegXLoc[1], predSegments['xLocs'][predIndex][1]) and
-	        is_eq(realSegYLoc[0], predSegments['yLocs'][predIndex][0]) and
-	        is_eq(realSegYLoc[1], predSegments['yLocs'][predIndex][1]) and
-	        realSegFrameNum[0] == predSegments['frameNums'][predIndex][0] and
-	        realSegFrameNum[1] == predSegments['frameNums'][predIndex][1]) :
+	    if (is_eq(realSegXLoc[0], predSegs['xLocs'][predIndex][0]) and
+	        is_eq(realSegXLoc[1], predSegs['xLocs'][predIndex][1]) and
+	        is_eq(realSegYLoc[0], predSegs['yLocs'][predIndex][0]) and
+	        is_eq(realSegYLoc[1], predSegs['yLocs'][predIndex][1]) and
+	        realSegFrameNum[0] == predSegs['frameNums'][predIndex][0] and
+	        realSegFrameNum[1] == predSegs['frameNums'][predIndex][1]) :
 
 
-		assocs_Correct['xLocs'].append(predSegments['xLocs'][predIndex])
-		assocs_Correct['yLocs'].append(predSegments['yLocs'][predIndex])
-		assocs_Correct['frameNums'].append(predSegments['frameNums'][predIndex])
+		assocs_Correct['xLocs'].append(predSegs['xLocs'][predIndex])
+		assocs_Correct['yLocs'].append(predSegs['yLocs'][predIndex])
+		assocs_Correct['frameNums'].append(predSegs['frameNums'][predIndex])
 		# To make sure that I don't compare against that item again.
-		del unmatchedPredSegs[unmatchedPredSegs.index(predIndex)]
+		del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
 		foundMatch = True
 		# Break out of this loop...
 		break
@@ -227,33 +221,66 @@ def CompareSegments(realSegments, realFAlarms, predSegments, predFAlarms) :
 
     # Anything left from the predicted segments must be unmatched with reality,
     # therefore, these segments belong in the "assocs_Wrong" array.
-    for index in unmatchedPredSegs :
-        #print predSegments['xLocs'][index], predSegments['frameNums'][index]
-        assocs_Wrong['xLocs'].append(predSegments['xLocs'][index])
-        assocs_Wrong['yLocs'].append(predSegments['yLocs'][index])
-        assocs_Wrong['frameNums'].append(predSegments['frameNums'][index])
+    for index in unmatchedPredTrackSegs :
+        #print predSegs['xLocs'][index], predSegs['frameNums'][index]
+        assocs_Wrong['xLocs'].append(predSegs['xLocs'][index])
+        assocs_Wrong['yLocs'].append(predSegs['yLocs'][index])
+        assocs_Wrong['frameNums'].append(predSegs['frameNums'][index])
 
-    unmatchedPredFAlarms = range(len(predFAlarms))
-    for realFAlarm in realFAlarms :
+
+    # Now for the falarms...
+    """
+    print "PredFAlarmSegs: "
+    for predFAlarm in zip(predFAlarmSegs['xLocs'],
+						  predFAlarmSegs['yLocs'],
+						  predFAlarmSegs['frameNums']) :
+	print predFAlarm
+    """
+    unmatchedPredFAlarms = range(len(predFAlarmSegs['xLocs']))
+    for (realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum) in zip(realFAlarmSegs['xLocs'],
+					                            realFAlarmSegs['yLocs'],
+					                            realFAlarmSegs['frameNums']):
 	foundMatch = False
 	for predIndex in unmatchedPredFAlarms :
-	    if (is_eq(realFAlarm['xLocs'][0], predFAlarms[predIndex]['xLocs'][0]) and
-		is_eq(realFAlarm['yLocs'][0], predFAlarms[predIndex]['yLocs'][0]) and
-		realFAlarm['frameNums'][0] == predFAlarms[predIndex]['frameNums'][0]) :
+	    """
+	    if ((seekX <= realFAlarmXLoc[0] <= seekX + 1.) and (seekY <= realFAlarmYLoc[0] <= seekY + 1.)
+		and (seekX <= predFAlarmSegs['xLocs'][predIndex][0] <= seekX + 1.)
+		and (seekY <= predFAlarmSegs['yLocs'][predIndex][0] <= seekY + 1.)) :
+		print "Real XLocs: ", realFAlarmXLoc
+		print "Pred XLocs: ", predFAlarmSegs['xLocs'][predIndex]
+		print "Real YLocs: ", realFAlarmYLoc
+		print "Pred YLocs: ", predFAlarmSegs['yLocs'][predIndex]
+		print "Real Frame: ", realFAlarmFrameNum, "   Pred Frame: ", predFAlarmSegs['frameNums'][predIndex]
+	    """
+	    if (is_eq(realFAlarmXLoc[0], predFAlarmSegs['xLocs'][predIndex][0]) and
+		is_eq(realFAlarmYLoc[0], predFAlarmSegs['yLocs'][predIndex][0]) and
+		realFAlarmFrameNum[0] == predFAlarmSegs['frameNums'][predIndex][0]) :
 		
-		falarms_Correct['xLocs'].append(realFAlarm['xLocs'])
-		falarms_Correct['yLocs'].append(realFAlarm['yLocs'])
-		falarms_Correct['frameNums'].append(realFAlarm['frameNums'])
+		falarms_Correct['xLocs'].append(realFAlarmXLoc)
+		falarms_Correct['yLocs'].append(realFAlarmYLoc)
+		falarms_Correct['frameNums'].append(realFAlarmFrameNum)
 		# To make sure that I don't compare against that item again.
 		del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
+                #print "Deleting: ", predIndex
 		foundMatch = True
 		# Break out of this loop
 		break
 
 	# This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
+        # Well... technically, it just means that the tracking algorithm did not declare it
+        #         as a false alarm.  Maybe it did not declare it as anything?
 	# TODO: Not sure if there is anything I want to do about these for now...
-	#       They might already be accounted for earlier.
+	#       They might already have been accounted for earlier.
+        if not foundMatch :
+            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
 
+    # Anything left from the predicted non-associations are unmatched with reality.
+    # therefore, these segments belong in the "falarms_Wrong" array.
+    # NOTE: however, these might have already been accounted for...
+    for index in unmatchedPredFAlarms :
+	print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
+    print "assocs_Wrong: ", assocs_Wrong
+    print "falarms_Wrong: ", falarms_Wrong
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
 	    'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
 
@@ -307,12 +334,10 @@ Forecasted
 
 def FilterMHTTracks(raw_tracks, raw_falarms) :
     """
-    This function is meant to deal with the special
-    entries in the track file produced by the MHT algorithm.
-    These track elements are for when the track is "coasting"
-    for a frame.
-
-    These track elements are removed for our purposes.
+    This function will 'clean up' the track output from ReadTracks()
+    such that the tracks contain only the actual detected points.
+    Also, it will re-arrange the tracks in case there are any 1 or 0 length tracks
+    over to falarms.
     """
     tracks = copy.deepcopy(raw_tracks['tracks'])
     falarms = copy.deepcopy(raw_falarms)
@@ -328,7 +353,7 @@ def FilterMHTTracks(raw_tracks, raw_falarms) :
     return(tracks, falarms)
 
 
-def DomainFromTracks(tracks) :
+def DomainFromTracks(tracks, falarms) :
 
     minTrackX = []
     maxTrackX = []
@@ -345,6 +370,16 @@ def DomainFromTracks(tracks) :
         minTrackT.append(min(track['frameNums']))
         maxTrackT.append(max(track['frameNums']))
 
+
+    for falarm in falarms :
+        minTrackX.append(min(falarm['xLocs']))
+        maxTrackX.append(max(falarm['xLocs']))
+        minTrackY.append(min(falarm['yLocs']))
+        maxTrackY.append(max(falarm['yLocs']))
+        minTrackT.append(min(falarm['frameNums']))
+        maxTrackT.append(max(falarm['frameNums']))
+
+	
 
     return( [min(minTrackX), max(maxTrackX)],
             [min(minTrackY), max(maxTrackY)],
@@ -363,4 +398,4 @@ def is_eq(val1, val2) :
     TODO: Come up with a better way!
     """
 #    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
-    return math.fabs(val1 - val2) < 0.000000001
+    return math.fabs(val1 - val2) < 0.00000001

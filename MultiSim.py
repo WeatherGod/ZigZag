@@ -59,18 +59,21 @@ for index in range(0, options.simCnt) :
         os.makedirs(simName)
 
     SaveSimulationParams(os.sep.join([simName, 'simParams.conf']), simParams)
-    (theTracks, theFAlarms) = TrackSim(simParams, simName)
+    theSimulation = TrackSim(simParams, simName)
     DoTracking(simParams, simName)
 
-    true_segs = CreateSegments(theTracks, theFAlarms)
+    true_AssocSegs = CreateSegments(theSimulation['noisy_tracks'])
+    true_FAlarmSegs = CreateSegments(theSimulation['noisy_falarms'])
 
     for aTracker in simParams['trackers'] :
         (finalTracks, finalFAlarms) = ReadTracks(simParams['result_filestem'] + '_' + aTracker)
         (finalTracks, finalFAlarms) = FilterMHTTracks(finalTracks, finalFAlarms)
         
-        trackerSegs = CreateSegments(finalTracks, finalFAlarms)
+        trackerAssocSegs = CreateSegments(finalTracks)
+	trackerFAlarmSegs = CreateSegments(finalFAlarms)
 
-        truthTable = CompareSegments(true_segs, theFAlarms, trackerSegs, finalFAlarms)
+        truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs, 
+				     trackerAssocSegs, trackerFAlarmSegs)
 
 
         hss[aTracker].append(CalcHeidkeSkillScore(truthTable))
