@@ -271,16 +271,16 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
         #         as a false alarm.  Maybe it did not declare it as anything?
 	# TODO: Not sure if there is anything I want to do about these for now...
 	#       They might already have been accounted for earlier.
-        if not foundMatch :
-            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
+#        if not foundMatch :
+#            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
 
     # Anything left from the predicted non-associations are unmatched with reality.
     # therefore, these segments belong in the "falarms_Wrong" array.
     # NOTE: however, these might have already been accounted for...
-    for index in unmatchedPredFAlarms :
-	print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
-    print "assocs_Wrong: ", assocs_Wrong
-    print "falarms_Wrong: ", falarms_Wrong
+#    for index in unmatchedPredFAlarms :
+#	print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
+#    print "assocs_Wrong: ", assocs_Wrong
+#    print "falarms_Wrong: ", falarms_Wrong
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
 	    'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
 

@@ -31,20 +31,14 @@ fileList.sort()
 (finalmhtTracks, mhtFAlarms) = FilterMHTTracks(*ReadTracks(fileList.pop(0)))
 #(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
 (xLims, yLims, tLims) = DomainFromTracks(true_tracks, true_falarms)
-print tLims
 
 
 true_AssocSegs = CreateSegments(true_tracks)
 true_FAlarmSegs = CreateSegments(true_falarms)
-print "True FAlarms: "
-print true_FAlarmSegs
 mht_AssocSegs = CreateSegments(finalmhtTracks)
 mht_FAlarmSegs = CreateSegments(mhtFAlarms)
-print "\n\nMHT FAlarms: "
-print mht_FAlarmSegs
 
 
-print "\n\nComparing Against MHT"
 truthtable_mht = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 				 mht_AssocSegs, mht_FAlarmSegs)
 
@@ -79,8 +73,6 @@ for (index, trackFile_MHT) in enumerate(fileList) :
 
 scit_AssocSegs = CreateSegments(scitTracks)
 scit_FAlarmSegs = CreateSegments(scitFAlarms)
-print scit_FAlarmSegs
-print "\n\nComparing Against SCIT"
 compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 				      scit_AssocSegs, scit_FAlarmSegs)
 
@@ -102,11 +94,15 @@ for index in range(min(tLims), max(tLims) + 1) :
 
 print "      MHT"
 PrintTruthTable(truthtable_mht)
-print "HSS: ", CalcHeidkeSkillScore(truthtable_mht), "\n\n"
+print "HSS: ", CalcHeidkeSkillScore(truthtable_mht)
+print "TSS: ", CalcTrueSkillStatistic(truthtable_mht), "\n\n"
+
 
 print "     SCIT"
 PrintTruthTable(compareResults_scit)
-print "HSS: ", CalcHeidkeSkillScore(compareResults_scit), "\n\n"
+print "HSS: ", CalcHeidkeSkillScore(compareResults_scit)
+print "TSS: ", CalcTrueSkillStatistic(compareResults_scit), "\n\n"
+
 
 
 #pylab.savefig("%s/WorseTracking.png" % options.simName)

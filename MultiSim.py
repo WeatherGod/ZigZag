@@ -50,6 +50,7 @@ if options.simCnt <= 0 :
 
 hss = {'SCIT': [], 'MHT': []}
 tss = {'SCIT': [], 'MHT': []}
+checkSumProblem = {'SCIT': [], 'MHT': []}
 
 for index in range(0, options.simCnt) :
     simName = options.simName + ("%s%.3d" % (os.sep, index))
@@ -60,6 +61,12 @@ for index in range(0, options.simCnt) :
 
     SaveSimulationParams(os.sep.join([simName, 'simParams.conf']), simParams)
     theSimulation = TrackSim(simParams, simName)
+
+    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
+    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+    SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], theSimulation['noisy_volumes'])
+
+
     DoTracking(simParams, simName)
 
     true_AssocSegs = CreateSegments(theSimulation['noisy_tracks'])
@@ -74,15 +81,35 @@ for index in range(0, options.simCnt) :
 
         truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs, 
 				     trackerAssocSegs, trackerFAlarmSegs)
+        """
+        # Margin Sums
+        #a = len(truthTable['assocs_Correct']['xLocs']) + len(truthTable['assocs_Wrong']['xLocs'])
+        b = len(truthTable['falarms_Correct']['xLocs']) + len(truthTable['falarms_Wrong']['xLocs'])
+        #c = len(truthTable['assocs_Correct']['xLocs']) + len(truthTable['falarms_Wrong']['xLocs'])
+        d = len(truthTable['falarms_Correct']['xLocs']) + len(truthTable['assocs_Wrong']['xLocs'])
 
+        print b, len(finalFAlarms), d, len(theSimulation['noisy_falarms'])
 
+        checkSumProblem[aTracker].append([])
+
+	#if (len(trackerAssocSegs['xLocs']) != a) : checkSumProblem[aTracker][-1].append(1)
+	if (len(finalFAlarms) != b) : checkSumProblem[aTracker][-1].append(2)
+	#if (len(true_AssocSegs['xLocs']) != c) : checkSumProblem[aTracker][-1].append(3)
+	if (len(theSimulation['noisy_falarms']) != d) : checkSumProblem[aTracker][-1].append(4)
+        """
+        
         hss[aTracker].append(CalcHeidkeSkillScore(truthTable))
         tss[aTracker].append(CalcTrueSkillStatistic(truthTable))
 
 
 
 DisplaySkillScores(hss, "HSS")
-print "\n\n"
+print "\n"
 DisplaySkillScores(tss, "TSS")
+"""
+print "\n CheckSum Results"
+for (index, (mhtResult, scitResult)) in enumerate(zip(checkSumProblem['MHT'], checkSumProblem['SCIT'])) :
+    print "%.3d.  %14s %14s" % (index, str(mhtResult), str(scitResult))
+"""
 
 
