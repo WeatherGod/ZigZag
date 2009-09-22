@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from TrackSim import TrackSim
-from ParamUtils import *			# for SaveSimulationParams, SetupSimParser,
-					# ParamsFromOptions
+from ParamUtils import *		# for SaveSimulationParams, SetupParser, ParamsFromOptions
 from DoTracking import DoTracking
 from TrackFileUtils import *
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), 
@@ -10,6 +9,8 @@ from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(),
 from optparse import OptionParser
 import os				# for os.sep
 import random
+
+import numpy
 
 
 
@@ -40,6 +41,12 @@ parser.add_option("-s", "--sim", dest="simName", type = "string",
 parser.add_option("-n", "--num", dest="simCnt", type = "int",
 		  help="Repeat Simulation N times.",
 		  metavar="N", default=1)
+parser.add_option("--find_best", dest="doFindBest", action="store_true",
+		  help="Find the best comparisons.", default=False)
+parser.add_option("--find_worst", dest="doFindWorst", action = "store_true",
+		  help="Find the Worst comparisons.", default=False)
+
+
 SetupParser(parser)
 
 (options, args) = parser.parse_args()
@@ -71,6 +78,7 @@ for index in range(0, options.simCnt) :
 
     true_AssocSegs = CreateSegments(theSimulation['noisy_tracks'])
     true_FAlarmSegs = CreateSegments(theSimulation['noisy_falarms'])
+
 
     for aTracker in simParams['trackers'] :
         (finalTracks, finalFAlarms) = ReadTracks(simParams['result_filestem'] + '_' + aTracker)
@@ -112,4 +120,15 @@ for (index, (mhtResult, scitResult)) in enumerate(zip(checkSumProblem['MHT'], ch
     print "%.3d.  %14s %14s" % (index, str(mhtResult), str(scitResult))
 """
 
+# TODO: Yes, I know I am hard-coding the trackers here...
+#       I must fix this later.
+
+scoreDiff = numpy.array(hss['MHT']) - numpy.array(hss['SCIT'])
+indices = numpy.argsort(scoreDiff, axis=0)
+
+if options.doFindBest :
+    print "Best Run:  ", indices[-1]
+
+if options.doFindWorst :
+    print "Worst Run: ", indices[0]
 

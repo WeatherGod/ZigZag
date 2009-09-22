@@ -22,6 +22,9 @@ def SaveSimulationParams(simParamName, simParams) :
     simParamFile.write("noisyTrackFile = " + simParams['noisyTrackFile'] + "\n")
     simParamFile.write("trackers = " + ' '.join(simParams['trackers']) + "\n")
 
+    
+    simParamFile.write("result_filestem = " + simParams['result_filestem'] + "\n")
+
     simParamFile.close()
 
 def ReadSimulationParams(simParamName) :
@@ -64,6 +67,7 @@ def ReadSimulationParams(simParamName) :
 
 	simParams[keyName] = assignVal
     
+    simParams['tLims'] = [1, simParams['frameCnt']]
     return simParams
 
 def SetupParser(parser) :

@@ -3,6 +3,7 @@
 from TrackPlot import *			# for plotting tracks
 from TrackFileUtils import *		# for reading track files
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
+from ParamUtils import *                # for ReadSimulationParams()
 
 from optparse import OptionParser	# Command-line parsing
 import os				# for os.sep.join()
@@ -13,24 +14,35 @@ parser = OptionParser()
 parser.add_option("-s", "--sim", dest="simName",
                   help="Generate Tracks for SIMNAME",
                   metavar="SIMNAME", default="NewSim")
+parser.add_option("--save", dest="saveImgFile",
+		  help="Save the resulting image as FILENAME.",
+		  metavar="FILENAME", default=None)
 
 (options, args) = parser.parse_args()
 
+if options.simName == "" :
+    options.simName = "NewSim"
 
-outputResults = os.sep.join([options.simName, "testResults"])
-trackFile_scit = outputResults + "_SCIT"
-simTrackFile = os.sep.join([options.simName, "noise_tracks"])
+if options.saveImgFile == "" :
+    options.saveImgFile = options.simName + os.sep + "newimage.png"
 
+fontsize = 18
 
+simParams = ReadSimulationParams(options.simName + os.sep + "simParams.conf")
+
+trackFile_scit = simParams['result_filestem'] + "_SCIT"
+trackFile_mht = simParams['result_filestem'] + "_MHT"
+simTrackFile = simParams['noisyTrackFile']
+
+"""
 fileList = glob.glob(outputResults + "_MHT" + "*")
 
 if len(fileList) == 0 : print "WARNING: No files found for '" + outputResults + "_MHT" + "'"
 fileList.sort()
-
-(true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simTrackFile))
-(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(*ReadTracks(fileList.pop(0)))
+"""
+(true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
+(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(*ReadTracks(trackFile_mht))
 #(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
-(xLims, yLims, tLims) = DomainFromTracks(true_tracks, true_falarms)
 
 
 true_AssocSegs = CreateSegments(true_tracks)
@@ -42,13 +54,16 @@ mht_FAlarmSegs = CreateSegments(mhtFAlarms)
 truthtable_mht = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 				 mht_AssocSegs, mht_FAlarmSegs)
 
+# TODO: Dependent on the fact that I am doing a comparison between 2 trackers
 pylab.figure(figsize=(12, 6))
 curAxis = pylab.subplot(121)
 
-PlotSegments(truthtable_mht, xLims, yLims, tLims)
-#Animate_Segments(truthtable_mht, xLims, yLims, tLims, axis = curAxis, speed = 0.01, hold_loop = 10.0)
+PlotSegments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'])
+#Animate_Segments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis, speed = 0.01, hold_loop = 10.0)
 
-pylab.title("MHT")
+pylab.title("MHT", fontsize=fontsize)
+pylab.xlabel("X [km]")
+pylab.ylabel("Y [km]")
 
 """
 PlotTracks(true_tracks['tracks'], finalmhtTracks, xLims, yLims, tLims)
@@ -76,10 +91,13 @@ scit_FAlarmSegs = CreateSegments(scitFAlarms)
 compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 				      scit_AssocSegs, scit_FAlarmSegs)
 
+# TODO: Again, assumes a comparison between two trackers
 curAxis = pylab.subplot(122)
 
-PlotSegments(compareResults_scit, xLims, yLims, tLims, axis = curAxis)
-pylab.title("SCIT")
+PlotSegments(compareResults_scit, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis)
+pylab.title("SCIT", fontsize=fontsize)
+pylab.xlabel("X [km]")
+pylab.ylabel("Y [km]")
 
 
 
@@ -105,5 +123,7 @@ print "TSS: ", CalcTrueSkillStatistic(compareResults_scit), "\n\n"
 
 
 
-#pylab.savefig("%s/WorseTracking.png" % options.simName)
+if options.saveImgFile is not None :
+    pylab.savefig(options.saveImgFile)
+
 pylab.show()
