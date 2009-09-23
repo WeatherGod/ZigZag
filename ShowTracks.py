@@ -61,6 +61,7 @@ curAxis = pylab.subplot(121)
 PlotSegments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'])
 #Animate_Segments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis, speed = 0.01, hold_loop = 10.0)
 
+pylab.axis("equal")
 pylab.title("MHT", fontsize=fontsize)
 pylab.xlabel("X [km]")
 pylab.ylabel("Y [km]")
@@ -95,6 +96,7 @@ compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 curAxis = pylab.subplot(122)
 
 PlotSegments(compareResults_scit, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis)
+pylab.axis("equal")
 pylab.title("SCIT", fontsize=fontsize)
 pylab.xlabel("X [km]")
 pylab.ylabel("Y [km]")

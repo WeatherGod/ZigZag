@@ -22,8 +22,10 @@ def SaveSimulationParams(simParamName, simParams) :
     simParamFile.write("noisyTrackFile = " + simParams['noisyTrackFile'] + "\n")
     simParamFile.write("trackers = " + ' '.join(simParams['trackers']) + "\n")
 
-    
     simParamFile.write("result_filestem = " + simParams['result_filestem'] + "\n")
+    simParamFile.write("inputDataFile = " + simParams['inputDataFile'] + "\n")
+    simParamFile.write("corner_filestem = " + simParams['corner_filestem'] + "\n")
+    
 
     simParamFile.close()
 

@@ -17,7 +17,7 @@ def DoTracking(simParams, simName) :
 								          simParams['inputDataFile']))
 
     cornerInfo = ReadCorners(simParams['inputDataFile'])
-    strmAdap = {'distThresh': 25.0}
+    strmAdap = {'distThresh': 7.5}
     stateHist = []
     strmTracks = []
 
@@ -36,7 +36,7 @@ if __name__ == "__main__" :
     #SetupSimParser(parser)
     (options, args) = parser.parse_args()
 
-    simParams = ReadSimulationParams(os.sep.join([options.simName, "simParams"]))
+    simParams = ReadSimulationParams(os.sep.join([options.simName, "simParams.conf"]))
 
     DoTracking(simParams, options.simName)
 

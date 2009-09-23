@@ -306,7 +306,10 @@ Forecasted
     b = float(len(truthTable['assocs_Wrong']['xLocs']))
     c = float(len(truthTable['falarms_Wrong']['xLocs']))
     d = float(len(truthTable['falarms_Correct']['xLocs']))
-    return 2. * ((a * d) - (b * c)) / (((a + c) * (c + d)) + ((a + b) * (b + d)))
+    if (((a + c) * (c + d)) + ((a + b) * (b + d))) < 0.1 :
+       return 1.0
+    else :
+       return 2. * ((a * d) - (b * c)) / (((a + c) * (c + d)) + ((a + b) * (b + d)))
 
 
 def CalcTrueSkillStatistic(truthTable) :
@@ -330,7 +333,10 @@ Forecasted
     b = float(len(truthTable['assocs_Wrong']['xLocs']))
     c = float(len(truthTable['falarms_Wrong']['xLocs']))
     d = float(len(truthTable['falarms_Correct']['xLocs']))
-    return ((a * d) - (b * c)) / ((a + c) * (b + d))
+    if ((a + c) * (b + d)) < 0.1 :
+        return 1.0
+    else :
+        return ((a * d) - (b * c)) / ((a + c) * (b + d))
 
 def FilterMHTTracks(raw_tracks, raw_falarms) :
     """
