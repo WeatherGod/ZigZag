@@ -56,7 +56,7 @@ truthtable_mht = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 
 # TODO: Dependent on the fact that I am doing a comparison between 2 trackers
 pylab.figure(figsize=(12, 6))
-curAxis = pylab.subplot(121)
+curAxis = pylab.subplot(122)
 
 PlotSegments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'])
 #Animate_Segments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis, speed = 0.01, hold_loop = 10.0)
@@ -93,7 +93,7 @@ compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
 				      scit_AssocSegs, scit_FAlarmSegs)
 
 # TODO: Again, assumes a comparison between two trackers
-curAxis = pylab.subplot(122)
+curAxis = pylab.subplot(121)
 
 PlotSegments(compareResults_scit, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis)
 pylab.axis("equal")
@@ -126,6 +126,6 @@ print "TSS: ", CalcTrueSkillStatistic(compareResults_scit), "\n\n"
 
 
 if options.saveImgFile is not None :
-    pylab.savefig(options.saveImgFile)
+    pylab.savefig(options.saveImgFile, dpi=300)
 
 pylab.show()

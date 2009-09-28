@@ -40,10 +40,10 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     # Correct Stuff
     tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], xLims, yLims, tLims, axis,
-                 			      linewidth=1.5, color= 'green', 
+                 			      linewidth=1.5, color= 'lightgreen', 
 					      marker='.', markersize=8.0, animated=animated, zorder=1)
     tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], xLims, yLims, tLims, axis,
-             				       color='green', linestyle=' ', 
+             				       color='lightgreen', linestyle=' ', 
 					       marker='.', markersize=8.0, animated=animated, zorder=1)
 
     # Wrong Stuff
