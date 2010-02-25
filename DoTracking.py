@@ -2,29 +2,41 @@
 
 from TrackFileUtils import *		# for writing track files, and reading corner files
 from ParamUtils import *			# for reading simParams files
+from TrackUtils import FilterMHTTracks
 import scit
 
 import os                               # for os.sep.join(), os.system()
 
-def DoTracking(simParams, simName) :
-    paramFile = os.sep.join([simName, "Parameters"])
+def DoTracking(tracker, trackParams, returnResults = False) :
 
-    print "~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s" % (simParams['result_filestem'] + "_MHT",
-                                                                      paramFile,
-                                                                      simParams['inputDataFile'])
-    os.system("~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s > /dev/null" % (simParams['result_filestem'] + "_MHT",
-								          paramFile,
-								          simParams['inputDataFile']))
+    theTracks = None
 
-    cornerInfo = ReadCorners(simParams['inputDataFile'])
-    strmAdap = {'distThresh': 7.5}
-    stateHist = []
-    strmTracks = []
+    if tracker == "MHT" :
+        theCommand = "~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s > /dev/null" % (trackParams['result_filestem'] + "_MHT",
+                                                                                 trackParams['ParamFile'],
+                                                                                 trackParams['inputDataFile'])
+        print theCommand
+        os.system(theCommand)
 
-    for aVol in cornerInfo['volume_data'] :
-        scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
+        if returnResults : theTracks = FilterMHTTracks(*ReadTracks(trackParams['result_filestem'] + "_MHT"))
 
-    SaveTracks(simParams['result_filestem'] + "_SCIT", strmTracks)
+    elif tracker == "SCIT" :
+	cornerInfo = ReadCorners(trackParams['inputDataFile'])
+        strmAdap = {'distThresh': 7.5}
+        stateHist = []
+        strmTracks = []
+
+        for aVol in cornerInfo['volume_data'] :
+            scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
+
+        SaveTracks(trackParams['result_filestem'] + "_SCIT", strmTracks)
+
+        if returnResults : theTracks = (strmTracks, [])
+
+    else :
+        print "ERROR: Unknown tracker:", tracker
+
+    return theTracks
 
 
 if __name__ == "__main__" :
@@ -38,5 +50,8 @@ if __name__ == "__main__" :
 
     simParams = ReadSimulationParams(os.sep.join([options.simName, "simParams.conf"]))
 
-    DoTracking(simParams, options.simName)
+    simParams['ParamFile'] = os.sep.join([options.simName, "Parameters"])
+    
+    DoTracking("MHT", simParams)
+    DoTracking("SCIT", simParams)
 

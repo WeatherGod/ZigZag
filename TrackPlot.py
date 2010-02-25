@@ -40,19 +40,19 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     # Correct Stuff
     tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], xLims, yLims, tLims, axis,
-                 			      linewidth=1.5, color= 'lightgreen', 
-					      marker='.', markersize=8.0, animated=animated, zorder=1)
+                 			      linewidth=1.5, color= 'green', 
+					      marker='.', markersize=6.0, animated=animated, zorder=1)
     tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], xLims, yLims, tLims, axis,
-             				       color='lightgreen', linestyle=' ', 
-					       marker='.', markersize=8.0, animated=animated, zorder=1)
+             				       color='green', linestyle=' ', 
+					       marker='.', markersize=6.0, animated=animated, zorder=1)
 
     # Wrong Stuff
     tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'], xLims, yLims, tLims, axis,
-                 			     linewidth=1.5, color='gray', linestyle=':',
-					     marker='.', markersize=7.0, animated=animated, zorder=2)
+                 			     linewidth=3.0, color='gray', linestyle=':',
+					     marker='.', markersize=9.0, animated=animated, zorder=2)
     tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'], xLims, yLims, tLims, axis,
-    					    linewidth=1.5, color='red', 
-					    marker='.', markersize=7.0, animated=animated, zorder=2)
+    					    linewidth=3.0, color='red', 
+					    marker='.', markersize=9.0, animated=animated, zorder=2)
 
 
 
@@ -187,12 +187,12 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
     if endFrame is None : endFrame = max(tLims)
 
     trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
-			  marker='.', markersize=7.0,
-			  color='gray', linewidth=1.5, linestyle=':', 
+			  marker='.', markersize=9.0,
+			  color='gray', linewidth=2.5, linestyle=':', 
 			  animated=animated, zorder=1, axis = axis)
     modelLines = PlotTrack(model_tracks, xLims, yLims, (startFrame, endFrame), 
-			   marker='.', markersize=6.0, 
-			   color='r', linewidth=1.5, alpha=0.35, 
+			   marker='.', markersize=8.0, 
+			   color='r', linewidth=2.5, alpha=0.35, 
 			   zorder=2, animated=animated, axis = axis)
     return({'trueLines': trueLines, 'modelLines': modelLines})
 

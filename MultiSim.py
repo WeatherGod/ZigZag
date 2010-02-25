@@ -73,8 +73,10 @@ for index in range(0, options.simCnt) :
     SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
     SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], theSimulation['noisy_volumes'])
 
+    simParams['ParamFile'] = os.sep.join([simName, "Parameters"])
 
-    DoTracking(simParams, simName)
+    DoTracking("MHT", simParams)
+    DoTracking("SCIT", simParams)
 
     true_AssocSegs = CreateSegments(theSimulation['noisy_tracks'])
     true_FAlarmSegs = CreateSegments(theSimulation['noisy_falarms'])
