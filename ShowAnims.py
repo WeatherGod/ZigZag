@@ -11,100 +11,71 @@ import glob				# for globbing
 import pylab
 
 parser = OptionParser()
-parser.add_option("-s", "--sim", dest="simName",
-                  help="Generate Tracks for SIMNAME",
-                  metavar="SIMNAME", default="NewSim")
+parser.add_option("-t", "--truth", dest="truthTrackFile",
+                  help="Use TRUTHFILE for true track data",
+                  metavar="TRUTHFILE", default=None)
+#parser.add_option("--save", dest="saveImgFile",
+#		  help="Save the resulting image as FILENAME.",
+#		  metavar="FILENAME", default=None)
 
 (options, args) = parser.parse_args()
 
-if options.simName == "" :
-    options.simName = "NewSim"
+if len(args) == 0 : print "WARNING: No trackFiles listed!"
 
 
-fontsize = 18
-
-simParams = ReadSimulationParams(options.simName + os.sep + "simParams.conf")
-
-trackFile_scit = simParams['result_filestem'] + "_SCIT"
-trackFile_mht = simParams['result_filestem'] + "_MHT"
-simTrackFile = simParams['noisyTrackFile']
-
-"""
-fileList = glob.glob(outputResults + "_MHT" + "*")
-
-if len(fileList) == 0 : print "WARNING: No files found for '" + outputResults + "_MHT" + "'"
-fileList.sort()
-"""
-(true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
-(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(*ReadTracks(trackFile_mht))
-#(finalmhtTracks, mhtFAlarms) = FilterMHTTracks(finalmhtTracks, mhtFAlarms)
+trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in args]
 
 
-true_AssocSegs = CreateSegments(true_tracks)
-true_FAlarmSegs = CreateSegments(true_falarms)
-mht_AssocSegs = CreateSegments(finalmhtTracks)
-mht_FAlarmSegs = CreateSegments(mhtFAlarms)
+# TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
+theFig = pylab.figure(figsize = (11, 6))
+
+if options.truthTrackFile is not None :
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(options.truthTrackFile))
+
+    (xLims, yLims, tLims) = DomainFromTracks(true_tracks, true_falarms)
+
+    true_AssocSegs = CreateSegments(true_tracks)
+    true_FAlarmSegs = CreateSegments(true_falarms)
+    trackerAssocSegs = [CreateSegments(trackerTracks[0]) for trackerTracks in trackerData]
+    trackerFAlarmSegs = [CreateSegments(trackerTracks[1]) for trackerTracks in trackerData]
+
+    for (index, (trackAssocSegs, trackFAlarmSegs)) in enumerate(zip(trackerAssocSegs, trackerFAlarmSegs)) :
+        truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
+
+        curAxis = theFig.add_subplot(1, len(args), index + 1)
+
+	# We can only animate one set of axes using the current code,
+	# so animate the first axes.
+        if index == 0 :
+            Animate_Segments(trackAssocSegs, xLims, yLims, tLims, axis = curAxis, speed = 0.1, hold_loop = 3.0)
+        else :
+            PlotSegments(trackAssocSegs, xLims, yLims, tLims, axis = curAxis)
+
+        curAxis.axis("equal")
+        curAxis.set_title(args[index])
+        curAxis.set_xlabel("X [km]")
+        curAxis.set_ylabel("Y [km]")
 
 
-truthtable_mht = CompareSegments(true_AssocSegs, true_FAlarmSegs,
-				 mht_AssocSegs, mht_FAlarmSegs)
+else :
+    for (index, trackerTracks) in enumerate(trackerData) :
+        # TODO: Need to have consistent domains, maybe?
+        (xLims, yLims, tLims) = DomainFromTracks(trackerTracks[0], trackerTracks[1])
 
-# TODO: Dependent on the fact that I am doing a comparison between 2 trackers
-pylab.figure(figsize=(12, 6))
-curAxis = pylab.subplot(122)
-
-#PlotSegments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'])
-Animate_Segments(truthtable_mht, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis, speed = 0.1, hold_loop = 3.0)
-
-pylab.axis("equal")
-pylab.title("MHT", fontsize=fontsize)
-pylab.xlabel("X [km]")
-pylab.ylabel("Y [km]")
-
-"""
-PlotTracks(true_tracks['tracks'], finalmhtTracks, xLims, yLims, tLims)
-pylab.title('MHT  t = %d' % (max(tLims)))
-pylab.savefig('MHT_Tracks.png')
-pylab.clf()
-
-
-for (index, trackFile_MHT) in enumerate(fileList) :
-#for index in range(min(tLims), max(tLims) + 1) :
-    (raw_tracks, falseAlarms) = ReadTracks(trackFile_MHT)
-    mhtTracks = FilterMHTTracks(raw_tracks)
-
-    PlotTracks(true_tracks['tracks'], mhtTracks, xLims, yLims, (min(tLims), index + 1))
-    pylab.title('MHT  t = %d' % (index + 1))
-    pylab.savefig('MHT_Tracks_%.2d.png' % (index + 1))
-    pylab.clf()
-"""
-
-
-(scitTracks, scitFAlarms) = FilterMHTTracks(*ReadTracks(trackFile_scit))
-
-scit_AssocSegs = CreateSegments(scitTracks)
-scit_FAlarmSegs = CreateSegments(scitFAlarms)
-compareResults_scit = CompareSegments(true_AssocSegs, true_FAlarmSegs,
-				      scit_AssocSegs, scit_FAlarmSegs)
-
-# TODO: Again, assumes a comparison between two trackers
-curAxis = pylab.subplot(121)
-
-PlotSegments(compareResults_scit, simParams['xLims'], simParams['yLims'], simParams['tLims'], axis = curAxis)
-pylab.axis("equal")
-pylab.title("SCIT", fontsize=fontsize)
-pylab.xlabel("X [km]")
-pylab.ylabel("Y [km]")
+        curAxis = theFig.add_subplot(1, len(args), index + 1)
+        curAxis.hold(True)
+        PlotTrack(trackerTracks[0], xLims, yLims, tLims, axis = curAxis,
+		  marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
+	PlotTrack(trackerTracks[1], xLims, yLims, tLims, axis = curAxis,
+		  marker = '.', markersize = 6.0, linestyle = ' ', color = 'r')
+        curAxis.axis("equal")
+        curAxis.set_title(args[index])
+        curAxis.set_xlabel("X [km]")
+	curAxis.set_ylabel("Y [km]")
 
 
 
-"""
-for index in range(min(tLims), max(tLims) + 1) :
-    PlotTracks(true_tracks['tracks'], scitTracks['tracks'], xLims, yLims, (min(tLims), index))
-    pylab.title('SCIT  t = %d' % (index))
-    pylab.savefig('SCIT_Tracks_%.2d.png' % (index))
-    pylab.clf()
-
-"""
+#if options.saveImgFile is not None :
+#    pylab.savefig(options.saveImgFile, dpi=300)
 
 pylab.show()

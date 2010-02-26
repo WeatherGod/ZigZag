@@ -58,14 +58,18 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2.0, axis = None) :
+def Animate_Segments(truthTable, xLims, yLims, tLims,
+		     speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
+    if figure is None :
+	figure = pylab.gcf()
+
     if (axis is None) :
-        axis = pylab.gca()
+        axis = figure.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
 
-    canvas = pylab.gcf().canvas
+    canvas = figure.canvas
 
 
     # Placed before the initial creation of line segments in
@@ -73,6 +77,7 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
     #emptyLine = axis.plot([], [])[0]
 
     # create the initial lines
+    print truthTable.keys()
     tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated=True)
     canvas.draw()
 
@@ -80,32 +85,12 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, speed = 1.0, hold_loop = 2
     theSegs_frames = []
     theSegs_xLocs = []
     theSegs_yLocs = []
-#    areShowing = [True] * (len(truthTable['assocs_Correct'])
-#			  + len(truthTable['falarms_Correct'])
-#			  + len(truthTable['assocs_Wrong'])
-#			  + len(truthTable['falarms_Wrong']))
 
-
-    theLines += tableLines['assocs_Correct']
-    theSegs_frames += truthTable['assocs_Correct']['frameNums']
-    theSegs_xLocs += truthTable['assocs_Correct']['xLocs']
-    theSegs_yLocs += truthTable['assocs_Correct']['yLocs']
-
-
-    theLines += tableLines['falarms_Correct']
-    theSegs_frames += truthTable['falarms_Correct']['frameNums']
-    theSegs_xLocs += truthTable['falarms_Correct']['xLocs']
-    theSegs_yLocs += truthTable['falarms_Correct']['yLocs']
-    
-    theLines += tableLines['assocs_Wrong']
-    theSegs_frames += truthTable['assocs_Wrong']['frameNums']
-    theSegs_xLocs += truthTable['assocs_Wrong']['xLocs']
-    theSegs_yLocs += truthTable['assocs_Wrong']['yLocs']
-    
-    theLines += tableLines['falarms_Wrong']
-    theSegs_frames += truthTable['falarms_Wrong']['frameNums']
-    theSegs_xLocs += truthTable['falarms_Wrong']['xLocs']
-    theSegs_yLocs += truthTable['falarms_Wrong']['yLocs']
+    for keyname in tableLines :
+        theLines += tableLines[keyname]
+	theSegs_frames += truthTable[keyname]['frameNums']
+	theSegs_xLocs += truthTable[keyname]['xLocs']
+	theSegs_yLocs += truthTable[keyname]['yLocs']
 
     def update_line(*args) :
         if update_line.background is None:
@@ -198,19 +183,23 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
 
 
 
-def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.0, hold_loop = 2.0, axis = None) :
+def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims, 
+		   speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
+    if figure is None :
+	figure = pylab.gcf()
+
     if (axis is None) :
-        axis = pylab.gca()
+        axis = figure.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
 
-    canvas = pylab.gcf().canvas
+    canvas = figure.canvas
 
     # create the initial lines
     
     theLines = PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, 
-			  startFrame, startFrame, axis = axis)
+			  startFrame, startFrame, axis = axis, animated = True)
     canvas.draw()
     
 
@@ -218,22 +207,27 @@ def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims, speed = 1.0, 
         if update_line.background is None:
             update_line.background = canvas.copy_from_bbox(axis.bbox)
 
-        canvas.restore_region(update_line.background)
+	if (int(update_line.cnt) > update_line.currFrame) :
+            update_line.currFrame = int(update_line.cnt)
 
-        for (line, aTrack) in zip(theLines['modelLines'], model_tracks) :
-            line.set_xdata([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
-            line.set_ydata([yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
-            axis.draw_artist(line)
+	    canvas.restore_region(update_line.background)
+
+            for (line, frameNums, aTrackXLocs, aTracksYLocs) in zip(theLines['modelLines'], *model_tracks) :
+                line.set_xdata([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
+                line.set_ydata([yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
+                axis.draw_artist(line)
 
         canvas.blit(axis.bbox)
 
         if update_line.cnt >= (endFrame + (hold_loop - speed)):
-            update_line.cnt = startFrame - speed
+            update_line.cnt = startFrame
+	    update_line.currFrame = startFrame - 1.0
 
         update_line.cnt += speed
         return(True)
 
     update_line.cnt = endFrame
+    update_line.currFrame = startFrame - 1.0
     update_line.background = None
     
  
