@@ -359,7 +359,7 @@ def FilterMHTTracks(raw_tracks, raw_falarms) :
     return(tracks, falarms)
 
 
-def DomainFromTracks(tracks, falarms) :
+def DomainFromTracks(tracks, falarms = []) :
 
     minTrackX = []
     maxTrackX = []
@@ -399,7 +399,7 @@ def is_eq(val1, val2) :
     far to difficult to convert all of the models and such over
     to the "new" decimal type.
     Instead, I just worry about equality with respect to about
-    3 decimal places, which is how I am dealing with it for now.
+    6 decimal places, which is how I am dealing with it for now.
 
     TODO: Come up with a better way!
     """

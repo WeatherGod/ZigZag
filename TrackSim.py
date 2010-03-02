@@ -172,6 +172,6 @@ if __name__ == '__main__' :
     ParamUtils.SaveSimulationParams(options.simName + os.sep + "simParams.conf", simParams)
     SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
     SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simParams['inputDataFile'], simParams['corner_filestem'], simParams['frameCnt'], theSimulation['noisy_volumes'])
+    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], simParams['frameCnt'], theSimulation['noisy_volumes'])
 
 

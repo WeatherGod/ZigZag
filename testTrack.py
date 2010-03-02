@@ -2,7 +2,7 @@
 import optparse			# for command-line parsing
 
 from DoTracking import DoTracking
-from TrackFileUtils import ReadCorners
+#import ParamUtils
 
 import os			# for os.sep, os.system()
 
@@ -14,6 +14,10 @@ if __name__ == "__main__" :
     parser.add_option("-p", "--path", dest = "pathName",
 		      help = "PATHNAME for corner files", metavar = "PATHNAME",
 		      default = ".")
+    parser.add_option("-t", "--tracker", dest = "trackers", type = "string",
+		      action = "append",
+		      help = "Tracking algorithms to use, in addition to SCIT. (Ex: MHT)",
+		      metavar="TRACKER", default = ['SCIT'])
     
     (options, args) = parser.parse_args()
 
@@ -24,9 +28,8 @@ if __name__ == "__main__" :
     paramFileName = args[1]
 
     trackParams = {'ParamFile': paramFileName, 'inputDataFile': inputFileName,
-		   'result_filestem': options.pathName + os.sep + 'testResults'}
+		   'result_file': options.pathName + os.sep + 'testResults'}
 
-    (mhtTracks, mhtFAs) = DoTracking('MHT', trackParams, returnResults = True)
-    (scitTracks, scitFAs) = DoTracking('SCIT', trackParams, returnResults = True)
-
+    for aTracker in options.trackers :
+	DoTracking(aTracker, trackParams, returnResults)
 

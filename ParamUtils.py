@@ -2,6 +2,27 @@ import random
 import os
 from optparse import OptionGroup
 
+simDefaults = dict( frameCnt = 12,
+	            totalTracks = 30,
+		    theSeed = random.randint(0, 99999999),
+		    simTrackFile = "%s" + os.sep + "true_tracks",
+		    noisyTrackFile = "%s" + os.sep + "noise_tracks",
+		    endTrackProb = 0.1,
+		    mean_dir = 50,
+		    speed_variance = 0.75,
+		    angle_variance = 20.0,
+		    false_merge_dist = 15.0,
+		    false_merge_prob = 0.0,
+		    xLims = [0.0, 255.0],
+		    yLims = [0.0, 255.0],
+		    speedLims = [1.0, 6.5])
+
+trackerDefaults = dict(trackers = ['SCIT'],
+		       corner_file = "%s" + os.sep + "corners",
+		       inputDataFile = "%s" + os.sep + "InputDataFile",
+		       result_file = "%s" + os.sep + "testResults")
+
+
 def SaveSimulationParams(simParamName, simParams) :
     simParamFile = open(simParamName, 'w')
     simParamFile.write("seed = %d\n" % (simParams['theSeed']))
@@ -22,30 +43,34 @@ def SaveSimulationParams(simParamName, simParams) :
     simParamFile.write("noisyTrackFile = " + simParams['noisyTrackFile'] + "\n")
     simParamFile.write("trackers = " + ' '.join(simParams['trackers']) + "\n")
 
-    simParamFile.write("result_filestem = " + simParams['result_filestem'] + "\n")
+    simParamFile.write("result_file = " + simParams['result_file'] + "\n")
     simParamFile.write("inputDataFile = " + simParams['inputDataFile'] + "\n")
-    simParamFile.write("corner_filestem = " + simParams['corner_filestem'] + "\n")
+    simParamFile.write("corner_file = " + simParams['corner_file'] + "\n")
     
 
     simParamFile.close()
 
 def ReadSimulationParams(simParamName) :
 
-    # TODO: It is still possible for a file to have missing parameters,
-    #       which would cause this function to return an incomplete
-    #	    set of parameters.  This can be solved by having this function
-    #       Initialize with a set of default values for all of the keys,
-    #	    however, currently, the defaults are held by the command-line
-    #	    system.
-    #	    Maybe I should have some sort of internal param list that contains
-    #	    the complete list of keys, and default values that ALL functions
-    #	    can use as the default list, in order to maintain consistency.
     simParams = {}
+
+    # TODO: Should I be copying these?  Am I going to run into an issue with references/objects?
+    simParams.update(simDefaults)
+    simParams.update(trackerDefaults)
+
     for aLine in open(simParamName, 'r') :
         # Split string by the equal sign.
 	lineSplit = aLine.split('=')
+
         # The first field will be the key name (stripped of whitespace)
 	keyName = lineSplit[0].strip()
+
+	if keyName == "corner_filestem" :
+	    keyName = "corner_file"
+
+	if keyName == "result_filestem" :
+	    keyName = "result_file"
+
         # The rest of the fields (in case there is an equal sign somewhere else)
 	#     are reconstructed back together, with whitespace stripped AFTER
         #     the reconstruction.  This produces a key/value pair.
@@ -55,9 +80,9 @@ def ReadSimulationParams(simParamName) :
 	    # Grab single integer
 	    assignVal = int(assignVal)
 	elif (keyName == 'speed_variance' or keyName == 'mean_dir' or 
-	      keyName == 'angle_variance' or keyName == 'endTrackProb' or
-	      keyName == 'false_merge_dist' or keyName == 'false_merge_prob') :
-            # Grab single float
+	    keyName == 'angle_variance' or keyName == 'endTrackProb' or
+	    keyName == 'false_merge_dist' or keyName == 'false_merge_prob') :
+        # Grab single float
 	    assignVal = float(assignVal)
 	elif (keyName == 'xLims' or keyName == 'yLims' or keyName == 'speedLims') :
             # Grab array of floats, from a spliting by whitespace
@@ -73,78 +98,105 @@ def ReadSimulationParams(simParamName) :
     return simParams
 
 def SetupParser(parser) :
+    
+    parser.add_option_group(SimGroup(parser))
+    parser.add_option_group(TrackerGroup(parser))
+
+
+
+def SimGroup(parser) :
     group = OptionGroup(parser, "Simulation Options",
 			"Options for controlling the track simulation.")
 
-    group.add_option("-t", "--tracker", dest="trackers", type="string",
-		     action="append",
-		     help="Tracking algorithms to use, in addition to SCIT.  (Ex: MHT)",
-		     metavar="TRACKER", default = ['SCIT'])
     
     group.add_option("--frames", dest="frameCnt", type="int",
 		     help="Operate for N frames. (default: %default)",
-		     metavar="N", default=12)
-    group.add_option("--tracks", dest="totalTracks", type="int",
+		     metavar="N", default = simDefaults['frameCnt'])
+
+    group.add_option("--track_cnt", dest="totalTracks", type="int",
 		     help="Simulate N tracks. (default: %default)",
-		     metavar="N", default=30)
+		     metavar="N", default = simDefaults['totalTracks'])
+
     group.add_option("--seed", dest="theSeed", type="int",
 		     help="Initialize RNG with SEED. (default: random)",
-		     metavar="SEED", default=random.randint(0, 99999999))
+		     metavar="SEED", default = simDefaults['theSeed'])
+
     group.add_option("--cleanfile", dest="simTrackFile", type="string",
 		     help="Output clean set of tracks to FILE. (default: %default)", 
 		     metavar="FILE",
-		     default=os.sep.join(["%s", "true_tracks"]))
+		     default=simDefaults['simTrackFile'])
+
     group.add_option("--noisyfile", dest="noisyTrackFile", type="string",
 		     help="Output noisy set of tracks to FILE. (default: %default)",
 		     metavar="FILE",
-		     default=os.sep.join(["%s", "noise_tracks"]))
+		     default=simDefaults['noisyTrackFile'])
+
     group.add_option("--trackend", dest="endTrackProb", type="float",
 		     help="Probability a track will end for a given frame. (default: %default)",
-		     metavar="ENDPROB", default=0.1)
+		     metavar="ENDPROB", default=simDefaults['endTrackProb'])
+
     group.add_option("--direction", dest="mean_dir", type="float",
 		     help="Mean direction of tracks in degrees. (default: %default)", 
-		     metavar="ANGLE", default=50.0)
+		     metavar="ANGLE", default=simDefaults['mean_dir'])
+
     group.add_option("--spd_var", dest="speed_variance", type="float",
 		     help="Variance of track speed changes. (default: %default)",
-		     metavar="VAR", default=1.5)
+		     metavar="VAR", default=simDefaults['speed_variance'])
+
     group.add_option("--dir_var", dest="angle_variance", type="float",
 		     help="Variance of initial track direction, in degrees. (default: %default)",
-		     metavar="VAR", default=20.0)
+		     metavar="VAR", default=simDefaults['angle_variance'])
+
     group.add_option("--fmerge_dist", dest="false_merge_dist", type="float",
 		     help="Distance threshold for false mergers. (default: %default)",
-		      metavar="DIST", default=15.)
+		      metavar="DIST", default=simDefaults['false_merge_dist'])
+
     group.add_option("--fmerge_prob", dest="false_merge_prob", type="float",
 		     help="Probability of false merger for tracks within the DIST threshold. (default: %default)",
-		     metavar="PROB", default=0.)
+		     metavar="PROB", default=simDefaults['false_merge_prob'])
+
     group.add_option("--xlims", dest="xLims", type="float",
 		     nargs = 2,
 		     help="Domain limits in x-axis. (default: %default)", 
-		     metavar="X1 X2", default=[0., 255.])
+		     metavar="X1 X2", default=simDefaults['xLims'])
+
     group.add_option("--ylims", dest="yLims", type="float",
 		     nargs = 2,
 		     help="Domain limits in y-axis. (default: %default)", 
-		     metavar="Y1 Y2", default=[0., 255.])
+		     metavar="Y1 Y2", default=simDefaults['yLims'])
+
     group.add_option("--spd_lims", dest="speedLims", type="float",
 		     nargs = 2,
 		     help="Range of speeds for track initialization. (default: %default)", 
-		     metavar="SPD1 SPD2", default=[5., 25.])
+		     metavar="SPD1 SPD2", default=simDefaults['speedLims'])
 
-    parser.add_option_group(group)
+    return group
 
+
+
+def TrackerGroup(parser) :
     # TODO: Likely will end up in a separate module, or portion
-    group2 = OptionGroup(parser, "Tracker Options",
-                         "Options for controlling the trackers.")
-    group2.add_option("--corner", dest="corner_filestem", type="string",
-		      help="Corner filename stem. (default = %default)",
-		      metavar="CORNER", default=os.sep.join(["%s", "corners"]))
-    group2.add_option("--input", dest="inputDataFile", type="string",
-		      help="MHT's Input datafile. (default = %default)",
-		      metavar="FILE", default=os.sep.join(["%s", "InputDataFile"]))
-    group2.add_option("--result", dest="result_filestem", type="string",
-		      help="Tracker filename stem for results. (default = %default)",
-		      metavar="FILE", default=os.sep.join(["%s", "testResults"]))
+    group = OptionGroup(parser, "Tracker Options",
+                        "Options for controlling the trackers.")
 
-    parser.add_option_group(group2)
+    group.add_option("-t", "--tracker", dest="trackers", type="string",
+		     action="append",
+                     help="Tracking algorithms to use, in addition to SCIT.  (Ex: MHT)",
+                     metavar="TRACKER", default = trackerDefaults['trackers'])
+
+    group.add_option("--corner", dest="corner_file", type="string",
+		     help="Corner filename stem. (default = %default)",
+		     metavar="CORNER", default = trackerDefaults['corner_file'])
+
+    group.add_option("--input", dest="inputDataFile", type="string",
+		     help="MHT's Input datafile. (default = %default)",
+		     metavar="FILE", default = trackerDefaults['inputDataFile'])
+
+    group.add_option("--result", dest="result_file", type="string",
+		     help="Tracker filename stem for results. (default = %default)",
+		     metavar="FILE", default=trackerDefaults['result_file'])
+
+    return group
 
 
 
@@ -187,14 +239,12 @@ def ParamsFromOptions(options, simName = None) :
     # TODO: Some of these key/values are temporary.
     #       I will be transistioning to having each tracker
     #	    with its own parameterization file and controls.
-    return dict(corner_filestem = options.corner_filestem % simName,
+    return dict(corner_file = options.corner_file % simName,
 		inputDataFile = options.inputDataFile % simName,
-		result_filestem = options.result_filestem % simName,
-
-		simTrackFile = simTrackFile,
+		result_file = options.result_file % simName,
+	        simTrackFile = simTrackFile,
 		noisyTrackFile = noisyTrackFile,
 		trackers = options.trackers,
-
                 frameCnt = options.frameCnt,
                 totalTracks = options.totalTracks,
                 speed_variance = options.speed_variance,
@@ -208,8 +258,4 @@ def ParamsFromOptions(options, simName = None) :
                 false_merge_dist = options.false_merge_dist,
                 false_merge_prob = options.false_merge_prob,
                 theSeed = options.theSeed
-               )
-
-
-
-
+               ) 

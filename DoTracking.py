@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from TrackFileUtils import *		# for writing track files, and reading corner files
-from ParamUtils import *			# for reading simParams files
+import ParamUtils			# for reading simParams files
 from TrackUtils import FilterMHTTracks
 import scit
 
@@ -12,13 +12,13 @@ def DoTracking(tracker, trackParams, returnResults = False) :
     theTracks = None
 
     if tracker == "MHT" :
-        theCommand = "~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s > /dev/null" % (trackParams['result_filestem'] + "_MHT",
+        theCommand = "~/Programs/MHT/tracking/trackCorners -o %s -p %s -i %s > /dev/null" % (trackParams['result_file'] + "_MHT",
                                                                                  trackParams['ParamFile'],
                                                                                  trackParams['inputDataFile'])
         print theCommand
         os.system(theCommand)
 
-        if returnResults : theTracks = FilterMHTTracks(*ReadTracks(trackParams['result_filestem'] + "_MHT"))
+        if returnResults : theTracks = FilterMHTTracks(*ReadTracks(trackParams['result_file'] + "_MHT"))
 
     elif tracker == "SCIT" :
 	cornerInfo = ReadCorners(trackParams['inputDataFile'])
@@ -29,7 +29,7 @@ def DoTracking(tracker, trackParams, returnResults = False) :
         for aVol in cornerInfo['volume_data'] :
             scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
 
-        SaveTracks(trackParams['result_filestem'] + "_SCIT", strmTracks)
+        SaveTracks(trackParams['result_file'] + "_SCIT", strmTracks)
 
         if returnResults : theTracks = (strmTracks, [])
 
@@ -48,7 +48,7 @@ if __name__ == "__main__" :
     #SetupSimParser(parser)
     (options, args) = parser.parse_args()
 
-    simParams = ReadSimulationParams(os.sep.join([options.simName, "simParams.conf"]))
+    simParams = ParamUtils.ReadSimulationParams(os.sep.join([options.simName, "simParams.conf"]))
 
     simParams['ParamFile'] = os.sep.join([options.simName, "Parameters"])
     

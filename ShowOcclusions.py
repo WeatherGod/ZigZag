@@ -26,14 +26,10 @@ noiseTrackFile = os.sep.join([options.simName, "noise_tracks"])
 
 
 
-pylab.figure()
+theFig = pylab.figure()
 
-PlotTrack(true_tracks['tracks'], xLims, yLims, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0)
-pylab.title("True Tracks")
-
-pylab.figure()
-
-PlotTrack(noise_tracks['tracks'], xLims, yLims, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0)
-pylab.title("Noise Tracks")
-
+curAxis = theFig.gca()
+curAxis.hold(True)
+PlotTrack(true_tracks['tracks'], xLims, yLims, tLims, color='r', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
+PlotTrack(noise_tracks['tracks'], xLims, yLims, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
 pylab.show()

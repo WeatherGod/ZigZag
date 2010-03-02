@@ -58,70 +58,65 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, xLims, yLims, tLims,
-		     speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
-    if figure is None :
-	figure = pylab.gcf()
+def Animate_Segments(truthTable, xLims, yLims, tLims, axis = None, **kwargs) :
+    if axis is None :
+	axis = pylab.gca()
 
-    if (axis is None) :
-        axis = figure.gca()
-
-    startFrame = min(tLims)
-    endFrame = max(tLims)
-
-    canvas = figure.canvas
-
-
-    # Placed before the initial creation of line segments in
-    # order to avoid having it mess up the axes...
-    #emptyLine = axis.plot([], [])[0]
-
-    # create the initial lines
-    print truthTable.keys()
-    tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated=True)
-    canvas.draw()
+    tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated = True) 
 
     theLines = []
-    theSegs_frames = []
-    theSegs_xLocs = []
-    theSegs_yLocs = []
+    theSegs = []
 
     for keyname in tableLines :
         theLines += tableLines[keyname]
-	theSegs_frames += truthTable[keyname]['frameNums']
-	theSegs_xLocs += truthTable[keyname]['xLocs']
-	theSegs_yLocs += truthTable[keyname]['yLocs']
+	for (frameNums, xLocs, yLocs) in zip(truthTable[keyname]['frameNums'],
+					     truthTable[keyname]['xLocs'],
+					     truthTable[keyname]['yLocs']) :
+	    theSegs.append({'frameNums': frameNums, 'xLocs': xLocs, 'yLocs': yLocs})
+
+    AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis = axis, **kwargs)
+
+
+
+
+def AnimateLines(lines, lineData, startFrame, endFrame, 
+		 speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
+    if figure is None :
+	figure = pylab.gcf()
+
+    if axis is None :
+        axis = figure.gca()
+
+    canvas = figure.canvas
+    canvas.draw()
 
     def update_line(*args) :
         if update_line.background is None:
             update_line.background = canvas.copy_from_bbox(axis.bbox)
 
         
-	if (int(update_line.cnt) > update_line.currFrame) :
+	if (int(update_line.cnt) > update_line.currFrame) : 
 	    update_line.currFrame = int(update_line.cnt)
 
             canvas.restore_region(update_line.background)
 
-	    for (line, segFrameNums, segXLocs, segYLocs) in zip(theLines, theSegs_frames, 
-								theSegs_xLocs, theSegs_yLocs) :
-                line.set_xdata([xLoc for (xLoc, frameNum) in zip(segXLocs, segFrameNums) if frameNum <= update_line.currFrame 
-											    and frameNum >= startFrame])
-                line.set_ydata([yLoc for (yLoc, frameNum) in zip(segYLocs, segFrameNums) if frameNum <= update_line.currFrame 
-											    and frameNum >= startFrame])
+	    for (index, (line, aLineData)) in enumerate(zip(lines, lineData)) :
+		newLine = [(xLoc, yLoc) for xLoc, yLoc, frameNum in zip(aLineData['xLocs'],
+									aLineData['yLocs'],
+									aLineData['frameNums'])
+								  if frameNum <= update_line.currFrame
+								      and frameNum >= startFrame]
+		if len(newLine) == 0 :
+		    xLocs = []
+		    yLocs = []
+		else :
+		    xLocs, yLocs = zip(*newLine)
+
+		line.set_xdata(xLocs)
+		line.set_ydata(yLocs)
+
                 axis.draw_artist(line)
 		
-	    """
-            for (line, frameNums) in zip(theLines, theSegs['frameNums']) :
-	        if min(frameNums) >= startFrame and max(frameNums) <= update_line.cnt :
-		    axis.draw_artist(line)
-	        else :
-		    # This is done to help even out the time it takes to
-		    # render each frame, regardless of how many components
-		    # are needed to show a particular frame.
-		    axis.draw_artist(emptyLine)
-#		     line.set_xdata(aSeg['xLocs'])
-#		     line.set_ydata(aSeg['yLocs'])
-	    """
         canvas.blit(axis.bbox)
 
         if update_line.cnt >= (endFrame + (hold_loop - speed)):
@@ -151,10 +146,15 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     if (axis is None) :
         axis = pylab.gca()
 
+    startFrame = min(tLims)
+    endFrame = max(tLims)
+
     lines = []
     for aTrack in tracks :
-        lines.append(axis.plot([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum >= min(tLims) and frameNum <= max(tLims)],
-			       [yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum >= min(tLims) and frameNum <= max(tLims)],
+        lines.append(axis.plot([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum <= endFrame 
+														and frameNum >= startFrame],
+			       [yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum <= endFrame 
+														and frameNum >= startFrame],
 			       **kwargs)[0])
     axis.set_xlim(xLims)
     axis.set_ylim(yLims)
@@ -173,11 +173,11 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
 
     trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
 			  marker='.', markersize=9.0,
-			  color='gray', linewidth=2.5, linestyle=':', 
-			  animated=animated, zorder=1, axis = axis)
+			  color='grey', linewidth=2.5, linestyle=':', 
+			  animated=False, zorder=1, axis = axis)
     modelLines = PlotTrack(model_tracks, xLims, yLims, (startFrame, endFrame), 
 			   marker='.', markersize=8.0, 
-			   color='r', linewidth=2.5, alpha=0.35, 
+			   color='r', linewidth=2.5, alpha=0.55, 
 			   zorder=2, animated=animated, axis = axis)
     return({'trueLines': trueLines, 'modelLines': modelLines})
 
@@ -185,56 +185,18 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
 
 def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims, 
 		   speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
-    if figure is None :
-	figure = pylab.gcf()
-
     if (axis is None) :
         axis = figure.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
 
-    canvas = figure.canvas
+    axis.hold(True)
 
-    # create the initial lines
-    
+    # create the initial lines    
     theLines = PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, 
-			  startFrame, startFrame, axis = axis, animated = True)
-    canvas.draw()
+			  startFrame, endFrame, axis = axis, animated = True)
+
+    AnimateLines(theLines['modelLines'], model_tracks, startFrame, endFrame, axis = axis, figure = figure)
     
-
-    def update_line(*args) :
-        if update_line.background is None:
-            update_line.background = canvas.copy_from_bbox(axis.bbox)
-
-	if (int(update_line.cnt) > update_line.currFrame) :
-            update_line.currFrame = int(update_line.cnt)
-
-	    canvas.restore_region(update_line.background)
-
-            for (line, frameNums, aTrackXLocs, aTracksYLocs) in zip(theLines['modelLines'], *model_tracks) :
-                line.set_xdata([xLoc for (xLoc, frameNum) in zip(aTrack['xLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
-                line.set_ydata([yLoc for (yLoc, frameNum) in zip(aTrack['yLocs'], aTrack['frameNums']) if frameNum <= update_line.cnt and frameNum >= startFrame])
-                axis.draw_artist(line)
-
-        canvas.blit(axis.bbox)
-
-        if update_line.cnt >= (endFrame + (hold_loop - speed)):
-            update_line.cnt = startFrame
-	    update_line.currFrame = startFrame - 1.0
-
-        update_line.cnt += speed
-        return(True)
-
-    update_line.cnt = endFrame
-    update_line.currFrame = startFrame - 1.0
-    update_line.background = None
-    
- 
-    def start_anim(event):
-        gobject.idle_add(update_line)
-        canvas.mpl_disconnect(start_anim.cid)
-
-    start_anim.cid = canvas.mpl_connect('draw_event', start_anim)
-
 
