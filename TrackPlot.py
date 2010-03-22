@@ -40,19 +40,23 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     # Correct Stuff
     tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], xLims, yLims, tLims, axis,
-                 			      linewidth=1.5, color= 'green', 
-					      marker='.', markersize=6.0, animated=animated, zorder=1)
+                 			      linewidth=4.0, color= 'green', 
+					      marker=' ', #markersize=6.0, 
+					      animated=animated, zorder=1)
     tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], xLims, yLims, tLims, axis,
              				       color='green', linestyle=' ', 
-					       marker='.', markersize=6.0, animated=animated, zorder=1)
+					       marker='.', markersize=8.0,
+					       animated=animated, zorder=1)
 
     # Wrong Stuff
     tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'], xLims, yLims, tLims, axis,
-                 			     linewidth=3.0, color='gray', linestyle=':',
-					     marker='.', markersize=9.0, animated=animated, zorder=2)
+                 			     linewidth=4.0, color='gray', linestyle=':',
+					     marker=' ', #markersize=9.0,
+					     animated=animated, zorder=2)
     tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'], xLims, yLims, tLims, axis,
-    					    linewidth=3.0, color='red', 
-					    marker='.', markersize=9.0, animated=animated, zorder=2)
+    					    linewidth=4.0, color='red', 
+					    marker=' ', #markersize=9.0, 
+					    animated=animated, zorder=2)
 
 
 

@@ -63,24 +63,26 @@ for index in range(0, options.simCnt) :
     simName = options.simName + ("%s%.3d" % (os.sep, index))
     simParams = ParamUtils.ParamsFromOptions(options, simName = simName)
 
-    if (not os.path.exists(simName)) :
-        os.makedirs(simName)
+#    if (not os.path.exists(simName)) :
+#        os.makedirs(simName)
 
-    ParamUtils.SaveSimulationParams(os.sep.join([simName, 'simParams.conf']), simParams)
-    theSimulation = TrackSim(simParams, simName)
+#    ParamUtils.SaveSimulationParams(os.sep.join([simName, 'simParams.conf']), simParams)
+#    theSimulation = TrackSim(simParams, simName)
 
-    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
-    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], simParams['frameCnt'], theSimulation['noisy_volumes'])
+#    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
+#    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+#    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], simParams['frameCnt'], theSimulation['noisy_volumes'])
 
-    simParams['ParamFile'] = os.sep.join([simName, "Parameters"])
+#    simParams['ParamFile'] = os.sep.join([simName, "Parameters"])
 
-    true_AssocSegs = CreateSegments(theSimulation['noisy_tracks'])
-    true_FAlarmSegs = CreateSegments(theSimulation['noisy_falarms'])
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
+
+    true_AssocSegs = CreateSegments(true_tracks)
+    true_FAlarmSegs = CreateSegments(true_falarms)
 
 
     for aTracker in simParams['trackers'] :
-	DoTracking(aTracker, simParams)
+#	DoTracking(aTracker, simParams)
         (finalTracks, finalFAlarms) = ReadTracks(simParams['result_file'] + '_' + aTracker)
         (finalTracks, finalFAlarms) = FilterMHTTracks(finalTracks, finalFAlarms)
         
