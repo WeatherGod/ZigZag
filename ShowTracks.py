@@ -51,9 +51,11 @@ if len(trackFiles) == 0 : print "WARNING: No trackFiles listed!"
 
 trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
+bgcolor = 'mintcream'
+
 
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
-theFig = pylab.figure(figsize = (11, 5))
+theFig = pylab.figure(figsize = (11, 5), facecolor=bgcolor)
 
 if options.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(options.truthTrackFile))
@@ -69,7 +71,7 @@ if options.truthTrackFile is not None :
 
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
 
-        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
+        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1, axisbg = bgcolor)
         PlotSegments(truthtable, xLims, yLims, tLims, axis = curAxis)
 
 #        curAxis.axis("equal")
@@ -83,7 +85,7 @@ else :
         # TODO: Need to have consistent domains, maybe?
         (xLims, yLims, tLims) = DomainFromTracks(aTracker[0] + aTracker[1])
 
-        curAxis = theFig.add_subplot(1, len(args), index + 1)
+        curAxis = theFig.add_subplot(1, len(args), index + 1, axisbg = bgcolor)
         curAxis.hold(True)
         PlotTrack(aTracker[0], xLims, yLims, tLims, axis = curAxis,
 		  marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
@@ -98,7 +100,7 @@ else :
 
 
 if options.saveImgFile is not None :
-    pylab.savefig(options.saveImgFile, dpi=300)
+    pylab.savefig(options.saveImgFile, dpi=300, facecolor = bgcolor)
 
 if options.doShow :
     pylab.show()
