@@ -11,7 +11,7 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     so it is possible to reconstruct the (clipped) track data using
     this output.
     """
-    volData = []
+    volData = {}
     allCells = {'frameNums': [], 'trackID': [], 'xLocs': [], 'yLocs': []}
     #print "Tracks:"
     for aTrack in tracks :
