@@ -1,6 +1,6 @@
 import math
-import copy                             # for deep copying
-
+import numpy
+import numpy.lib.recfunctions as nprf		# for .stack_arrays()
 
 def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     """
@@ -12,33 +12,21 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     this output.
     """
     volData = {}
-    allCells = {'frameNums': [], 'trackID': [], 'xLocs': [], 'yLocs': []}
-    #print "Tracks:"
-    for aTrack in tracks :
-	#print aTrack['trackID'], '\t', aTrack['frameNums']
-	#print "THIS TRACK:   ", aTrack
-        allCells['frameNums'].extend(aTrack['frameNums'])
-        allCells['trackID'].extend([aTrack['trackID']] * len(aTrack['frameNums']))
-        allCells['xLocs'].extend(aTrack['xLocs'])
-        allCells['yLocs'].extend(aTrack['yLocs'])
+    # TODO: Now, I still have an issue regarding missing track IDs...
+    allCells = numpy.hstack(tracks + falarms)
 
-    #print "\n\nFAlarms"
-    for aFAlarm in falarms :
-	#print aFAlarm['trackID'], '\t', aFAlarm['frameNums']
-	#print "THIS FALARM: ", aFAlarm
-	allCells['frameNums'].extend(aFAlarm['frameNums'])
-	allCells['trackID'].extend([aFAlarm['trackID']] * len(aFAlarm['frameNums']))
-	allCells['xLocs'].extend(aFAlarm['xLocs'])
-	allCells['yLocs'].extend(aFAlarm['yLocs'])
-
-
+    # Note, this is a mask in the opposite sense from a numpy masked array.
+    #       True means that this is a value to keep.
+    domainMask = numpy.logical_and(allCells['xLocs'] >= min(xLims),
+                 numpy.logical_and(allCells['xLocs'] <= max(xLims),
+                 numpy.logical_and(allCells['yLocs'] >= min(yLims),
+                                   allCells['yLocs'] <= max(yLims))))
 
     for volTime in range(min(tLims), max(tLims) + 1) :
+        # Again, this mask is opposite from numpy masked array.
+        tMask = (allCells['frameNums'] == volTime)
         volData.append({'volTime': volTime,
-                        'stormCells': [{'xLoc': xLoc, 'yLoc': yLoc, 'trackID': trackID}
-                                       for (xLoc, yLoc, frameNum, trackID) in zip(allCells['xLocs'], allCells['yLocs'], allCells['frameNums'], allCells['trackID'])
-                                        if (frameNum == volTime and xLoc >= min(xLims) and xLoc <= max(xLims) and
-                                                                    yLoc >= min(yLims) and yLoc <= max(yLims))]})
+                        'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
 
     return(volData)
 
@@ -50,59 +38,48 @@ def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
 
     All tracks clipped to length of one are moved to a copy of falarms.
     """
-    clippedTracks = copy.deepcopy(tracks)
-    clippedFAlarms = copy.deepcopy(falarms)
-    for aTrack in clippedTracks :
-        for (index, (xLoc, yLoc, frameNum)) in enumerate(zip(aTrack['xLocs'], aTrack['yLocs'], aTrack['frameNums'])) :
-            if (xLoc < min(xLims) or xLoc > max(xLims) or
-                yLoc < min(yLims) or yLoc > max(yLims) or
-                frameNum < min(tLims) or frameNum > max(tLims)) :
-                # Flag this track as one to get rid of.
-                for aKey in aTrack : 
-		    if aKey != 'trackID' : aTrack[aKey][index] = None
+    # Note, this is a mask in the opposite sense from a numpy masked array.
+    #       Here, True means that this is a value to keep.
+    clippedTracks = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in tracks]
+    clippedFAlarms = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in falarms]
 
-
-
-    (clippedTracks, clippedFAlarms) = CleanupTracks(clippedTracks, clippedFAlarms)
+    clippedTracks, clippedFAlarms = CleanupTracks(clippedTracks, clippedFAlarms)
 #    print "Length of tracks outside: ", len(clippedTracks)
     return (clippedTracks, clippedFAlarms)
+
+def ClipTrack(track, xLims, yLims, tLims) :
+    domainMask = numpy.logical_and(track['xLocs'] >= min(xLims),
+                 numpy.logical_and(track['xLocs'] <= max(xLims),
+                 numpy.logical_and(track['yLocs'] >= min(yLims),
+                 numpy.logical_and(track['yLocs'] <= max(yLims),
+                 numpy.logical_and(track['frameNums'] >= min(tLims),
+                                   track['frameNums'] <= max(tLims))))))
+
+    return track[domainMask]
 
 
 def CleanupTracks(tracks, falarms) :
     """
-    Rebuild the track list, effectively removing the storms flagged by a 'None'
-    Also handles tracks that were shortened or effectively removed to the
+    Moves tracks that were shortened to single length to the
     falarms list.
     """
-    # This will indicate how much to change the trackID
-    # number for each track as tracks are removed.
-    # This allows for other code to use the trackID number
-    # associated with a strmCell
-    # as a list index into the track list.
-    modifyTrackID = 0
-    for trackID in range(len(tracks)) :
-        for aKey in tracks[trackID] : 
-	    if aKey != "trackID" : tracks[trackID][aKey] = [someVal for someVal in tracks[trackID][aKey] if someVal is not None]
-	    else : tracks[trackID][aKey] -= modifyTrackID
-	
-	# move any length-1 tracks to the falarms category
-	if len(tracks[trackID]['frameNums']) == 1 :
-	    tracks[trackID]['trackID'] = -1
-	    falarms.append(tracks[trackID].copy())
-	    for aKey in tracks[trackID] : 
-		if aKey != "trackID" : tracks[trackID][aKey] = []
-        
-	# completely remove any length-0 tracks
-	#  (or the tracks that were moved to falarms)
-	if len(tracks[trackID]['frameNums']) == 0 :
-	    modifyTrackID += 1
-	    # Flag for removal.
-	    tracks[trackID] = None
-        
+    for trackIndex in range(len(falarms)) :
+        if len(falarms[trackIndex]) == 0 :
+            falarms[trackIndex] = None
+
+    # Rebuild falarm list
+    falarms = [aTrack for aTrack in falarms if aTrack is not None]
+
+    for trackIndex in range(len(tracks)) :
+        if len(tracks[trackIndex]) == 1 :
+            falarms.append(tracks[trackIndex])
+            tracks[trackIndex] = None
+
+        if len(tracks[trackIndex]) == 0 :
+            tracks[trackIndex] = None
 
     # Rebuild track list
     tracks = [aTrack for aTrack in tracks if aTrack is not None]
-#    print "Length of tracks: ", len(tracks)
     return(tracks, falarms)
 
 
@@ -118,8 +95,8 @@ def CreateSegments(tracks) :
     yLocs = []
     frameNums = []
     for aTrack in tracks :
-        if len(aTrack['frameNums']) > 1 :
-            for index2 in range(1, len(aTrack['frameNums'])) :
+        if len(aTrack) > 1 :
+            for index2 in range(1, len(aTrack)) :
                 index1 = index2 - 1
                 xLocs.append([aTrack['xLocs'][index1], aTrack['xLocs'][index2]])
                 yLocs.append([aTrack['yLocs'][index1], aTrack['yLocs'][index2]])
@@ -175,8 +152,6 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     assocs_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
     falarms_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
 
-    seekX = 246.0
-    seekY = 63.0
 
     unmatchedPredTrackSegs = range(len(predSegs['xLocs']))
 
@@ -185,16 +160,6 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 							   realSegs['frameNums']) :
 	foundMatch = False
 	for predIndex in unmatchedPredTrackSegs :
-	    """
-	    if ((seekX <= realSegXLoc[0] <= 247.0) and (seekY <= realSegYLoc[1] <= seekY + 1.)
-		and (seekX <= predSegs['xLocs'][predIndex][0] <= seekX + 1.)
-		and (seekY <= predSegs['yLocs'][predIndex][0] <= seekY + 1.)) :
-		print "Real XLocs: ", realSegXLoc
-		print "Pred XLocs: ", predSegs['xLocs'][predIndex]
-		print "Real YLocs: ", realSegYLoc
-		print "Pred YLocs: ", predSegs['yLocs'][predIndex]
-	    """
-		
 	    if (is_eq(realSegXLoc[0], predSegs['xLocs'][predIndex][0]) and
 	        is_eq(realSegXLoc[1], predSegs['xLocs'][predIndex][1]) and
 	        is_eq(realSegYLoc[0], predSegs['yLocs'][predIndex][0]) and
@@ -242,16 +207,6 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 					                            realFAlarmSegs['frameNums']):
 	foundMatch = False
 	for predIndex in unmatchedPredFAlarms :
-	    """
-	    if ((seekX <= realFAlarmXLoc[0] <= seekX + 1.) and (seekY <= realFAlarmYLoc[0] <= seekY + 1.)
-		and (seekX <= predFAlarmSegs['xLocs'][predIndex][0] <= seekX + 1.)
-		and (seekY <= predFAlarmSegs['yLocs'][predIndex][0] <= seekY + 1.)) :
-		print "Real XLocs: ", realFAlarmXLoc
-		print "Pred XLocs: ", predFAlarmSegs['xLocs'][predIndex]
-		print "Real YLocs: ", realFAlarmYLoc
-		print "Pred YLocs: ", predFAlarmSegs['yLocs'][predIndex]
-		print "Real Frame: ", realFAlarmFrameNum, "   Pred Frame: ", predFAlarmSegs['frameNums'][predIndex]
-	    """
 	    if (is_eq(realFAlarmXLoc[0], predFAlarmSegs['xLocs'][predIndex][0]) and
 		is_eq(realFAlarmYLoc[0], predFAlarmSegs['yLocs'][predIndex][0]) and
 		realFAlarmFrameNum[0] == predFAlarmSegs['frameNums'][predIndex][0]) :
@@ -307,6 +262,7 @@ Forecasted
     c = float(len(truthTable['falarms_Wrong']['xLocs']))
     d = float(len(truthTable['falarms_Correct']['xLocs']))
     if (((a + c) * (c + d)) + ((a + b) * (b + d))) < 0.1 :
+       # Prevent division by zero...
        return 1.0
     else :
        return 2. * ((a * d) - (b * c)) / (((a + c) * (c + d)) + ((a + b) * (b + d)))
@@ -334,6 +290,7 @@ Forecasted
     c = float(len(truthTable['falarms_Wrong']['xLocs']))
     d = float(len(truthTable['falarms_Correct']['xLocs']))
     if ((a + c) * (b + d)) < 0.1 :
+        # Prevent division by zero...
         return 1.0
     else :
         return ((a * d) - (b * c)) / ((a + c) * (b + d))
@@ -342,54 +299,28 @@ def FilterMHTTracks(raw_tracks, raw_falarms) :
     """
     This function will 'clean up' the track output from ReadTracks()
     such that the tracks contain only the actual detected points.
-    Also, it will re-arrange the tracks in case there are any 1 or 0 length tracks
-    over to falarms.
+    Also, it will move any one-length tracks to falarms, and completely
+    remove any zero-length tracks.
     """
-    tracks = copy.deepcopy(raw_tracks['tracks'])
-    falarms = copy.deepcopy(raw_falarms)
     
-    for aTrack in tracks :
-        for index in range(len(aTrack['types'])) :
-            if aTrack['types'][index] != 'M' :
-		# Flag this element of the track as one to get rid of.
-                for aKey in aTrack : 
-		    if aKey != 'trackID' : aTrack[aKey][index] = None
+    tracks = [aTrack[aTrack['types'] == 'M'] for aTrack in raw_tracks]
 		
-    (tracks, falarms) = CleanupTracks(tracks, falarms)
-    return(tracks, falarms)
+    tracks, falarms = CleanupTracks(tracks, raw_falarms)
+    return (tracks, falarms)
 
 
 def DomainFromTracks(tracks, falarms = []) :
+    """
+    Calculate the spatial and temporal domain of the tracks and false alarms.
+    Note that this assumes that bad points are non-existant or has been
+    masked out.
+    """
 
-    minTrackX = []
-    maxTrackX = []
-    minTrackY = []
-    maxTrackY = []
-    minTrackT = []
-    maxTrackT = []
-
-    for track in tracks :
-        minTrackX.append(min(track['xLocs']))
-        maxTrackX.append(max(track['xLocs']))
-        minTrackY.append(min(track['yLocs']))
-        maxTrackY.append(max(track['yLocs']))
-        minTrackT.append(min(track['frameNums']))
-        maxTrackT.append(max(track['frameNums']))
-
-
-    for falarm in falarms :
-        minTrackX.append(min(falarm['xLocs']))
-        maxTrackX.append(max(falarm['xLocs']))
-        minTrackY.append(min(falarm['yLocs']))
-        maxTrackY.append(max(falarm['yLocs']))
-        minTrackT.append(min(falarm['frameNums']))
-        maxTrackT.append(max(falarm['frameNums']))
-
-	
-
-    return( [min(minTrackX), max(maxTrackX)],
-            [min(minTrackY), max(maxTrackY)],
-            [min(minTrackT), max(maxTrackT)] )
+    allPoints = nprf.stack_arrays(tracks + falarms)
+    
+    return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
+            (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
+            (allPoints['frameNums'].min(), allPoints['frameNums'].max()))
 
 
 def is_eq(val1, val2) :

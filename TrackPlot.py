@@ -3,7 +3,8 @@ import gtk, gobject
 import matplotlib
 matplotlib.use('GTKAgg')
 
-import pylab
+#import pylab
+import matplotlib.pyplot as pyplot
 
 #################################################
 #		Segment Plotting		#
@@ -11,7 +12,7 @@ import pylab
 
 def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
     if (axis is None) :
-       axis = pylab.gca()
+       axis = pyplot.gca()
 
 
 
@@ -34,7 +35,7 @@ def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
 def PlotSegments(truthTable, xLims, yLims, tLims,
 	         axis = None, animated=False, width = 4.0) :
     if axis is None :
-        axis = pylab.gca()
+        axis = pyplot.gca()
 
     tableSegs = {}
 
@@ -65,7 +66,7 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
 def Animate_Segments(truthTable, xLims, yLims, tLims, axis = None, **kwargs) :
     if axis is None :
-	axis = pylab.gca()
+	axis = pyplot.gca()
 
     tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis = axis, animated = True) 
 
@@ -87,7 +88,7 @@ def Animate_Segments(truthTable, xLims, yLims, tLims, axis = None, **kwargs) :
 def AnimateLines(lines, lineData, startFrame, endFrame, 
 		 speed = 1.0, hold_loop = 2.0, figure = None, axis = None) :
     if figure is None :
-	figure = pylab.gcf()
+	figure = pyplot.gcf()
 
     if axis is None :
         axis = figure.gca()
@@ -149,7 +150,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 
 def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     if (axis is None) :
-        axis = pylab.gca()
+        axis = pyplot.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
@@ -171,7 +172,7 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
 def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, endFrame=None,
 	       axis = None, animated=False) :
     if axis is None :
-        axis = pylab.gca()
+        axis = pyplot.gca()
 
     if startFrame is None : startFrame = min(tLims)
     if endFrame is None : endFrame = max(tLims)
