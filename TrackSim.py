@@ -4,49 +4,148 @@ import random
 from TrackFileUtils import *		# for writing the track data
 import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import ParamUtils 			# for SaveSimulationParams(), SetupParser()
-import numpy
-import copy				# for deep copying
-import math				# for cos(), sin(), and pi
-
+import numpy				# for Numpy
+import numpy.lib.recfunctions as nprf	# for .append_fields()
 
 import os				# for os.sep, os.makedirs(), os.path.exists()
 
+class TrackPoint :
+    """
+    TrackPoint is a useful data object that helps with making simulated tracks.
+    When created, it will randomly initialize itself, according to parameters, to
+    give it a random starting time, position, speed and direction.
+
+    Then, the object can be simply iterated in a for loop to update its state.
+    When it 'dies', or it reached the predetermined end-of-life, the iterator
+    will stop (just like looping through an array or a file).
+
+    Each iteration will yield a tuple of (trackStatus, xPos, yPos, frameNum).
+    Note that track status is currently always 'M' to indicate a good track.
+    Future revisions may make this a little bit more robust and allow for
+    tracks to disappear and such, thereby changing its status, maybe?
+
+    """
+
+    def __init__(self, tLims, xPosLims, yPosLims, angleLims, speedLims,
+                       deltaT, posNoise, speedNoise, trackDeathProb) :
+        """
+        Create a point that will be used to create a track.
+
+        Parameters
+        ----------
+        tLims : tuple of ints
+            Start and end frames  E.g., (5, 12)
+
+        xPosLims, yPosLims : tuple of floats
+            The spatial domain for track initialization
+            Note that this constraint is *not* applied to
+            subsequent states of the track point.  In other
+            words, the track can leave/enter the domain at will.
+            Ex: (0.0, 255.0)
+
+        angleLims : tuple of floats
+            The limits of the initial angle that a track may move.
+            The units is in degrees and is using math coordinates.
+            I.E., 0.0 degrees is East, 90.0 degrees is North.
+            Ex: (30.0, 60.0) to generally head NorthEast.
+            Note that, like xPosLims, this constraint is only applied
+            to the initialization, and the track may head anywhere afterwards.
+
+        speedLims : tuple of floats
+            The limits of the initial speed (in magnitude) that a track
+            may have. Note that, like xPosLims, this constraint is only
+            applied to the initialization and the track may have any
+            speed afterwards.
+            Ex: (5.0, 25.0)
+
+        deltaT : float or int
+            The time increment
+
+        posNoise : float
+            The variance (+/-) of the uniform noise to apply to the position
+            of the track point for each iteration of the track.
+
+        speedNoise : float
+            The variance (+/-) of the uniform noise to apply to the x/y speed
+            of the track point for each iteration of the track.
+
+        trackDeathProb : float between 0 and 1
+            The probability that a track will die at some particular iteration.
+            0.0 for eternal tracks, 1.0 for single points.
+
+        """
+        # These are "read-only" properties that are used in iterating
+        self.deltaT = deltaT
+        self.posNoise = posNoise
+        self.speedNoise = speedNoise
+        self.trackDeathProb = trackDeathProb
+        self.lastFrame = max(tLims)
+
+        # random state for initialization in next().
+        self.initFrame = numpy.random.randint(min(tLims), max(tLims))
+        self.initXPos = numpy.random.uniform(min(xPosLims), max(xPosLims))
+        self.initYPos = numpy.random.uniform(min(yPosLims), max(yPosLims))
+        self.initSpeed = numpy.random.uniform(min(speedLims), max(speedLims))
+        self.initAngle = numpy.random.uniform(min(angleLims), max(angleLims)) * (numpy.pi / 180.0)
+
+        # These are the internal state variables that will change
+        # They are set to None for now as the first call to next() will
+        # initialize the state, while subsequent calls will update the state.
+        self.frameNum = None
+        self.xLoc = None
+        self.yLoc = None
+        self.xSpeed = None
+        self.ySpeed = None
 
 
-def IncrementPoint(dataPoint, deltaT, pos_noise, speed_noise) :
-    dataPoint['time'] += deltaT
-    dataPoint['pos'] += ((dataPoint['speed'] * deltaT) + 
-			 numpy.random.uniform(-pos_noise, pos_noise, dataPoint['pos'].shape))
-    dataPoint['speed'] += numpy.random.uniform(-speed_noise, speed_noise, dataPoint['speed'].shape)
+    def __iter__(self) :
+        return self
 
-def MakePoint(tLims, xLocLims, yLocLims, angleLims, speedLims) :
-    speed = numpy.random.uniform(min(speedLims), max(speedLims))
-    angle = numpy.random.uniform(min(angleLims), max(angleLims)) * (math.pi / 180.0)
-    return {'time': numpy.random.randint(min(tLims), max(tLims)),
-	    'pos': numpy.random.uniform(min(xLocLims), max(xLocLims), 2),
-	    'speed': speed * numpy.array((numpy.cos(angle), numpy.sin(angle)))}
+    def next(self) :
+        """
+        Each iteration through the loop will cause the point to "move" itself according to
+        a psuedo-constant velocity model.
+        """
+        if self.frameNum is None :
+            # Then this is the first call to next(), and we shall initialize the state and return that
+            # Otherwise, this is a subsequent call and therefore we need to check to see if the track
+            # should be ended or if it should be updated.
+            self.frameNum = self.initFrame
+            self.xLoc = self.initXPos
+            self.yLoc = self.initYPos
+            self.xSpeed = self.initSpeed * numpy.cos(self.initAngle)
+            self.ySpeed = self.initSpeed * numpy.sin(self.initAngle)
 
+        else :
+            if self.frameNum >= self.lastFrame or numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb :
+                raise StopIteration
+        
+            self.frameNum += self.deltaT
+            self.xLoc += (self.xSpeed * self.deltaT) + numpy.random.uniform(-self.posNoise, self.posNoise)
+            self.yLoc += (self.ySpeed * self.deltaT) + numpy.random.uniform(-self.posNoise, self.posNoise)
+            self.xSpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
+            self.ySpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
 
-
-def TracksGenerator(trackCnt, tLims, xLims, yLims, speedLims,
-		    speed_variance, meanAngle, angle_variance, prob_track_ends) :
-
-    def MakeTrack(tLims, angleLims, speedLims,
-	          speed_variance, prob_track_ends, 
-	          xLims, yLims) :
-        aPoint = MakePoint(tLims, xLims, yLims, angleLims, speedLims)
-
-        yield ('M', aPoint['pos'][0], aPoint['pos'][1], aPoint['time'])
-        while (random.uniform(0, 1) > prob_track_ends and aPoint['time'] < max(tLims)) :
-            IncrementPoint(aPoint, 1, 1.15, speed_variance)
-            yield ('M', aPoint['pos'][0], aPoint['pos'][1], aPoint['time'])
-
-    trackGen = MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
-		         speedLims, speed_variance, prob_track_ends, 
-		         xLims, yLims)
+        return ('M', self.xLoc, self.yLoc, self.frameNum)
 
 
-    theTracks = [numpy.fromiter(trackGen, TrackUtils.track_dtype)
+def MakeTrack(tLims, angleLims, speedLims,
+              speed_variance, prob_track_ends, 
+              xLims, yLims, trackID) :
+
+    aPoint = TrackPoint(tLims, xLims, yLims, angleLims, speedLims,
+                        1, 1.5, speed_variance, prob_track_ends)
+
+    tracks = numpy.fromiter(aPoint, TrackUtils.track_dtype)
+    return nprf.append_fields(tracks, 'trackID', [trackID] * len(tracks), usemask=False)
+
+
+def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
+	       speed_variance, meanAngle, angle_variance, prob_track_ends) :
+
+    theTracks = [MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
+		           speedLims, speed_variance, prob_track_ends, 
+		           xLims, yLims, index)
 		 for index in xrange(trackCnt)]
     theFAlarms = []
     return(TrackUtils.CleanupTracks(theTracks, theFAlarms))
@@ -55,53 +154,60 @@ def TracksGenerator(trackCnt, tLims, xLims, yLims, speedLims,
 
 
 
-
-
-
-def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
+def DisturbTracks(trueTracks, trueFalarms, volData, noise_params) :
     
-    tracks = copy.deepcopy(true_tracks)
-    falarms = copy.deepcopy(true_falarms)
-    volData = copy.deepcopy(true_volData)
+    noiseTracks = [aTrack.copy() for aTrack in trueTracks]
+    noiseFalarms = [aTrack.copy() for aTrack in trueFalarms]
 
-    for (volIndex, aVol) in enumerate(volData) :
-        xLocs = numpy.array([stormCell['xLoc'] for stormCell in aVol['stormCells']])
-	yLocs = numpy.array([stormCell['yLoc'] for stormCell in aVol['stormCells']])
-        distMatrix = numpy.hypot(numpy.tile(xLocs, (len(xLocs), 1)) - numpy.rollaxis(numpy.tile(xLocs, (len(xLocs), 1)), 1),
-                                 numpy.tile(yLocs, (len(xLocs), 1)) - numpy.rollaxis(numpy.tile(yLocs, (len(xLocs), 1)), 1))
+    FalseMerge(noiseTracks, noiseFalarms, volData, noise_params)
 
-        # take a storm cell, and...
-	for index1 in range(len(aVol['stormCells'])) :
-	    trackID1 = aVol['stormCells'][index1]['trackID']
-	    # Don't bother trying to occlude falarms,
+
+
+
+def FalseMerge(tracks, falarms, volData, noise_params) :
+
+    for volIndex in xrange(len(volData)) :
+        strmCells = volData[volIndex]['stormCells']
+        # Calc the distances between each storm cell in this volume
+        distMatrix = numpy.hypot(strmCells['xLocs'] - numpy.atleast_2d(strmCells['xLocs']).T,
+                                 strmCells['yLocs'] - numpy.atleast_2d(strmCells['yLocs']).T)
+
+        # take a storm cell, and see if there is a false merger
+	for strm1Index in xrange(len(strmCells)) :
+	    strm1TrackID = strmCells['trackID'][strm1Index]
+	    # Don't bother trying to occlude falarms (negative trackIDs),
 	    # because their length is only 1.
-	    if trackID1 < 0 : continue
+	    if strm1TrackID < 0 :
+                continue
 	    #print "trackID1: ", trackID1
 
-	    # ...check against the remaining storm cells.
-	    for index2 in range(index1 + 1, len(aVol['stormCells'])) :
-		trackID2 = aVol['stormCells'][index2]['trackID']
+	    # ...check strm1 against the remaining storm cells.
+	    for strm2Index in xrange(strm1Index, len(strmCells)) :
+		strm2TrackID = strmCells['trackID'][strm2Index]
 		#print "  trackID2: ", trackID2
 
-		if (distMatrix[index1, index2] <= noise_params['false_merge_dist'] and
-		    len(tracks[trackID1]['frameNums']) > 3 and len(tracks[trackID2]['frameNums']) > 2 and
-		    random.uniform(0., 1.) * (distMatrix[index1, index2] / noise_params['false_merge_dist']) < noise_params['false_merge_prob']) :
+                # See if the two points are close enough together (false_merge_dist),
+                # and see if it satisfy the random chance of being merged
+		if (distMatrix[strm1Index, strm2Index] <= noise_params['false_merge_dist'] and
+		    len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
+		    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index1, strm2Index] / noise_params['false_merge_dist']
+                     < noise_params['false_merge_prob'])) :
 
 		    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
 		    #print tracks[trackID1]['frameNums']
-		    strmID = tracks[trackID1]['frameNums'].index(aVol['volTime'])
-		    for aKey in tracks[trackID1] :
-			if aKey != 'trackID' : tracks[trackID1][aKey][strmID] = None
-
-		    aVol['stormCells'][index1] = None
+                    # Ok, we will have strm1 occluded by strm2
+                    strmID = numpy.nonzero(tracks[strm1TrackID]['frameNums'] == volData[volIndex]['volTime'])[0]
+                    # Mark it as 'O' (for Occlusion) in the tracks and the volume data
+                    tracks[strm1TrackID]['types'][strmID] = 'O'
+		    strmCells['types'][strm1Index] = 'O'
 		    
-		    # No need to continue checking against this one...
+		    # No need to continue searching strm2s against this strm1
 		    break
 		    
 
 	# rebuild the stormcells list, effectively removing the storms
 	# flagged as a false merger.
-	volData[volIndex]['stormCells'] = [aStorm for aStorm in aVol['stormCells'] if aStorm is not None]
+	volData[volIndex]['stormCells'] = strmCells[numpy.logical_not(strmCells['types'] == 'O')]
 
 
     # rebuild the tracks list, effectively removing the storms
@@ -112,13 +218,15 @@ def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
     return(tracks, falarms, volData)
 
 def TrackSim(simParams, simName) :
-    (true_tracks, true_falarms) = TracksGenerator(simParams['totalTracks'],
-						  simParams['tLims'], simParams['xLims'], simParams['yLims'],
-			          		  simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
-			          		  simParams['angle_variance'], simParams['endTrackProb'])
-    (fake_tracks, fake_falarms) = ClipTracks(true_tracks, true_falarms, simParams['xLims'], simParams['yLims'], simParams['tLims'])
-    volume_data = CreateVolData(fake_tracks, fake_falarms, simParams['tLims'], simParams['xLims'], simParams['yLims'])
-    (fake_tracks, fake_falarms, fake_volData) = DisturbTracks(fake_tracks, fake_falarms, volume_data, 
+    (true_tracks, true_falarms) = MakeTracks(simParams['totalTracks'],
+					     simParams['tLims'], simParams['xLims'], simParams['yLims'],
+			          	     simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
+			          	     simParams['angle_variance'], simParams['endTrackProb'])
+
+    # Clip tracks to the domain
+    (clippedTracks, clippedFalarms) = ClipTracks(true_tracks, true_falarms, simParams['xLims'], simParams['yLims'], simParams['tLims'])
+    volume_data = TrackUtils.CreateVolData(clippedTracks, clippedFalarms, simParams['tLims'], simParams['xLims'], simParams['yLims'])
+    (fake_tracks, fake_falarms, fake_volData) = DisturbTracks(clippedTracks, clippedFalarms, volume_data, 
 							      {'false_merge_dist': simParams['false_merge_dist'], 
 							       'false_merge_prob': simParams['false_merge_prob']})
 
@@ -157,8 +265,6 @@ if __name__ == '__main__' :
     if (not os.path.exists(options.simName)) :
         os.makedirs(options.simName)
     
-
-
     theSimulation = TrackSim(simParams, options.simName)
 
 

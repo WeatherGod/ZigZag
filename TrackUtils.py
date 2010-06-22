@@ -17,7 +17,7 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     so it is possible to reconstruct the (clipped) track data using
     this output.
     """
-    volData = {}
+    volData = []
     # TODO: Now, I still have an issue regarding missing track IDs...
     allCells = numpy.hstack(tracks + falarms)
 
@@ -69,28 +69,33 @@ def CleanupTracks(tracks, falarms) :
     Moves tracks that were shortened to single length to the
     falarms list.
     """
-    for trackIndex in range(len(falarms)) :
-        if len(falarms[trackIndex]) == 0 :
-            falarms[trackIndex] = None
+    cleanTracks = [aTrack.copy() for aTrack in tracks]
+    cleanFalarms = [aTrack.copy() for aTrack in falarms]
+
+    for trackIndex in range(len(cleanFalarms)) :
+        if len(cleanFalarms[trackIndex]) == 0 :
+            cleanFalarms[trackIndex] = None
+
+
+
+    for trackIndex in range(len(cleanTracks)) :
+        if len(cleanTracks[trackIndex]) == 1 :
+            cleanFalarms.append(cleanTracks[trackIndex])
+            cleanTracks[trackIndex] = []
+
+        if len(cleanTracks[trackIndex]) == 0 :
+            cleanTracks[trackIndex] = None
 
     # Rebuild falarm list
-    falarms = [aTrack for aTrack in falarms if aTrack is not None]
-
-    for trackIndex in range(len(tracks)) :
-        if len(tracks[trackIndex]) == 1 :
-            falarms.append(tracks[trackIndex])
-            tracks[trackIndex] = None
-
-        if len(tracks[trackIndex]) == 0 :
-            tracks[trackIndex] = None
-
+    cleanFalarms = [aTrack for aTrack in cleanFalarms if aTrack is not None]
     # Rebuild track list
-    tracks = [aTrack for aTrack in tracks if aTrack is not None]
-    return(tracks, falarms)
+    cleanTracks = [aTrack for aTrack in cleanTracks if aTrack is not None]
+
+    return cleanTracks, cleanFalarms
 
 
 
-
+# TODO: Still follows old data structure...
 def CreateSegments(tracks) :
     """
     Breaks up a list of the tracks (or falarms) into an array of segments.
