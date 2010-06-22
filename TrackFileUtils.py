@@ -1,4 +1,5 @@
 import numpy
+import TrackUtils
 
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
@@ -51,10 +52,7 @@ def ReadTracks(fileName) :
             trackID = int(tempList[0])
             trackLen = int(tempList[1])
 
-	    tracks.append(numpy.empty(trackLen, dtype=[('types', 'a1'),
-						       ('xLocs', 'f4'),
-						       ('yLocs', 'f4'),
-						       ('frameNums', 'i4')]))
+	    tracks.append(numpy.empty(trackLen, dtype=TrackUtils.track_dtype))
 	    continue
 
         if contourCnt > 0 and centroidCnt < trackLen :
@@ -71,10 +69,7 @@ def ReadTracks(fileName) :
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
 	    falseAlarms.append(numpy.array([('F', float(tempList[0]), float(tempList[1]), int(tempList[2]))],
-					   dtype=[('types', 'a1'),
-                                                  ('xLocs', 'f4'),
-                                                  ('yLocs', 'f4'),
-                                                  ('frameNums', 'i4')]))
+					   dtype=TrackUtils.track_dtype))
 
     #print "\n\n\n"
 

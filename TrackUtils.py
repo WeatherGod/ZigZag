@@ -2,6 +2,12 @@ import math
 import numpy
 import numpy.lib.recfunctions as nprf		# for .stack_arrays()
 
+
+track_dtype = [('types', 'a1'),
+               ('xLocs', 'f4'),
+               ('yLocs', 'f4'),
+               ('frameNums', 'i4')]
+
 def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     """
     Essentially, go from lagrangian (following a particle)

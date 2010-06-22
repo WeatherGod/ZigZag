@@ -2,7 +2,7 @@
 
 import random
 from TrackFileUtils import *		# for writing the track data
-from TrackUtils import *		# for ClipTracks(), CreateVolData(), and CleanupTracks()
+import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import ParamUtils 			# for SaveSimulationParams(), SetupParser()
 import numpy
 import copy				# for deep copying
@@ -14,55 +14,48 @@ import os				# for os.sep, os.makedirs(), os.path.exists()
 
 
 def IncrementPoint(dataPoint, deltaT, pos_noise, speed_noise) :
-    return({'time': dataPoint['time'] + deltaT,
-            'pos': [dataPoint['pos'][0] + (dataPoint['speed'][0] * deltaT) + random.uniform(-pos_noise, pos_noise),
-                    dataPoint['pos'][1] + (dataPoint['speed'][1] * deltaT) + random.uniform(-pos_noise, pos_noise)],
-            'speed': [dataPoint['speed'][0] + random.uniform(-speed_noise, speed_noise),
-                      dataPoint['speed'][1] + random.uniform(-speed_noise, speed_noise)]})
+    dataPoint['time'] += deltaT
+    dataPoint['pos'] += ((dataPoint['speed'] * deltaT) + 
+			 numpy.random.uniform(-pos_noise, pos_noise, dataPoint['pos'].shape))
+    dataPoint['speed'] += numpy.random.uniform(-speed_noise, speed_noise, dataPoint['speed'].shape)
 
+def MakePoint(tLims, xLocLims, yLocLims, angleLims, speedLims) :
+    speed = numpy.random.uniform(min(speedLims), max(speedLims))
+    angle = numpy.random.uniform(min(angleLims), max(angleLims)) * (math.pi / 180.0)
+    return {'time': numpy.random.randint(min(tLims), max(tLims)),
+	    'pos': numpy.random.uniform(min(xLocLims), max(xLocLims), 2),
+	    'speed': speed * numpy.array((numpy.cos(angle), numpy.sin(angle)))}
 
 
 
 def TracksGenerator(trackCnt, tLims, xLims, yLims, speedLims,
 		    speed_variance, meanAngle, angle_variance, prob_track_ends) :
-    theTracks = [dict(MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
-		                speedLims, speed_variance, prob_track_ends, 
-		                xLims, yLims),
-		      trackID = index) for index in range(trackCnt)]
+
+    def MakeTrack(tLims, angleLims, speedLims,
+	          speed_variance, prob_track_ends, 
+	          xLims, yLims) :
+        aPoint = MakePoint(tLims, xLims, yLims, angleLims, speedLims)
+
+        yield ('M', aPoint['pos'][0], aPoint['pos'][1], aPoint['time'])
+        while (random.uniform(0, 1) > prob_track_ends and aPoint['time'] < max(tLims)) :
+            IncrementPoint(aPoint, 1, 1.15, speed_variance)
+            yield ('M', aPoint['pos'][0], aPoint['pos'][1], aPoint['time'])
+
+    trackGen = MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
+		         speedLims, speed_variance, prob_track_ends, 
+		         xLims, yLims)
+
+
+    theTracks = [numpy.fromiter(trackGen, TrackUtils.track_dtype)
+		 for index in xrange(trackCnt)]
     theFAlarms = []
-    return(CleanupTracks(theTracks, theFAlarms))
+    return(TrackUtils.CleanupTracks(theTracks, theFAlarms))
 
 
-def MakePoint(tLims, xLocLims, yLocLims, angleLims, speedLims) :
-    speed = random.uniform(min(speedLims), max(speedLims))
-    angle = random.uniform(min(angleLims), max(angleLims)) * (math.pi / 180.0)
-    return({'time': random.randrange(min(tLims), max(tLims)),
-	    'pos': [random.uniform(min(xLocLims), max(xLocLims)),
-		    random.uniform(min(yLocLims), max(yLocLims))],
-	    'speed': [speed * math.cos(angle),
-		      speed * math.sin(angle)]})
 
 
-def MakeTrack(tLims, angleLims, speedLims,
-	      speed_variance, prob_track_ends, 
-	      xLims, yLims) :
-    aPoint = MakePoint(tLims, xLims, yLims, angleLims, speedLims)
-    aTrack = {'frameNums': [aPoint['time']],
-              'xLocs': [aPoint['pos'][0]], 
-	      'yLocs': [aPoint['pos'][1]],
-              'xSpeeds': [aPoint['speed'][0]], 
-	      'ySpeeds': [aPoint['speed'][1]]}
 
-    
-    while (random.uniform(0, 1) > prob_track_ends and aPoint['time'] < max(tLims)) :
-        aPoint = IncrementPoint(aPoint, 1, 1.15, speed_variance)
-        aTrack['frameNums'].append(aPoint['time'])
-	aTrack['xLocs'].append(aPoint['pos'][0])
-	aTrack['yLocs'].append(aPoint['pos'][1])
-	aTrack['xSpeeds'].append(aPoint['speed'][0])
-	aTrack['ySpeeds'].append(aPoint['speed'][1])
 
-    return(aTrack)
 
 
 def DisturbTracks(true_tracks, true_falarms, true_volData, noise_params) :
