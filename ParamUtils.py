@@ -4,7 +4,7 @@ from optparse import OptionGroup
 
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
-		    theSeed = random.randint(0, 99999999),
+		    theSeed = 42,
 		    simTrackFile = "%s" + os.sep + "true_tracks",
 		    noisyTrackFile = "%s" + os.sep + "noise_tracks",
 		    endTrackProb = 0.1,
@@ -65,9 +65,11 @@ def ReadSimulationParams(simParamName) :
         # The first field will be the key name (stripped of whitespace)
 	keyName = lineSplit[0].strip()
 
+        # Backwards compatibility...
 	if keyName == "corner_filestem" :
 	    keyName = "corner_file"
 
+        # Backwards compatibility...
 	if keyName == "result_filestem" :
 	    keyName = "result_file"
 
@@ -76,18 +78,17 @@ def ReadSimulationParams(simParamName) :
         #     the reconstruction.  This produces a key/value pair.
 	assignVal = '='.join(lineSplit[1:]).strip()
 
-	if (keyName == 'seed' or keyName == 'frameCnt' or keyName == 'totalTracks') :
+	if keyName in ['seed', 'frameCnt', 'totalTracks'] :
 	    # Grab single integer
 	    assignVal = int(assignVal)
-	elif (keyName == 'speed_variance' or keyName == 'mean_dir' or 
-	    keyName == 'angle_variance' or keyName == 'endTrackProb' or
-	    keyName == 'false_merge_dist' or keyName == 'false_merge_prob') :
-        # Grab single float
+	elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
+                        'endTrackProb', 'false_merge_dist', 'false_merge_prob']:
+            # Grab single float
 	    assignVal = float(assignVal)
-	elif (keyName == 'xLims' or keyName == 'yLims' or keyName == 'speedLims') :
+	elif keyName in ['xLims', 'yLims', 'speedLims'] :
             # Grab array of floats, from a spliting by whitespace
 	    assignVal = map(float, assignVal.split())
-	elif (keyName == 'trackers') :
+	elif keyName == 'trackers' :
 	    # Grab array of strings, from a spliting by whitespace
 	    assignVal = assignVal.split()
 	    
@@ -118,7 +119,7 @@ def SimGroup(parser) :
 		     metavar="N", default = simDefaults['totalTracks'])
 
     group.add_option("--seed", dest="theSeed", type="int",
-		     help="Initialize RNG with SEED. (default: random)",
+		     help="Initialize RNG with SEED. (default: %default)",
 		     metavar="SEED", default = simDefaults['theSeed'])
 
     group.add_option("--cleanfile", dest="simTrackFile", type="string",
@@ -227,9 +228,13 @@ def ParamsFromOptions(options, simName = None) :
     #       a '%s' in the string.  This will allow for the
     #       simulation name to be used as a part of the filenames.
     #       The user, of course, can choose not to use it.
+
     # TODO: I can't seem to figure out a generic way to make this work without an 'if/else' statement...
-    if (options.simTrackFile.find('%s') >= 0) : simTrackFile = options.simTrackFile % simName * options.simTrackFile.count('%s')
-    else : simTrackFile = options.simTrackFile
+    #       Plus, this doesn't seem very kosher to me...
+    if (options.simTrackFile.find('%s') >= 0) : 
+        simTrackFile = options.simTrackFile % simName * options.simTrackFile.count('%s')
+    else :
+        simTrackFile = options.simTrackFile
 
     if (options.noisyTrackFile.find('%s') >= 0) :
         noisyTrackFile = options.noisyTrackFile % simName * options.noisyTrackFile.count('%s')
@@ -259,3 +264,4 @@ def ParamsFromOptions(options, simName = None) :
                 false_merge_prob = options.false_merge_prob,
                 theSeed = options.theSeed
                ) 
+

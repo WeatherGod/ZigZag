@@ -1,4 +1,6 @@
 import math	# for abs(), sqrt()
+import numpy
+import numpy.lib.recfunctions as nprf		# for append_fields()
 
 # This code serves to duplicate how SCIT does its tracking for testing purposes
 
@@ -8,10 +10,15 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, volume_Data) :
 # strmHist 	is a vector containing info for what happened at each time-step
 # volume_Data 	contains the current volume's storm cells
 # strmAdap 	parameterizes the algorithm
+
+    currStrms = nprf.append_fields(volume_Data['stormCells'], ('trackID', 'corFlag'),
+                                   ([-1] * len(volume_Data['stormCells']),
+                                    [False] * len(volume_Data['stormCells'])),
+                                   usemask=False)
  
     BestLocs(stateHist, volume_Data['volTime'])
-    Correl_Storms(strmAdap, volume_Data['stormCells'], volume_Data['volTime'], stateHist, strmTracks)
-    Compute_Speed(volume_Data['stormCells'], strmTracks)
+    Correl_Storms(strmAdap, currStrms, volume_Data['volTime'], stateHist, strmTracks)
+    Compute_Speed(currStrms, strmTracks)
 
 
     stateHist.append(volume_Data)
@@ -28,9 +35,9 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks) :
 	bestMatch = {'prevIndx': None, 
 		     'dist': strmAdap['distThresh']**2}
 
-        for oldIndex in range(len(prevStorms)) :
+        for oldIndex in xrange(len(prevStorms)) :
 	    if (not prevStorms[oldIndex]['corFlag']) :
-		cellDist = CalcDistSqrd(newCell, prevStorms[oldIndex]['fcast'])
+		cellDist = CalcDistSqrd(newCell, prevStorms[oldIndex].fcast)
 		if (cellDist < bestMatch['dist']) :
                     bestMatch = {'prevIndx': oldIndex, 'dist': cellDist}
 
@@ -52,7 +59,7 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks) :
 	    matchedStorm = prevStorms[bestMatch['prevIndx']]
 	    matchedStorm['corFlag'] = True
 
-	    newCell.update({'trackIndx': matchedStorm['trackIndx']})
+	    newCell['trackIndx'] = matchedStorm['trackIndx']
 
 	    matchedTrack = strmTracks[newCell['trackIndx']]
 	    matchedTrack['distErr'].append(math.sqrt(bestMatch['dist']))
@@ -60,9 +67,9 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks) :
 	    matchedTrack['xLocs'].append(newCell['xLoc'])
 	    matchedTrack['yLocs'].append(newCell['yLoc'])
 	    matchedTrack['frameNums'].append(matchedTrack['frameNums'][-1] 
-					     + matchedStorm['fcast']['deltaTime'])
+					     + matchedStorm.fcast['deltaTime'])
 	else :
-	    newCell.update({'trackIndx': len(strmTracks)})
+	    newCell['trackIndx'] = len(strmTracks)
 	    strmTracks.append({'distErr': [0.0], 
 				 'dist': [0.0], 
 				 'xLocs': [newCell['xLoc']],
@@ -81,10 +88,10 @@ def BestLocs(stateHist, volTime) :
         deltaTime = volTime - stateHist[-1]['volTime']
 
         for stormCell in stateHist[-1]['stormCells'] :
-            stormCell.update({'corFlag': False, 
-	    		      'fcast': {'xLoc': stormCell['xLoc'] + (stormCell['speed_x'] * deltaTime),
-			                'yLoc': stormCell['yLoc'] + (stormCell['speed_y'] * deltaTime),
-			                'deltaTime': deltaTime}})
+            stormCell['corFlag'] = False
+	    stormCell.fcast = {'xLoc': stormCell['xLoc'] + (stormCell['speed_x'] * deltaTime),
+			       'yLoc': stormCell['yLoc'] + (stormCell['speed_y'] * deltaTime),
+			       'deltaTime': deltaTime}
 
 
 
@@ -128,5 +135,6 @@ def Compute_Speed(currStorms, strmTracks) :
 
     for stormCell in currStorms :
 	if (len(strmTracks[stormCell['trackIndx']]['frameNums']) == 1) :
-	    stormCell.update(systemAvg)
+	    stormCell['speed_x'] = systemAvg['speed_x']
+            stormCell['speed_y'] = systemAvg['speed_y']
 

@@ -84,7 +84,7 @@ def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
     for (frameNo, aVol) in enumerate(volume_data) :
         outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write("%(xLoc).10f %(yLoc).10f " % (strmCell) + ' '.join(['0'] * 25) + '\n')
+            outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) + ' '.join(['0'] * 25) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
 
@@ -100,15 +100,11 @@ def ReadCorners(inputDataFile) :
     volume_data = []
     dataFile.close()
 
-    for frameNum in range(startFrame, frameCnt + startFrame) :
-        aVol = {'volTime': frameNum, 'stormCells': None}
-        aVol['stormCells'] = numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
-					   dtype=[('xLoc', 'f4'), ('yLoc', 'f4')],
-                                           usecols=(0, 1))
-
-        volume_data.append(aVol)
-	
+    volume_data = [{'volTime': frameNum,
+                    'stormCells': numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
+					        dtype=[('xLocs', 'f4'), ('yLocs', 'f4')],
+                                                usecols=(0, 1))}
+                    for frameNum in xrange(startFrame, frameCnt + startFrame)]
 
     return({'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data})
-
 

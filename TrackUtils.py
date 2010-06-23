@@ -18,17 +18,15 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     this output.
     """
     volData = []
-    tmpTracks = tracks.copy()
-    tmpFalarms = falarms.copy()
+    tmpTracks = [nprf.append_fields(aTrack, 'trackID',
+                                    [trackIndex] * len(aTrack),
+                                    usemask=False)
+                      for trackIndex, aTrack in enumerate(tracks)]
 
-    for trackIndex, aTrack in enumerate(tmpTracks) :
-        tmpTracks[trackIndex] = nprf.append_fields(aTrack, 'trackID',
-                                                  [trackIndex] * len(aTrack), usemask=False)
-
-    for trackIndex, aTrack in enumerate(tmpFalarms) :
-        tmpFalarms[trackIndex] = nprf.append_fields(aTrack, 'trackID',
-						    [-1 * (trackIndex + 1)] * len(aTrack),
-                                                    usemask=False)
+    tmpFalarms = [nprf.append_fields(aTrack, 'trackID',
+                                     [-trackIndex - 1] * len(aTrack),
+                                     usemask=False)
+                      for trackIndex, aTrack in enumerate(falarms)]
 
     allCells = numpy.hstack(tmpTracks + tmpFalarms)
 
@@ -39,7 +37,7 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
                  numpy.logical_and(allCells['yLocs'] >= min(yLims),
                                    allCells['yLocs'] <= max(yLims))))
 
-    for volTime in range(min(tLims), max(tLims) + 1) :
+    for volTime in xrange(min(tLims), max(tLims) + 1) :
         # Again, this mask is opposite from numpy masked array.
         tMask = (allCells['frameNums'] == volTime)
         volData.append({'volTime': volTime,
@@ -60,9 +58,9 @@ def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
     clippedTracks = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in tracks]
     clippedFAlarms = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in falarms]
 
-    clippedTracks, clippedFAlarms = CleanupTracks(clippedTracks, clippedFAlarms)
+    CleanupTracks(clippedTracks, clippedFAlarms)
 #    print "Length of tracks outside: ", len(clippedTracks)
-    return (clippedTracks, clippedFAlarms)
+    return clippedTracks, clippedFAlarms
 
 def ClipTrack(track, xLims, yLims, tLims) :
     domainMask = numpy.logical_and(track['xLocs'] >= min(xLims),
@@ -78,27 +76,24 @@ def ClipTrack(track, xLims, yLims, tLims) :
 def CleanupTracks(tracks, falarms) :
     """
     Moves tracks that were shortened to single length to the
-    falarms list.
+    falarms list, and eliminate the empty tracks.
     """
-    cleanTracks = [aTrack.copy() for aTrack in tracks]
-    cleanFalarms = [aTrack.copy() for aTrack in falarms]
+#    cleanTracks = [aTrack.copy() for aTrack in tracks]
+#    cleanFalarms = [aTrack.copy() for aTrack in falarms]
+    cleanTracks = tracks
+    cleanFalarms = tracks
 
-    for trackIndex in xrange(len(cleanFalarms)) :
-        if len(cleanFalarms[trackIndex]) == 0 :
-            cleanFalarms[trackIndex] = None
-
-    for trackIndex in xrange(len(cleanTracks)) :
+    for trackIndex in range(len(cleanTracks))[::-1] :
         if len(cleanTracks[trackIndex]) == 1 :
             cleanFalarms.append(cleanTracks[trackIndex])
             cleanTracks[trackIndex] = []
 
         if len(cleanTracks[trackIndex]) == 0 :
-            cleanTracks[trackIndex] = None
+            del cleanTracks[trackIndex]
 
-    # Rebuild falarm list
-    cleanFalarms = [aTrack for aTrack in cleanFalarms if aTrack is not None]
-    # Rebuild track list
-    cleanTracks = [aTrack for aTrack in cleanTracks if aTrack is not None]
+    for trackIndex in range(len(cleanFalarms))[::-1] :
+        if len(cleanFalarms[trackIndex]) == 0 :
+            del cleanFalarms[trackIndex]
 
     return cleanTracks, cleanFalarms
 
@@ -315,18 +310,17 @@ Forecasted
     else :
         return ((a * d) - (b * c)) / ((a + c) * (b + d))
 
-def FilterMHTTracks(raw_tracks, raw_falarms) :
+def FilterMHTTracks(tracks, falarms) :
     """
     This function will 'clean up' the track output from ReadTracks()
     such that the tracks contain only the actual detected points.
     Also, it will move any one-length tracks to falarms, and completely
     remove any zero-length tracks.
     """
-    
-    tracks = [aTrack[aTrack['types'] == 'M'] for aTrack in raw_tracks]
+    for trackIndex, aTrack in tracks :
+        tracks[trackIndex] = aTrack[aTrack['types'] == 'M']
 		
-    tracks, falarms = CleanupTracks(tracks, raw_falarms)
-    return (tracks, falarms)
+    CleanupTracks(tracks, falarms)
 
 
 def DomainFromTracks(tracks, falarms = []) :

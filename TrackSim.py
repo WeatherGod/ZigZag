@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import random
-from TrackFileUtils import *		# for writing the track data
+
 import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
-import ParamUtils 			# for SaveSimulationParams(), SetupParser()
 import numpy				# for Numpy
 import numpy.lib.recfunctions as nprf	# for .append_fields()
+import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
-import os				# for os.sep, os.makedirs(), os.path.exists()
 
+#############################
+#   Track Making
+#############################
 class TrackPoint :
     """
     TrackPoint is a useful data object that helps with making simulated tracks.
@@ -136,8 +137,8 @@ def MakeTrack(tLims, angleLims, speedLims,
     aPoint = TrackPoint(tLims, xLims, yLims, angleLims, speedLims,
                         1, 1.5, speed_variance, prob_track_ends)
 
-    tracks = numpy.fromiter(aPoint, TrackUtils.track_dtype)
-    return nprf.append_fields(tracks, 'trackID', [trackID] * len(tracks), usemask=False)
+    return numpy.fromiter(aPoint, TrackUtils.track_dtype)
+    #return nprf.append_fields(tracks, 'trackID', [trackID] * len(tracks), usemask=False)
 
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
@@ -148,96 +149,125 @@ def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
 		           xLims, yLims, index)
 		 for index in xrange(trackCnt)]
     theFAlarms = []
-    return(TrackUtils.CleanupTracks(theTracks, theFAlarms))
+    TrackUtils.CleanupTracks(theTracks, theFAlarms)
+
+    return theTracks, theFAlarms
 
 
+###################################################################################################
 
-
-
-def DisturbTracks(trueTracks, trueFalarms, volData, noise_params) :
+##########################
+#   Noise Making
+##########################
+def DisturbTracks(trueTracks, trueFalarms, tLims, noise_params) :
+    """
+    Perform a variety of actions to 'disturb' tracks.
+    """
     
     noiseTracks = [aTrack.copy() for aTrack in trueTracks]
     noiseFalarms = [aTrack.copy() for aTrack in trueFalarms]
 
-    FalseMerge(noiseTracks, noiseFalarms, volData, noise_params)
+    FalseMerge(noiseTracks, noiseFalarms, tLims, noise_params)
+
+
+    return noiseTracks, noiseFalarms
 
 
 
 
-def FalseMerge(tracks, falarms, volData, noise_params) :
+def FalseMerge(tracks, falarms, tLims, noise_params) :
+    """
+    Perform random "false mergers" of the tracks in volData.
+    """
 
-    for volIndex in xrange(len(volData)) :
-        strmCells = volData[volIndex]['stormCells']
+    # False mergers in this algorithm is only done
+    # between tracks.  False Alarms are not included.
+    trackStrms = numpy.hstack([nprf.append_fields(aTrack, 'trackID',
+                                                  [trackIndex] * len(aTrack),
+                                                  usemask=False)
+                               for trackIndex, aTrack in enumerate(tracks)])
+
+    # Go frame by frame to see which storms could be occluded.
+    for volTime in xrange(min(tLims), max(tLims) + 1) :
+        strmCells = trackStrms[trackStrms['frameNums'] == volTime]
         # Calc the distances between each storm cell in this volume
         distMatrix = numpy.hypot(strmCells['xLocs'] - numpy.atleast_2d(strmCells['xLocs']).T,
                                  strmCells['yLocs'] - numpy.atleast_2d(strmCells['yLocs']).T)
 
-        # This mask finds strms to keep from occlusion, so True for keep, False for occlude.
-        occludeMask = numpy.ones(strmCells.shape, dtype=bool)
 
         # take a storm cell, and see if there is a false merger
 	for strm1Index in xrange(len(strmCells)) :
-	    strm1TrackID = strmCells['trackID'][strm1Index]
-	    # Don't bother trying to occlude falarms (negative trackIDs),
-	    # because their length is only 1.
-	    #if strm1TrackID < 0 :
-            #    continue
-	    #print "trackID1: ", trackID1
+            strm1TrackID = strmCells['trackID'][strm1Index]
 
 	    # ...check strm1 against the remaining storm cells.
+            # TODO: Maybe use some sort of diag or tri function
+            # to get all the possible combinations in an orderly manner?
+            # However, for now, this works just fine.
 	    for strm2Index in xrange(strm1Index, len(strmCells)) :
-		strm2TrackID = strmCells['trackID'][strm2Index]
-		#print "  trackID2: ", trackID2
+                strm2TrackID = strmCells['trackID'][strm2Index]
 
                 # See if the two points are close enough together (false_merge_dist),
                 # and see if it satisfy the random chance of being merged
 		if (distMatrix[strm1Index, strm2Index] <= noise_params['false_merge_dist'] and
 		    len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
-		    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index1, strm2Index] / noise_params['false_merge_dist']
-                     < noise_params['false_merge_prob'])) :
+		    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index, strm2Index] / 
+                         noise_params['false_merge_dist'] < noise_params['false_merge_prob'])) :
 
 		    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
 		    #print tracks[trackID1]['frameNums']
-                    # Ok, we will have strm1 occluded by strm2
-                    tracks[strm1TrackID] =
-                          tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == 
+
+                    # Ok, we will have strm1 occluded by strm2, remove it from the track
+                    tracks[strm1TrackID] = \
+                          tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == \
                                                                         volData[volIndex]['volTime'])]
-                    occludeMask[strm1Index] = False
-		    
+                    
 		    # No need to continue searching strm2s against this strm1
 		    break
-		    
-	# rebuild the stormcells list, effectively removing the storms
-	# flagged as a false merger.
-	volData[volIndex]['stormCells'] = strmCells[occludeMask]
 
+    # rebuild the tracks list and possibly move some to falarms
+    TrackUtils.CleanupTracks(tracks, falarms)
 
-    # rebuild the tracks list, effectively removing the storms
-    # flagged as a false merger, and eliminates zero-length tracks
-    # reassigns one-length tracks as a falarm.
-    tracks, falarms = CleanupTracks(tracks, falarms)
+#########################################################################################################
 
-    return(tracks, falarms, volData)
-
-def TrackSim(simParams, simName) :
-    (true_tracks, true_falarms) = MakeTracks(simParams['totalTracks'],
-					     simParams['tLims'], simParams['xLims'], simParams['yLims'],
-			          	     simParams['speedLims'], simParams['speed_variance'], simParams['mean_dir'], 
-			          	     simParams['angle_variance'], simParams['endTrackProb'])
+#############################
+#   Track Simulator
+#############################
+def TrackSim(simName, simParams) :
+    true_tracks, true_falarms = MakeTracks(simParams['totalTracks'],
+					   simParams['tLims'],
+                                           simParams['xLims'], simParams['yLims'],
+			          	   simParams['speedLims'], simParams['speed_variance'],
+                                           simParams['mean_dir'], simParams['angle_variance'],
+                                           simParams['endTrackProb'])
 
     # Clip tracks to the domain
-    (clippedTracks, clippedFalarms) = ClipTracks(true_tracks, true_falarms, simParams['xLims'], simParams['yLims'], simParams['tLims'])
-    volume_data = TrackUtils.CreateVolData(clippedTracks, clippedFalarms, simParams['tLims'], simParams['xLims'], simParams['yLims'])
-    (fake_tracks, fake_falarms, fake_volData) = DisturbTracks(clippedTracks, clippedFalarms, volume_data, 
-							      {'false_merge_dist': simParams['false_merge_dist'], 
-							       'false_merge_prob': simParams['false_merge_prob']})
+    clippedTracks, clippedFalarms = TrackUtils.ClipTracks(true_tracks,
+                                                          true_falarms,
+                                                          simParams['xLims'],
+                                                          simParams['yLims'],
+                                                          simParams['tLims'])
+
+
+
+    fake_tracks, fake_falarms = DisturbTracks(clippedTracks, clippedFalarms,
+                                              simParams['tLims'], 
+		                              {'false_merge_dist':
+                                                     simParams['false_merge_dist'], 
+					       'false_merge_prob':
+                                                     simParams['false_merge_prob']})
 
     # TODO: Automatically build this file, instead!
     os.system("cp ./Parameters %s/Parameters" % simName)
 
+    volume_data = TrackUtils.CreateVolData(clippedTracks, clippedFalarms,
+                                           simParams['tLims'],
+                                           simParams['xLims'],
+                                           simParams['yLims'])
 
-
-
+    fake_volData = TrackUtils.CreateVolData(fake_tracks, fake_falarms,
+                                            simParams['tLims'],
+                                            simParams['xLims'],
+                                            simParams['yLims'])
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
 	    'noisy_tracks': fake_tracks, 'noisy_falarms': fake_falarms,
@@ -247,7 +277,12 @@ def TrackSim(simParams, simName) :
 
 		    
 if __name__ == '__main__' :
-    from optparse import OptionParser	# Command-line parsing
+    from TrackFileUtils import *		# for writing the track data
+    from optparse import OptionParser	        # Command-line parsing
+    import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
+    import random				# for seeding the PRNG
+
+
     parser = OptionParser()
     parser.add_option("-s", "--sim", dest="simName",
 		      help="Generate Tracks for SIMNAME", 
@@ -258,7 +293,7 @@ if __name__ == '__main__' :
 
     simParams = ParamUtils.ParamsFromOptions(options)
 
-    print "The Seed: ", simParams['theSeed']
+    print "The Seed:", simParams['theSeed']
 
     # Seed the PRNG
     random.seed(simParams['theSeed'])
@@ -267,7 +302,7 @@ if __name__ == '__main__' :
     if (not os.path.exists(options.simName)) :
         os.makedirs(options.simName)
     
-    theSimulation = TrackSim(simParams, options.simName)
+    theSimulation = TrackSim(options.simName, simParams)
 
 
     ParamUtils.SaveSimulationParams(options.simName + os.sep + "simParams.conf", simParams)
