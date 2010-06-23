@@ -1,6 +1,6 @@
 import math
 import numpy
-import numpy.lib.recfunctions as nprf		# for .stack_arrays()
+import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 
 
 track_dtype = [('types', 'a1'),
@@ -18,8 +18,19 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     this output.
     """
     volData = []
-    # TODO: Now, I still have an issue regarding missing track IDs...
-    allCells = numpy.hstack(tracks + falarms)
+    tmpTracks = tracks.copy()
+    tmpFalarms = falarms.copy()
+
+    for trackIndex, aTrack in enumerate(tmpTracks) :
+        tmpTracks[trackIndex] = nprf.append_fields(aTrack, 'trackID',
+                                                  [trackIndex] * len(aTrack), usemask=False)
+
+    for trackIndex, aTrack in enumerate(tmpFalarms) :
+        tmpFalarms[trackIndex] = nprf.append_fields(aTrack, 'trackID',
+						    [-1 * (trackIndex + 1)] * len(aTrack),
+                                                    usemask=False)
+
+    allCells = numpy.hstack(tmpTracks + tmpFalarms)
 
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
@@ -72,13 +83,11 @@ def CleanupTracks(tracks, falarms) :
     cleanTracks = [aTrack.copy() for aTrack in tracks]
     cleanFalarms = [aTrack.copy() for aTrack in falarms]
 
-    for trackIndex in range(len(cleanFalarms)) :
+    for trackIndex in xrange(len(cleanFalarms)) :
         if len(cleanFalarms[trackIndex]) == 0 :
             cleanFalarms[trackIndex] = None
 
-
-
-    for trackIndex in range(len(cleanTracks)) :
+    for trackIndex in xrange(len(cleanTracks)) :
         if len(cleanTracks[trackIndex]) == 1 :
             cleanFalarms.append(cleanTracks[trackIndex])
             cleanTracks[trackIndex] = []

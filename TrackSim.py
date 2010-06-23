@@ -172,13 +172,16 @@ def FalseMerge(tracks, falarms, volData, noise_params) :
         distMatrix = numpy.hypot(strmCells['xLocs'] - numpy.atleast_2d(strmCells['xLocs']).T,
                                  strmCells['yLocs'] - numpy.atleast_2d(strmCells['yLocs']).T)
 
+        # This mask finds strms to keep from occlusion, so True for keep, False for occlude.
+        occludeMask = numpy.ones(strmCells.shape, dtype=bool)
+
         # take a storm cell, and see if there is a false merger
 	for strm1Index in xrange(len(strmCells)) :
 	    strm1TrackID = strmCells['trackID'][strm1Index]
 	    # Don't bother trying to occlude falarms (negative trackIDs),
 	    # because their length is only 1.
-	    if strm1TrackID < 0 :
-                continue
+	    #if strm1TrackID < 0 :
+            #    continue
 	    #print "trackID1: ", trackID1
 
 	    # ...check strm1 against the remaining storm cells.
@@ -196,24 +199,23 @@ def FalseMerge(tracks, falarms, volData, noise_params) :
 		    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
 		    #print tracks[trackID1]['frameNums']
                     # Ok, we will have strm1 occluded by strm2
-                    strmID = numpy.nonzero(tracks[strm1TrackID]['frameNums'] == volData[volIndex]['volTime'])[0]
-                    # Mark it as 'O' (for Occlusion) in the tracks and the volume data
-                    tracks[strm1TrackID]['types'][strmID] = 'O'
-		    strmCells['types'][strm1Index] = 'O'
+                    tracks[strm1TrackID] =
+                          tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == 
+                                                                        volData[volIndex]['volTime'])]
+                    occludeMask[strm1Index] = False
 		    
 		    # No need to continue searching strm2s against this strm1
 		    break
 		    
-
 	# rebuild the stormcells list, effectively removing the storms
 	# flagged as a false merger.
-	volData[volIndex]['stormCells'] = strmCells[numpy.logical_not(strmCells['types'] == 'O')]
+	volData[volIndex]['stormCells'] = strmCells[occludeMask]
 
 
     # rebuild the tracks list, effectively removing the storms
     # flagged as a false merger, and eliminates zero-length tracks
     # reassigns one-length tracks as a falarm.
-    (tracks, falarms) = CleanupTracks(tracks, falarms)
+    tracks, falarms = CleanupTracks(tracks, falarms)
 
     return(tracks, falarms, volData)
 
