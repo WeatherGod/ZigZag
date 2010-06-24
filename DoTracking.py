@@ -52,6 +52,6 @@ if __name__ == "__main__" :
 
     simParams['ParamFile'] = os.sep.join([options.simName, "Parameters"])
     
-    DoTracking("MHT", simParams)
+    #DoTracking("MHT", simParams)
     DoTracking("SCIT", simParams)
 
