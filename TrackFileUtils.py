@@ -68,12 +68,12 @@ def ReadTracks(fileName) :
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
-	    falseAlarms.append(numpy.array([('F', float(tempList[0]), float(tempList[1]), int(tempList[2]))],
+	    falseAlarms.append(numpy.array([(float(tempList[0]), float(tempList[1]), int(tempList[2]), 'F')],
 					   dtype=TrackUtils.track_dtype))
 
     #print "\n\n\n"
 
-    return(tracks, falseAlarms)
+    return tracks, falseAlarms
 
 
 def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
@@ -101,10 +101,16 @@ def ReadCorners(inputDataFile) :
     dataFile.close()
 
     volume_data = [{'volTime': frameNum,
-                    'stormCells': numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
-					        dtype=[('xLocs', 'f4'), ('yLocs', 'f4')],
-                                                usecols=(0, 1))}
+                    # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
+                    #       Using loadtxt() on a single-line file will return a file with fewer dimensions
+                    #       than expected.
+                    # HOWEVER!  This still does not address the issue with empty files!
+                    # That situation will cause loadtxt() (and just about all other readers)
+                    # to raise an exception.
+                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
+					        dtype=TrackUtils.corner_dtype,
+                                                usecols=(0, 1)))}
                     for frameNum in xrange(startFrame, frameCnt + startFrame)]
 
-    return({'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data})
+    return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
 

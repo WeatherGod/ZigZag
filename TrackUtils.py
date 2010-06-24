@@ -2,11 +2,10 @@ import math
 import numpy
 import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 
-
-track_dtype = [('types', 'a1'),
-               ('xLocs', 'f4'),
-               ('yLocs', 'f4'),
-               ('frameNums', 'i4')]
+corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4')]
+track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
+volume_dtype = track_dtype + [('trackID', 'i4')]
+#storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
 
 def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
     """
@@ -85,6 +84,8 @@ def CleanupTracks(tracks, falarms) :
 
     for trackIndex in range(len(cleanTracks))[::-1] :
         if len(cleanTracks[trackIndex]) == 1 :
+            # Change the type to a False Alarm
+            cleanTracks[trackIndex]['types'] = 'F'
             cleanFalarms.append(cleanTracks[trackIndex])
             cleanTracks[trackIndex] = []
 
@@ -310,17 +311,21 @@ Forecasted
     else :
         return ((a * d) - (b * c)) / ((a + c) * (b + d))
 
-def FilterMHTTracks(tracks, falarms) :
+def FilterMHTTracks(origTracks, origFalarms) :
     """
     This function will 'clean up' the track output from ReadTracks()
     such that the tracks contain only the actual detected points.
     Also, it will move any one-length tracks to falarms, and completely
     remove any zero-length tracks.
     """
-    for trackIndex, aTrack in tracks :
+    tracks = [aTrack.copy() for aTrack in origTracks]
+    falarms = [aTrack.copy() for aTrack in origFalarms]
+
+    for trackIndex, aTrack in enumerate(tracks) :
         tracks[trackIndex] = aTrack[aTrack['types'] == 'M']
 		
     CleanupTracks(tracks, falarms)
+    return tracks, falarms
 
 
 def DomainFromTracks(tracks, falarms = []) :
@@ -330,7 +335,7 @@ def DomainFromTracks(tracks, falarms = []) :
     masked out.
     """
 
-    allPoints = nprf.stack_arrays(tracks + falarms)
+    allPoints = numpy.hstack(tracks + falarms)
     
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),

@@ -25,9 +25,10 @@ def DoTracking(tracker, trackParams, returnResults = False) :
         strmAdap = {'distThresh': 7.5}
         stateHist = []
         strmTracks = []
+        infoTracks = []
 
         for aVol in cornerInfo['volume_data'] :
-            scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, aVol)
+            scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol)
 
         SaveTracks(trackParams['result_file'] + "_SCIT", strmTracks)
 
