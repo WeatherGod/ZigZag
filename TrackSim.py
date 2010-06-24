@@ -278,20 +278,20 @@ def TrackSim(simName, simParams) :
 		    
 if __name__ == '__main__' :
     from TrackFileUtils import *		# for writing the track data
-    from optparse import OptionParser	        # Command-line parsing
+    import argparse	                        # Command-line parsing
     import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
     import random				# for seeding the PRNG
 
 
-    parser = OptionParser()
-    parser.add_option("-s", "--sim", dest="simName",
+    parser = argparse.ArgumentParser(description="Produce a track simulation")
+    parser.add_argument("sim_name", nargs=1,
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
     ParamUtils.SetupParser(parser)
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    simParams = ParamUtils.ParamsFromOptions(options)
+    simParams = ParamUtils.ParamsFromOptions(args)
 
     print "The Seed:", simParams['theSeed']
 

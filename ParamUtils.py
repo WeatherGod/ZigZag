@@ -1,6 +1,6 @@
 import random
 import os
-from optparse import OptionGroup
+import argparse
 
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
@@ -100,76 +100,78 @@ def ReadSimulationParams(simParamName) :
 
 def SetupParser(parser) :
     
-    parser.add_option_group(SimGroup(parser))
-    parser.add_option_group(TrackerGroup(parser))
+    #parser.add_argument_group(SimGroup(parser))
+    #parser.add_argument_group(TrackerGroup(parser))
+    SimGroup(parser)
+    TrackerGroup(parser)
 
 
 
 def SimGroup(parser) :
-    group = OptionGroup(parser, "Simulation Options",
+    group = parser.add_argument_group("Simulation Options",
 			"Options for controlling the track simulation.")
 
     
-    group.add_option("--frames", dest="frameCnt", type="int",
-		     help="Operate for N frames. (default: %default)",
+    group.add_argument("--frames", dest="frameCnt", type=int,
+		     help="Operate for N frames. (default: %(default)s)",
 		     metavar="N", default = simDefaults['frameCnt'])
 
-    group.add_option("--track_cnt", dest="totalTracks", type="int",
-		     help="Simulate N tracks. (default: %default)",
+    group.add_argument("--track_cnt", dest="totalTracks", type=int,
+		     help="Simulate N tracks. (default: %(default)s)",
 		     metavar="N", default = simDefaults['totalTracks'])
 
-    group.add_option("--seed", dest="theSeed", type="int",
-		     help="Initialize RNG with SEED. (default: %default)",
+    group.add_argument("--seed", dest="theSeed", type=int,
+		     help="Initialize RNG with SEED. (default: %(default)s)",
 		     metavar="SEED", default = simDefaults['theSeed'])
 
-    group.add_option("--cleanfile", dest="simTrackFile", type="string",
-		     help="Output clean set of tracks to FILE. (default: %default)", 
+    group.add_argument("--cleanfile", dest="simTrackFile", type=str,
+		     help="Output clean set of tracks to FILE. (default: %(default)s)", 
 		     metavar="FILE",
 		     default=simDefaults['simTrackFile'])
 
-    group.add_option("--noisyfile", dest="noisyTrackFile", type="string",
-		     help="Output noisy set of tracks to FILE. (default: %default)",
+    group.add_argument("--noisyfile", dest="noisyTrackFile", type=str,
+		     help="Output noisy set of tracks to FILE. (default: %(default)s)",
 		     metavar="FILE",
 		     default=simDefaults['noisyTrackFile'])
 
-    group.add_option("--trackend", dest="endTrackProb", type="float",
-		     help="Probability a track will end for a given frame. (default: %default)",
+    group.add_argument("--trackend", dest="endTrackProb", type=float,
+		     help="Probability a track will end for a given frame. (default: %(default)s)",
 		     metavar="ENDPROB", default=simDefaults['endTrackProb'])
 
-    group.add_option("--direction", dest="mean_dir", type="float",
-		     help="Mean direction of tracks in degrees. (default: %default)", 
+    group.add_argument("--direction", dest="mean_dir", type=float,
+		     help="Mean direction of tracks in degrees. (default: %(default)s)", 
 		     metavar="ANGLE", default=simDefaults['mean_dir'])
 
-    group.add_option("--spd_var", dest="speed_variance", type="float",
-		     help="Variance of track speed changes. (default: %default)",
+    group.add_argument("--spd_var", dest="speed_variance", type=float,
+		     help="Variance of track speed changes. (default: %(default)s)",
 		     metavar="VAR", default=simDefaults['speed_variance'])
 
-    group.add_option("--dir_var", dest="angle_variance", type="float",
-		     help="Variance of initial track direction, in degrees. (default: %default)",
+    group.add_argument("--dir_var", dest="angle_variance", type=float,
+		     help="Variance of initial track direction, in degrees. (default: %(default)s)",
 		     metavar="VAR", default=simDefaults['angle_variance'])
 
-    group.add_option("--fmerge_dist", dest="false_merge_dist", type="float",
-		     help="Distance threshold for false mergers. (default: %default)",
+    group.add_argument("--fmerge_dist", dest="false_merge_dist", type=float,
+		     help="Distance threshold for false mergers. (default: %(default)s)",
 		      metavar="DIST", default=simDefaults['false_merge_dist'])
 
-    group.add_option("--fmerge_prob", dest="false_merge_prob", type="float",
-		     help="Probability of false merger for tracks within the DIST threshold. (default: %default)",
+    group.add_argument("--fmerge_prob", dest="false_merge_prob", type=float,
+		     help="Probability of false merger for tracks within the DIST threshold. (default: %(default)s)",
 		     metavar="PROB", default=simDefaults['false_merge_prob'])
 
-    group.add_option("--xlims", dest="xLims", type="float",
+    group.add_argument("--xlims", dest="xLims", type=float,
 		     nargs = 2,
-		     help="Domain limits in x-axis. (default: %default)", 
-		     metavar="X1 X2", default=simDefaults['xLims'])
+		     help="Domain limits in x-axis. (default: %(default)s)", 
+		     metavar="X", default=simDefaults['xLims'])
 
-    group.add_option("--ylims", dest="yLims", type="float",
+    group.add_argument("--ylims", dest="yLims", type=float,
 		     nargs = 2,
-		     help="Domain limits in y-axis. (default: %default)", 
-		     metavar="Y1 Y2", default=simDefaults['yLims'])
+		     help="Domain limits in y-axis. (default: %(default)s)", 
+		     metavar="Y", default=simDefaults['yLims'])
 
-    group.add_option("--spd_lims", dest="speedLims", type="float",
+    group.add_argument("--spd_lims", dest="speedLims", type=float,
 		     nargs = 2,
-		     help="Range of speeds for track initialization. (default: %default)", 
-		     metavar="SPD1 SPD2", default=simDefaults['speedLims'])
+		     help="Range of speeds for track initialization. (default: %(default)s)", 
+		     metavar="SPD", default=simDefaults['speedLims'])
 
     return group
 
@@ -177,24 +179,24 @@ def SimGroup(parser) :
 
 def TrackerGroup(parser) :
     # TODO: Likely will end up in a separate module, or portion
-    group = OptionGroup(parser, "Tracker Options",
+    group = parser.add_argument_group("Tracker Options",
                         "Options for controlling the trackers.")
 
-    group.add_option("-t", "--tracker", dest="trackers", type="string",
+    group.add_argument("-t", "--tracker", dest="trackers", type=str,
 		     action="append",
                      help="Tracking algorithms to use, in addition to SCIT.  (Ex: MHT)",
                      metavar="TRACKER", default = trackerDefaults['trackers'])
 
-    group.add_option("--corner", dest="corner_file", type="string",
-		     help="Corner filename stem. (default = %default)",
+    group.add_argument("--corner", dest="corner_file", type=str,
+		     help="Corner filename stem. (default = %(default)s)",
 		     metavar="CORNER", default = trackerDefaults['corner_file'])
 
-    group.add_option("--input", dest="inputDataFile", type="string",
-		     help="MHT's Input datafile. (default = %default)",
+    group.add_argument("--input", dest="inputDataFile", type=str,
+		     help="MHT's Input datafile. (default = %(default)s)",
 		     metavar="FILE", default = trackerDefaults['inputDataFile'])
 
-    group.add_option("--result", dest="result_file", type="string",
-		     help="Tracker filename stem for results. (default = %default)",
+    group.add_argument("--result", dest="result_file", type=str,
+		     help="Tracker filename stem for results. (default = %(default)s)",
 		     metavar="FILE", default=trackerDefaults['result_file'])
 
     return group

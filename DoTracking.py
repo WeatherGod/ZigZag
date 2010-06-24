@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from TrackFileUtils import *		# for writing track files, and reading corner files
-import ParamUtils			# for reading simParams files
+
 from TrackUtils import FilterMHTTracks
 import scit
 
@@ -41,18 +41,23 @@ def DoTracking(tracker, trackParams, returnResults = False) :
 
 
 if __name__ == "__main__" :
-    from optparse import OptionParser       # Command-line parsing
-    parser = OptionParser()
-    parser.add_option("-s", "--sim", dest="simName",
-                      help="Generate Tracks for SIMNAME",
+    import ParamUtils	  # for reading simParams files
+    import argparse       # Command-line parsing
+    parser = argparse.ArgumentParser(description='Track the given centroids')
+    parser.add_argument("simName",
+                      help="Generate Tracks for SIMNAME (default: %(default)s)",
                       metavar="SIMNAME", default="NewSim")
+    parser.add_argument("trackers", nargs='+',
+                        help="TRACKER to use for tracking the centroids",
+                        metavar="TRACKER", choices=['SCIT', 'MHT'], default='SCIT')
+
     #SetupSimParser(parser)
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    simParams = ParamUtils.ReadSimulationParams(os.sep.join([options.simName, "simParams.conf"]))
+    simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.simName, "simParams.conf"]))
 
-    simParams['ParamFile'] = os.sep.join([options.simName, "Parameters"])
+    simParams['ParamFile'] = os.sep.join([args.simName, "Parameters"])
     
-    #DoTracking("MHT", simParams)
-    DoTracking("SCIT", simParams)
+    for tracker in args.trackers :
+        DoTracking(tracker, simParams)
 

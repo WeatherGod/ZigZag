@@ -6,7 +6,7 @@ from DoTracking import DoTracking
 from TrackFileUtils import *
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), 
 					#     CompareSegments(), CalcHeidkeSkillScore()
-from optparse import OptionParser
+import argparse
 import os				# for os.sep
 import random
 
@@ -34,34 +34,34 @@ def DisplaySkillScores(skillScores, skillScoreName) :
 
 
 
-parser = OptionParser()
-parser.add_option("-s", "--sim", dest="simName", type = "string",
+parser = argparse.ArgumentParser()
+parser.add_argument("simName", type=str,
                   help="Generate Tracks for SIMNAME",
                   metavar="SIMNAME", default="NewSim")
-parser.add_option("-n", "--num", dest="simCnt", type = "int",
+parser.add_argument("simCnt", type=int,
 		  help="Repeat Simulation N times.",
 		  metavar="N", default=1)
-parser.add_option("--find_best", dest="doFindBest", action="store_true",
+parser.add_argument("--find_best", dest="doFindBest", action="store_true",
 		  help="Find the best comparisons.", default=False)
-parser.add_option("--find_worst", dest="doFindWorst", action = "store_true",
+parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
 		  help="Find the Worst comparisons.", default=False)
 
 
 ParamUtils.SetupParser(parser)
 
-(options, args) = parser.parse_args()
+args = parser.parse_args()
 
-if options.simCnt <= 0 :
-    parser.error("ERROR: Invalid N value: %d" % (options.simCnt))
+if args.simCnt <= 0 :
+    parser.error("ERROR: Invalid N value: %d" % (args.simCnt))
 
 
 hss = {'SCIT': [], 'MHT': []}
 tss = {'SCIT': [], 'MHT': []}
 checkSumProblem = {'SCIT': [], 'MHT': []}
 
-for index in range(0, options.simCnt) :
-    simName = options.simName + ("%s%.3d" % (os.sep, index))
-    simParams = ParamUtils.ParamsFromOptions(options, simName = simName)
+for index in xrange(0, args.simCnt) :
+    simName = args.simName + ("%s%.3d" % (os.sep, index))
+    simParams = ParamUtils.ParamsFromOptions(args, simName = simName)
 
 #    if (not os.path.exists(simName)) :
 #        os.makedirs(simName)
@@ -128,9 +128,9 @@ for (index, (mhtResult, scitResult)) in enumerate(zip(checkSumProblem['MHT'], ch
 scoreDiff = numpy.array(hss['MHT']) - numpy.array(hss['SCIT'])
 indices = numpy.argsort(scoreDiff, axis=0)
 
-if options.doFindBest :
+if args.doFindBest :
     print "Best Run:  ", indices[-1]
 
-if options.doFindWorst :
+if args.doFindWorst :
     print "Worst Run: ", indices[0]
 

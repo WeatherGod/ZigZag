@@ -5,41 +5,41 @@ from TrackFileUtils import *		# for reading track files
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 import ParamUtils			# for ReadSimulationParams()
 
-from optparse import OptionParser	# Command-line parsing
+import argparse				# Command-line parsing
 import os				# for os.sep.join()
 import glob				# for globbing
 import pylab
 
-parser = OptionParser()
-parser.add_option("-t", "--truth", dest="truthTrackFile",
+parser = argparse.ArgumentParser("Produce a display of the tracks")
+parser.add_argument("-t", "--truth", dest="truthTrackFile",
                   help="Use TRUTHFILE for true track data",
                   metavar="TRUTHFILE", default=None)
-parser.add_option("--save", dest="saveImgFile",
+parser.add_argument("--save", dest="saveImgFile",
 		  help="Save the resulting image as FILENAME.",
 		  metavar="FILENAME", default=None)
-parser.add_option("-d", "--dir", dest="directory",
+parser.add_argument("-d", "--dir", dest="directory",
 		  help="Base directory to work from when using --simName",
 		  metavar="DIRNAME", default=".")
 
-parser.add_option("--noshow", dest="doShow", action = 'store_false',
+parser.add_argument("--noshow", dest="doShow", action = 'store_false',
 		  help="To display or not to display...",
 		  default=True)
-parser.add_option("-s", "--simName", dest="simName",
+parser.add_argument("-s", "--simName", dest="simName",
 		  help="Use data from the simulation SIMNAME",
 		  metavar="SIMNAME", default=None)
 
-(options, args) = parser.parse_args()
+args = parser.parse_args()
 
 trackFiles = []
 trackTitles = []
 
-if options.simName is not None :
-    simParams = ParamUtils.ReadSimulationParams(os.sep.join([options.directory + os.sep + options.simName, "simParams.conf"]))
-    trackFiles = [options.directory + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
+if args.simName is not None :
+    simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
+    trackFiles = [args.directory + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
     trackTitles = simParams['trackers']
 
-    if options.truthTrackFile is None :
-        options.truthTrackFile = options.directory + os.sep + simParams['noisyTrackFile']
+    if args.truthTrackFile is None :
+        args.truthTrackFile = args.directory + os.sep + simParams['noisyTrackFile']
 
 else :
     trackFiles = args
@@ -57,8 +57,8 @@ bgcolor = 'mintcream'
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pylab.figure(figsize = (11, 5), facecolor=bgcolor)
 
-if options.truthTrackFile is not None :
-    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(options.truthTrackFile))
+if args.truthTrackFile is not None :
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
     (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
 
@@ -99,8 +99,9 @@ else :
 
 
 
-if options.saveImgFile is not None :
-    pylab.savefig(options.saveImgFile, dpi=300, facecolor = bgcolor)
+if args.saveImgFile is not None :
+    pylab.savefig(args.saveImgFile, dpi=300, facecolor = bgcolor)
 
-if options.doShow :
+if args.doShow :
     pylab.show()
+
