@@ -8,9 +8,12 @@ import ParamUtils			# for ReadSimulationParams()
 import argparse				# Command-line parsing
 import os				# for os.sep.join()
 import glob				# for globbing
-import pylab
+import matplotlib.pyplot as pyplot
 
 parser = argparse.ArgumentParser("Produce a display of the tracks")
+parser.add_argument("trackFiles", nargs='*',
+                    help="TRACKFILEs to use for display",
+                    metavar="TRACKFILE", default=[])
 parser.add_argument("-t", "--truth", dest="truthTrackFile",
                   help="Use TRUTHFILE for true track data",
                   metavar="TRUTHFILE", default=None)
@@ -30,6 +33,10 @@ parser.add_argument("-s", "--simName", dest="simName",
 
 args = parser.parse_args()
 
+
+# FIXME: Currently, the code allows for trackFiles to be listed as well
+#        as providing a simulation (which trackfiles are automatically grabbed).
+#        Both situations can not be handled right now, though.
 trackFiles = []
 trackTitles = []
 
@@ -41,21 +48,18 @@ if args.simName is not None :
     if args.truthTrackFile is None :
         args.truthTrackFile = args.directory + os.sep + simParams['noisyTrackFile']
 
-else :
-    trackFiles = args
-    trackTitles = args
+trackFiles += args.trackFiles
+trackTitles += args.trackFiles
 
 
-if len(trackFiles) == 0 : print "WARNING: No trackFiles listed!"
+if len(trackFiles) == 0 : print "WARNING: No trackFiles given or found!"
 
 
 trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
-bgcolor = 'mintcream'
-
 
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
-theFig = pylab.figure(figsize = (11, 5), facecolor=bgcolor)
+theFig = pyplot.figure(figsize = (11, 5))
 
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
@@ -100,8 +104,8 @@ else :
 
 
 if args.saveImgFile is not None :
-    pylab.savefig(args.saveImgFile, dpi=300, facecolor = bgcolor)
+    theFig.savefig(args.saveImgFile, dpi=300)
 
 if args.doShow :
-    pylab.show()
+    pyplot.show()
 
