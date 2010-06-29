@@ -100,30 +100,21 @@ def CleanupTracks(tracks, falarms) :
 
 
 
-# TODO: Still follows old data structure...
 def CreateSegments(tracks) :
     """
     Breaks up a list of the tracks (or falarms) into an array of segments.
     Each element in the arrays represents the start and end point of a segment.
     """
-
-    xLocs = []
-    yLocs = []
-    frameNums = []
+    segs = []
     for aTrack in tracks :
-        if len(aTrack) > 1 :
-            for index2 in range(1, len(aTrack)) :
-                index1 = index2 - 1
-                xLocs.append([aTrack['xLocs'][index1], aTrack['xLocs'][index2]])
-                yLocs.append([aTrack['yLocs'][index1], aTrack['yLocs'][index2]])
-                frameNums.append([aTrack['frameNums'][index1], aTrack['frameNums'][index2]])
-	else :
-	    xLocs.append(aTrack['xLocs'])
-	    yLocs.append(aTrack['yLocs'])
-	    frameNums.append(aTrack['frameNums'])
+        trackLen = len(aTrack)
+        if trackLen > 1 :
+            segs.extend([numpy.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
+                                                            aTrack[1:trackLen])])
+	elif trackLen == 1 :
+            segs.append(aTrack)
 
-
-    return {'xLocs': xLocs, 'yLocs': yLocs, 'frameNums': frameNums}
+    return segs
 
 
 def PrintTruthTable(truthTable) :
@@ -163,30 +154,25 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
-    assocs_Correct = {'xLocs': [], 'yLocs': [], 'frameNums': []}
-    falarms_Correct = {'xLocs': [], 'yLocs': [], 'frameNums': []}
-    assocs_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
-    falarms_Wrong = {'xLocs': [], 'yLocs': [], 'frameNums': []}
+    assocs_Correct = []
+    falarms_Correct = []
+    assocs_Wrong = []
+    falarms_Wrong = []
 
 
-    unmatchedPredTrackSegs = range(len(predSegs['xLocs']))
+    unmatchedPredTrackSegs = range(len(predSegs))
 
-    for (realSegXLoc, realSegYLoc, realSegFrameNum) in zip(realSegs['xLocs'], 
-							   realSegs['yLocs'], 
-							   realSegs['frameNums']) :
+    for aRealSeg in realSegs :
 	foundMatch = False
 	for predIndex in unmatchedPredTrackSegs :
-	    if (is_eq(realSegXLoc[0], predSegs['xLocs'][predIndex][0]) and
-	        is_eq(realSegXLoc[1], predSegs['xLocs'][predIndex][1]) and
-	        is_eq(realSegYLoc[0], predSegs['yLocs'][predIndex][0]) and
-	        is_eq(realSegYLoc[1], predSegs['yLocs'][predIndex][1]) and
-	        realSegFrameNum[0] == predSegs['frameNums'][predIndex][0] and
-	        realSegFrameNum[1] == predSegs['frameNums'][predIndex][1]) :
+	    if (is_eq(aRealSeg['xLocs'][0], predSegs[predIndex]['xLocs'][0]) and
+	        is_eq(aRealSeg['xLocs'][1], predSegs[predIndex]['xLocs'][1]) and
+	        is_eq(aRealSeg['yLocs'][0], predSegs[predIndex]['yLocs'][0]) and
+	        is_eq(aRealSeg['yLocs'][1], predSegs[predIndex]['yLocs'][1]) and
+	        aRealSeg['frameNums'][0] == predSegs[predIndex]['frameNums'][0] and
+	        aRealSeg['frameNums'][1] == predSegs[predIndex]['frameNums'][1]) :
 
-
-		assocs_Correct['xLocs'].append(predSegs['xLocs'][predIndex])
-		assocs_Correct['yLocs'].append(predSegs['yLocs'][predIndex])
-		assocs_Correct['frameNums'].append(predSegs['frameNums'][predIndex])
+                assocs_Correct.append(predSegs[predIndex])
 		# To make sure that I don't compare against that item again.
 		del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
 		foundMatch = True
@@ -196,18 +182,11 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 	# This segment represents those that were completely
         # missed by the tracking algorithm.
 	if not foundMatch : 
-	    falarms_Wrong['xLocs'].append(realSegXLoc)
-	    falarms_Wrong['yLocs'].append(realSegYLoc)
-	    falarms_Wrong['frameNums'].append(realSegFrameNum)
+	    falarms_Wrong.append(aRealSeg)
 
     # Anything left from the predicted segments must be unmatched with reality,
     # therefore, these segments belong in the "assocs_Wrong" array.
-    for index in unmatchedPredTrackSegs :
-        #print predSegs['xLocs'][index], predSegs['frameNums'][index]
-        assocs_Wrong['xLocs'].append(predSegs['xLocs'][index])
-        assocs_Wrong['yLocs'].append(predSegs['yLocs'][index])
-        assocs_Wrong['frameNums'].append(predSegs['frameNums'][index])
-
+    assocs_Wrong = [predSegs[index] for index in unmatchedPredTrackSegs]
 
     # Now for the falarms...
     """
@@ -217,19 +196,15 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 						  predFAlarmSegs['frameNums']) :
 	print predFAlarm
     """
-    unmatchedPredFAlarms = range(len(predFAlarmSegs['xLocs']))
-    for (realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum) in zip(realFAlarmSegs['xLocs'],
-					                            realFAlarmSegs['yLocs'],
-					                            realFAlarmSegs['frameNums']):
+    unmatchedPredFAlarms = range(len(predFAlarmSegs))
+    for aRealFASeg in realFAlarmSegs :
 	foundMatch = False
 	for predIndex in unmatchedPredFAlarms :
-	    if (is_eq(realFAlarmXLoc[0], predFAlarmSegs['xLocs'][predIndex][0]) and
-		is_eq(realFAlarmYLoc[0], predFAlarmSegs['yLocs'][predIndex][0]) and
-		realFAlarmFrameNum[0] == predFAlarmSegs['frameNums'][predIndex][0]) :
+	    if (is_eq(aRealFASeg['xLocs'][0], predFAlarmSegs[predIndex]['xLocs'][0]) and
+		is_eq(aRealFASeg['yLocs'][0], predFAlarmSegs[predIndex]['yLocs'][0]) and
+		aRealFASeg['frameNums'][0] == predFAlarmSegs[predIndex]['frameNums'][0]) :
 		
-		falarms_Correct['xLocs'].append(realFAlarmXLoc)
-		falarms_Correct['yLocs'].append(realFAlarmYLoc)
-		falarms_Correct['frameNums'].append(realFAlarmFrameNum)
+                falarms_Correct.append(aRealFASeg)
 		# To make sure that I don't compare against that item again.
 		del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
                 #print "Deleting: ", predIndex
@@ -273,10 +248,10 @@ Forecasted
     False      c        d
     """
 
-    a = float(len(truthTable['assocs_Correct']['xLocs']))
-    b = float(len(truthTable['assocs_Wrong']['xLocs']))
-    c = float(len(truthTable['falarms_Wrong']['xLocs']))
-    d = float(len(truthTable['falarms_Correct']['xLocs']))
+    a = float(len(truthTable['assocs_Correct']))
+    b = float(len(truthTable['assocs_Wrong']))
+    c = float(len(truthTable['falarms_Wrong']))
+    d = float(len(truthTable['falarms_Correct']))
     if (((a + c) * (c + d)) + ((a + b) * (b + d))) < 0.1 :
        # Prevent division by zero...
        return 1.0
@@ -301,10 +276,10 @@ Forecasted
     False      c        d
     """
 
-    a = float(len(truthTable['assocs_Correct']['xLocs']))
-    b = float(len(truthTable['assocs_Wrong']['xLocs']))
-    c = float(len(truthTable['falarms_Wrong']['xLocs']))
-    d = float(len(truthTable['falarms_Correct']['xLocs']))
+    a = float(len(truthTable['assocs_Correct']))
+    b = float(len(truthTable['assocs_Wrong']))
+    c = float(len(truthTable['falarms_Wrong']))
+    d = float(len(truthTable['falarms_Correct']))
     if ((a + c) * (b + d)) < 0.1 :
         # Prevent division by zero...
         return 1.0
