@@ -75,7 +75,7 @@ if args.truthTrackFile is not None :
 
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
 
-        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1, axisbg = bgcolor)
+        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
         PlotSegments(truthtable, xLims, yLims, tLims, axis = curAxis)
 
 #        curAxis.axis("equal")
