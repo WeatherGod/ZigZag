@@ -7,7 +7,8 @@ from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromT
 import argparse                         # Command-line parsing
 import os				# for os.sep.join()
 import glob				# for globbing
-import pylab
+import matplotlib.pyplot as pyplot
+
 
 parser = argparse.ArgumentParser("Produce an animation of the tracks")
 parser.add_argument("trackFiles", nargs='+',
@@ -23,7 +24,7 @@ trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in args.tra
 
 
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
-theFig = pylab.figure(figsize = (11, 6))
+theFig = pyplot.figure(figsize = (11, 6))
 
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
@@ -46,10 +47,12 @@ if args.truthTrackFile is not None :
 	# We can only animate one set of axes using the current code,
 	# so animate the first axes.
         if index == 0 :
-            Animate_Segments(truthtable, xLims, yLims, tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
+            Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
         else :
-            PlotSegments(truthtable, xLims, yLims, tLims, axis=curAxis)
+            PlotSegments(truthtable, tLims, axis=curAxis)
 
+        curAxis.set_xlim(xLims)
+        curAxis.set_ylim(yLims)
         curAxis.set_aspect("equal", 'datalim')
         curAxis.set_title(args.trackFiles[index])
         curAxis.set_xlabel("X")
@@ -68,21 +71,23 @@ else :
 	# so animate the first axes.
 	if index == 0 :
 	    theLines = []
-            theLines += PlotTrack(aTracker[0], xLims, yLims, tLims, axis=curAxis,
+            theLines += PlotTrack(aTracker[0], tLims, axis=curAxis,
 		                  marker='.', markersize=6.0, color='k', linewidth=1.5, animated=True)
-	    theLines += PlotTrack(aTracker[1], xLims, yLims, tLims, axis=curAxis,
+	    theLines += PlotTrack(aTracker[1], tLims, axis=curAxis,
 		                  marker='.', markersize=6.0, linestyle=' ', color='r', animated=True)
 	    AnimateLines(theLines, aTracker[0] + aTracker[1], min(tLims), max(tLims), axis=curAxis)
 	else :
-            PlotTrack(aTracker[0], xLims, yLims, tLims, axis = curAxis,
+            PlotTrack(aTracker[0], tLims, axis = curAxis,
 		              marker='.', markersize=6.0, color='k', linewidth=1.5)
-	    PlotTrack(aTracker[1], xLims, yLims, tLims, axis = curAxis,
+	    PlotTrack(aTracker[1], tLims, axis = curAxis,
 		              marker='.', markersize=6.0, linestyle=' ', color='r')
 	    
 
+        curAxis.set_xlim(xLims)
+        curAxis.set_ylim(yLims)
         curAxis.set_aspect("equal", 'datalim')
         curAxis.set_title(args.trackFiles[index])
         curAxis.set_xlabel("X")
 	curAxis.set_ylabel("Y")
 
-pylab.show()
+pyplot.show()

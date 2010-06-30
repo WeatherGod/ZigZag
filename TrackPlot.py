@@ -11,7 +11,7 @@ import matplotlib.pyplot as pyplot
 #		Segment Plotting		#
 #################################################
 
-def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
+def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
     if (axis is None) :
        axis = pyplot.gca()
 
@@ -25,12 +25,9 @@ def PlotSegment(lineSegs, xLims, yLims, tLims, axis=None, **kwargs) :
 	lines.append(axis.plot(aSeg['xLocs'][mask], aSeg['yLocs'][mask],
 			       **kwargs)[0])
 
-#    axis.set_xlim(xLims)
-#    axis.set_ylim(yLims)
-
     return lines
 
-def PlotSegments(truthTable, xLims, yLims, tLims,
+def PlotSegments(truthTable, tLims,
 	         axis=None, width=4.0, **kwargs) :
     if axis is None :
         axis = pyplot.gca()
@@ -38,22 +35,22 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
     tableSegs = {}
 
     # Correct Stuff
-    tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], xLims, yLims, tLims, axis,
+    tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], tLims, axis,
                  			      linewidth=width, color= 'green', 
 					      marker=' ', 
 					      zorder=1, **kwargs)
-    tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], xLims, yLims, tLims, axis,
+    tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], tLims, axis,
              				       color='lightgreen', linestyle=' ', 
 					       marker='.', markersize=2*width,
 					       zorder=1, **kwargs)
 
     # Wrong Stuff
-    tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'], xLims, yLims, tLims, axis,
+    tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'], tLims, axis,
                  			     linewidth=width, color='gray', linestyle='-.',
 					     dash_capstyle = 'round', 
 					     marker=' ', #markersize = 2*width,
 					     zorder=2, **kwargs)
-    tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'], xLims, yLims, tLims, axis,
+    tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'], tLims, axis,
     					    linewidth=width, color='red', 
 					    marker=' ', 
 					    zorder=2, **kwargs)
@@ -62,11 +59,11 @@ def PlotSegments(truthTable, xLims, yLims, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, xLims, yLims, tLims, axis=None, **kwargs) :
+def Animate_Segments(truthTable, tLims, axis=None, **kwargs) :
     if axis is None :
 	axis = pyplot.gca()
 
-    tableLines = PlotSegments(truthTable, xLims, yLims, tLims, axis=axis, animated=True) 
+    tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=True) 
 
     theLines = []
     theSegs = []
@@ -135,7 +132,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 #		Track Plotting			  #
 ###################################################
 
-def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
+def PlotTrack(tracks, tLims, axis=None, **kwargs) :
     if axis is None :
         axis = pyplot.gca()
 
@@ -148,14 +145,12 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
                                  aTrack['frameNums'] >= startFrame)
         lines.append(axis.plot(aTrack['xLocs'][mask], aTrack['yLocs'][mask],
 			       **kwargs)[0])
-    #axis.set_xlim(xLims)
-    #axis.set_ylim(yLims)
 
     return lines
 
 
 
-def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, endFrame=None,
+def PlotTracks(true_tracks, model_tracks, tLims, startFrame=None, endFrame=None,
 	       axis=None, animated=False) :
     if axis is None :
         axis = pyplot.gca()
@@ -163,11 +158,11 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
     if startFrame is None : startFrame = min(tLims)
     if endFrame is None : endFrame = max(tLims)
 
-    trueLines = PlotTrack(true_tracks, xLims, yLims, tLims,
+    trueLines = PlotTrack(true_tracks, tLims,
 			  marker='.', markersize=9.0,
 			  color='grey', linewidth=2.5, linestyle=':', 
 			  animated=False, zorder=1, axis=axis)
-    modelLines = PlotTrack(model_tracks, xLims, yLims, (startFrame, endFrame), 
+    modelLines = PlotTrack(model_tracks, (startFrame, endFrame), 
 			   marker='.', markersize=8.0, 
 			   color='r', linewidth=2.5, alpha=0.55, 
 			   zorder=2, animated=animated, axis=axis)
@@ -175,7 +170,7 @@ def PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, startFrame=None, 
 
 
 
-def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims, 
+def Animate_Tracks(true_tracks, model_tracks, tLims, 
 		   speed=1.0, loop_hold=2.0, figure=None, axis=None) :
     if (axis is None) :
         axis = figure.gca()
@@ -186,7 +181,7 @@ def Animate_Tracks(true_tracks, model_tracks, xLims, yLims, tLims,
     axis.hold(True)
 
     # create the initial lines    
-    theLines = PlotTracks(true_tracks, model_tracks, xLims, yLims, tLims, 
+    theLines = PlotTracks(true_tracks, model_tracks, tLims, 
 			  startFrame, endFrame, axis=axis, animated=True)
 
     AnimateLines(theLines['modelLines'], model_tracks, startFrame, endFrame, axis=axis, figure=figure)

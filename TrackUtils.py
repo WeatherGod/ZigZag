@@ -150,6 +150,8 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
+    # TODO: Is this working anymore?
+    # I want to change over to a stormID tagging approach...
     assocs_Correct = []
     falarms_Correct = []
     assocs_Wrong = []

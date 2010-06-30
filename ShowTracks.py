@@ -76,9 +76,13 @@ if args.truthTrackFile is not None :
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
 
         curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
-        PlotSegments(truthtable, xLims, yLims, tLims, axis = curAxis)
+        PlotSegments(truthtable, tLims, axis = curAxis)
 
-#        curAxis.axis("equal")
+
+        curAxis.set_xlim(xLims)
+        curAxis.set_ylim(yLims)
+        curAxis.set_aspect("equal", 'datalim')
+
         curAxis.set_title(trackTitles[index])
         curAxis.set_xlabel("X [km]")
         curAxis.set_ylabel("Y [km]")
@@ -91,12 +95,16 @@ else :
 
         curAxis = theFig.add_subplot(1, len(args), index + 1, axisbg = bgcolor)
         curAxis.hold(True)
-        PlotTrack(aTracker[0], xLims, yLims, tLims, axis = curAxis,
+        PlotTrack(aTracker[0], tLims, axis = curAxis,
 		  marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
-	PlotTrack(aTracker[1], xLims, yLims, tLims, axis = curAxis,
+	PlotTrack(aTracker[1], tLims, axis = curAxis,
 		  marker = '.', markersize = 6.0, linestyle = ' ', color = 'r')
 
-#        curAxis.axis("equal")
+
+        curAxis.set_xlim(xLims)
+        curAxis.set_ylim(yLims)
+        curAxis.set_aspect("equal", 'datalim')
+
         curAxis.set_title(trackTitles[index])
         curAxis.set_xlabel("X [km]")
 	curAxis.set_ylabel("Y [km]")

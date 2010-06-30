@@ -6,6 +6,7 @@ from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromT
 
 import argparse 			# Command-line parsing
 import os				# for os.sep.join()
+import matplotlib.pyplot as pyplot
 
 parser = argparse.ArgumentParser()
 parser.add_argument("simName",
@@ -22,14 +23,16 @@ noiseTrackFile = os.sep.join([args.simName, "noise_tracks"])
 
 (true_tracks, true_falarms) = ReadTracks(simTrackFile)
 (noise_tracks, noise_falarms) = ReadTracks(noiseTrackFile)
-(xLims, yLims, tLims) = DomainFromTracks(noise_tracks['tracks'])
+(xLims, yLims, tLims) = DomainFromTracks(noise_tracks)
 
 
 
-theFig = pylab.figure()
+theFig = pyplot.figure()
 
 curAxis = theFig.gca()
 curAxis.hold(True)
-PlotTrack(true_tracks['tracks'], xLims, yLims, tLims, color='r', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
-PlotTrack(noise_tracks['tracks'], xLims, yLims, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
-pylab.show()
+PlotTrack(true_tracks, tLims, color='r', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
+PlotTrack(noise_tracks, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
+curAxis.set_xlim(xLims)
+curAxis.set_ylim(yLims)
+pyplot.show()
