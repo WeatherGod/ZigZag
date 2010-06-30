@@ -77,26 +77,22 @@ def CleanupTracks(tracks, falarms) :
     Moves tracks that were shortened to single length to the
     falarms list, and eliminate the empty tracks.
     """
-#    cleanTracks = [aTrack.copy() for aTrack in tracks]
-#    cleanFalarms = [aTrack.copy() for aTrack in falarms]
-    cleanTracks = tracks
-    cleanFalarms = tracks
 
-    for trackIndex in range(len(cleanTracks))[::-1] :
-        if len(cleanTracks[trackIndex]) == 1 :
+    for trackIndex in range(len(tracks))[::-1] :
+        if len(tracks[trackIndex]) == 1 :
+            #print "Cleanup:", tracks[trackIndex]
             # Change the type to a False Alarm
-            cleanTracks[trackIndex]['types'] = 'F'
-            cleanFalarms.append(cleanTracks[trackIndex])
-            cleanTracks[trackIndex] = []
+            tracks[trackIndex]['types'][0] = 'F'
+            falarms.append(tracks[trackIndex])
+            tracks[trackIndex] = []
 
-        if len(cleanTracks[trackIndex]) == 0 :
-            del cleanTracks[trackIndex]
+        if len(tracks[trackIndex]) == 0 :
+            del tracks[trackIndex]
 
-    for trackIndex in range(len(cleanFalarms))[::-1] :
-        if len(cleanFalarms[trackIndex]) == 0 :
-            del cleanFalarms[trackIndex]
+    for trackIndex in range(len(falarms))[::-1] :
+        if len(falarms[trackIndex]) == 0 :
+            del falarms[trackIndex]
 
-    return cleanTracks, cleanFalarms
 
 
 
@@ -135,8 +131,8 @@ def PrintTruthTable(truthTable) :
     False    |        %5d        |        %5d        ||
              |                     |                     ||
  ========================================================//
-""" % (len(truthTable['assocs_Correct']['xLocs']), len(truthTable['assocs_Wrong']['xLocs']),
-       len(truthTable['falarms_Wrong']['xLocs']), len(truthTable['falarms_Correct']['xLocs']))
+""" % (len(truthTable['assocs_Correct']), len(truthTable['assocs_Wrong']),
+       len(truthTable['falarms_Wrong']), len(truthTable['falarms_Correct']))
 
 
 def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
@@ -165,6 +161,9 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     for aRealSeg in realSegs :
 	foundMatch = False
 	for predIndex in unmatchedPredTrackSegs :
+            #print aRealSeg
+            #print predSegs[predIndex]
+            #print "----------------"
 	    if (is_eq(aRealSeg['xLocs'][0], predSegs[predIndex]['xLocs'][0]) and
 	        is_eq(aRealSeg['xLocs'][1], predSegs[predIndex]['xLocs'][1]) and
 	        is_eq(aRealSeg['yLocs'][0], predSegs[predIndex]['yLocs'][0]) and
