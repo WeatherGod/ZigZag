@@ -146,7 +146,7 @@ def PlotTrack(tracks, xLims, yLims, tLims, axis=None, **kwargs) :
     for aTrack in tracks :
         mask = numpy.logical_and(aTrack['frameNums'] <= endFrame,
                                  aTrack['frameNums'] >= startFrame)
-        lines.append(axis.plot(aTrack['xLocs'][mask], aTrack['yLocs'][mask]
+        lines.append(axis.plot(aTrack['xLocs'][mask], aTrack['yLocs'][mask],
 			       **kwargs)[0])
     #axis.set_xlim(xLims)
     #axis.set_ylim(yLims)
