@@ -6,11 +6,102 @@ import numpy				# for Numpy
 import numpy.lib.recfunctions as nprf	# for .append_fields()
 import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
+#############################
+#   Initialization Models
+#############################
+class InitModel(object) :
+    def __init__(self) :
+        pass
+
+    def __call__(self) :
+        return None
+
+class UniformInit(InitModel) :
+    def __init__(self, tLims, xPosLims, yPosLims, speedLims, headingLims) :
+        """
+        tLims : tuple of ints
+            Start and end frames  E.g., (5, 12)
+
+        xPosLims, yPosLims : tuple of floats
+            The spatial domain for track initialization
+            Note that this constraint is *not* applied to
+            subsequent states of the track point.  In other
+            words, the track can leave/enter the domain at will.
+            Ex: (0.0, 255.0)
+
+        headingLims : tuple of floats
+            The limits of the initial angle that a track may move.
+            The units is in degrees and is using math coordinates.
+            I.E., 0.0 degrees is East, 90.0 degrees is North.
+            Ex: (30.0, 60.0) to generally head NorthEast.
+            Note that, like xPosLims, this constraint is only applied
+            to the initialization, and the track may head anywhere afterwards.
+
+        speedLims : tuple of floats
+            The limits of the initial speed (in magnitude) that a track
+            may have. Note that, like xPosLims, this constraint is only
+            applied to the initialization and the track may have any
+            speed afterwards.
+            Ex: (5.0, 25.0)
+        """
+        self.tLims = (min(tLims), max(tLims))
+        self.xPosLims = (min(xPosLims), max(xPosLims))
+        self.yPosLims = (min(yPosLims), max(yPosLims))
+        self.speedLims = (min(speedLims), max(speedLims))
+        self.headingLims = (min(headingLims), max(headingLims))
+
+    def __call__(self) :
+        initFrame = numpy.random.randint(*self.tLims)
+        initXPos = numpy.random.uniform(*self.xPosLims)
+        initYPos = numpy.random.uniform(*self.yPosLims)
+        initSpeed = numpy.random.uniform(*self.speedLims)
+        initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
+
+        return (initFrame, initXPos, initYPos,
+                           initSpeed * numpy.cos(initHeading),
+                           initSpeed * numpy.sin(initHeading))
+
+
+#############################
+#   Motion Models
+#############################
+class MotionModel(object) :
+    def __init__(self) :
+        pass
+
+    def __call__(self) :
+        return None
+
+class ConstVel_Model(MotionModel) :
+    def __init__(self, deltaT, velModify) :
+        """
+        Create a new piece-wise constant velocity motion model.
+
+        This model changes randomly changes the speed of the track
+             according to a uniform distribution with a range of +/- velModify.
+
+        deltaT : float or int
+            The time increment
+
+        velModify : float
+            The variance (+/-) of the uniform noise to apply to the x/y speed
+            of the track point for each iteration of the track.
+        """
+        self.deltaT = deltaT
+        self.velModify = velModify
+
+    def __call__(self, xSpeed, ySpeed) :
+        dx = self.deltaT * xSpeed
+        dy = self.deltaT * ySpeed
+        dVelx = numpy.random.uniform(-self.velModify, self.velModify)
+        dVely = numpy.random.uniform(-self.velModify, self.velModify)
+        return (dx, dy, dVelx, dVely)
+
 
 #############################
 #   Track Making
 #############################
-class TrackPoint :
+class TrackPoint(object) :
     """
     TrackPoint is a useful data object that helps with making simulated tracks.
     When created, it will randomly initialize itself, according to parameters, to
@@ -27,8 +118,8 @@ class TrackPoint :
 
     """
 
-    def __init__(self, cornerID, tLims, xPosLims, yPosLims, angleLims, speedLims,
-                       deltaT, posNoise, speedNoise, trackDeathProb) :
+    def __init__(self, cornerID, trackDeathProb,
+                       initModel, motionModel, maxLen = 50) :
         """
         Create a point that will be used to create a track.
 
@@ -37,60 +128,19 @@ class TrackPoint :
         cornerID : int
             Integer to use to begin incrementally ID-ing the points generated.
 
-        tLims : tuple of ints
-            Start and end frames  E.g., (5, 12)
-
-        xPosLims, yPosLims : tuple of floats
-            The spatial domain for track initialization
-            Note that this constraint is *not* applied to
-            subsequent states of the track point.  In other
-            words, the track can leave/enter the domain at will.
-            Ex: (0.0, 255.0)
-
-        angleLims : tuple of floats
-            The limits of the initial angle that a track may move.
-            The units is in degrees and is using math coordinates.
-            I.E., 0.0 degrees is East, 90.0 degrees is North.
-            Ex: (30.0, 60.0) to generally head NorthEast.
-            Note that, like xPosLims, this constraint is only applied
-            to the initialization, and the track may head anywhere afterwards.
-
-        speedLims : tuple of floats
-            The limits of the initial speed (in magnitude) that a track
-            may have. Note that, like xPosLims, this constraint is only
-            applied to the initialization and the track may have any
-            speed afterwards.
-            Ex: (5.0, 25.0)
-
-        deltaT : float or int
-            The time increment
-
-        posNoise : float
-            The variance (+/-) of the uniform noise to apply to the position
-            of the track point for each iteration of the track.
-
-        speedNoise : float
-            The variance (+/-) of the uniform noise to apply to the x/y speed
-            of the track point for each iteration of the track.
-
         trackDeathProb : float between 0 and 1
             The probability that a track will die at some particular iteration.
             0.0 for eternal tracks, 1.0 for single points.
 
+        maxLen : int
+            Maximum length of the track
         """
         # These are "read-only" properties that are used in iterating
-        self.deltaT = deltaT
-        self.posNoise = posNoise
-        self.speedNoise = speedNoise
         self.trackDeathProb = trackDeathProb
-        self.lastFrame = max(tLims)
-
-        # random state for initialization in next().
-        self.initFrame = numpy.random.randint(min(tLims), max(tLims))
-        self.initXPos = numpy.random.uniform(min(xPosLims), max(xPosLims))
-        self.initYPos = numpy.random.uniform(min(yPosLims), max(yPosLims))
-        self.initSpeed = numpy.random.uniform(min(speedLims), max(speedLims))
-        self.initAngle = numpy.random.uniform(min(angleLims), max(angleLims)) * (numpy.pi / 180.0)
+        self.cornerID = cornerID
+        self.initModel = initModel
+        self.motionModel = initModel
+        self.framesRemain = maxLen
 
         # These are the internal state variables that will change
         # They are set to None for now as the first call to next() will
@@ -100,7 +150,7 @@ class TrackPoint :
         self.yLoc = None
         self.xSpeed = None
         self.ySpeed = None
-        self.cornerID = cornerID
+
 
 
     def __iter__(self) :
@@ -115,46 +165,39 @@ class TrackPoint :
             # Then this is the first call to next(), and we shall initialize the state and return that
             # Otherwise, this is a subsequent call and therefore we need to check to see if the track
             # should be ended or if it should be updated.
-            self.frameNum = self.initFrame
-            self.xLoc = self.initXPos
-            self.yLoc = self.initYPos
-            self.xSpeed = self.initSpeed * numpy.cos(self.initAngle)
-            self.ySpeed = self.initSpeed * numpy.sin(self.initAngle)
-
+            self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = self.initModel()
         else :
-            if self.frameNum >= self.lastFrame or numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb :
+            if numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb or self.framesRemain <= 0 :
                 raise StopIteration
         
-            self.frameNum += self.deltaT
-            self.xLoc += (self.xSpeed * self.deltaT) + numpy.random.uniform(-self.posNoise, self.posNoise)
-            self.yLoc += (self.ySpeed * self.deltaT) + numpy.random.uniform(-self.posNoise, self.posNoise)
-            self.xSpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
-            self.ySpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
+            self.frameNum += 1
+            dx, dy, dVelx, dVely = self.motionModel(self.xSpeed, self.ySpeed)
+            self.xLoc += dx
+            self.yLoc += dy
+            self.xSpeed += dVelx
+            self.ySpeed += dVely
             self.cornerID += 1
 
+        self.framesRemain -= 1
         return (self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M')
 
 
-def MakeTrack(cornerID, tLims, angleLims, speedLims,
-              speed_variance, prob_track_ends, 
-              xLims, yLims) :
+def MakeTrack(cornerID, probTrackEnds, initModel, motionModel, maxLen) :
 
-    aPoint = TrackPoint(cornerID, tLims, xLims, yLims, angleLims, speedLims,
-                        1, 1.5, speed_variance, prob_track_ends)
-
+    aPoint = TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
     return numpy.fromiter(aPoint, TrackUtils.track_dtype)
 
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
-	       speed_variance, meanAngle, angle_variance, prob_track_ends) :
+	           speed_variance, meanAngle, angle_variance, prob_track_ends) :
     cornerID = 0
+    initModel = UniformInit(tLims, xLims, yLims, speedLims, (meanAngle - angle_variance,
+                                                             meanAngle - angle_variance))
+    motionModel = ConstVel_Model(1.0, speed_variance)
     theTracks = [None] * trackCnt
     for index in xrange(trackCnt) :
-        theTracks[index] = MakeTrack(cornerID, tLims, 
-                                     (meanAngle - angle_variance,
-                                      meanAngle + angle_variance),
-		                     speedLims, speed_variance, prob_track_ends, 
-		                     xLims, yLims)
+        theTracks[index] = MakeTrack(cornerID, prob_track_ends, 
+                                     initModel, motionModel, max(tLims) - min(tLims))
         cornerID += len(theTracks[index])
 
     theFAlarms = []
