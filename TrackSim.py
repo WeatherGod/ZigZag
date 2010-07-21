@@ -139,7 +139,7 @@ class TrackPoint(object) :
         self.trackDeathProb = trackDeathProb
         self.cornerID = cornerID
         self.initModel = initModel
-        self.motionModel = initModel
+        self.motionModel = motionModel
         self.framesRemain = maxLen
 
         # These are the internal state variables that will change
