@@ -28,11 +28,48 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
     BestLocs(stateHist, infoTracks, volume_Data['volTime'])
     Correl_Storms(strmAdap, currStrms, volume_Data['volTime'], stateHist, strmTracks, infoTracks)
     Compute_Speed(currStrms, strmTracks, infoTracks)
+    EndTracks(stateHist, strmTracks, currStrms)
 
 
     stateHist.append({'volTime': volume_Data['volTime'],
                       'stormCells': currStrms})
 
+def EndTracks(stateHist, strmTracks, currStrms=None) :
+    """
+    After the storm cells have been associated with tracks, now we need to
+    determine which tracks have to be 'turned off' and clean up the data in
+    the track data.
+
+    Call this function without a currStrms argument when you are finished tracking and
+    want to finalize the tracks.
+    """
+    if len(stateHist) == 0 :
+        # Ah, there is no history, therefore, there are no established tracks
+        return
+
+    # build list of track ids for the stormcells in the previous frame
+    prevTracks = set([aCell['trackID'] for aCell in stateHist[-1]['stormCells']])
+
+    if currStrms is not None :
+        currTracks = set(currStrms['trackID'])
+    else :
+        currTracks = set([])
+
+
+    # Find the set difference of the list of tracks.
+    # The difference would be whatever tracks that existed in the previous
+    # frame, but not in the current frame.
+    unmatchedTrackIDs = prevTracks - currTracks
+
+    # Now end those tracks
+    #    - Any tracks that are of length 2 or longer have
+    #          their last storm cell marked as 'M' because
+    #          it belonged to a track.
+    #  Maybe some other tasks?
+    for aTrackID in unmatchedTrackIDs :
+        if len(strmTracks[aTrackID]) > 1 :
+            # Mark the last storm cell in the track as "matched"
+            strmTracks[aTrackID]['types'][-1] = 'M'
 
 
 def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTracks) :
@@ -73,17 +110,19 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
             # In other words, the passed-in storm cells should have already been sorted.
 
 	    matchedStorm = prevStorms[bestMatch['prevIndx']]
+
+           
+            # Assigning the current storm its track ID number
+	    trackID = newCell['trackID'] = matchedStorm['trackID']
+
             # Indicate that the storm in the previous frame has
             # now been matched.
-	    matchedStorm['types'] = 'M'
-
-            # Assigning the current storm its track ID number
-	    newCell['trackID'] = matchedStorm['trackID']
+	    strmTracks[trackID]['types'][-1] = 'M'
 	    
-	    infoTracks[newCell['trackID']]['distErrs'].append(math.sqrt(bestMatch['dist']))
-	    infoTracks[newCell['trackID']]['dists'].append(math.sqrt(CalcDistSqrd(newCell, matchedStorm)))
+	    infoTracks[trackID]['distErrs'].append(math.sqrt(bestMatch['dist']))
+	    infoTracks[trackID]['dists'].append(math.sqrt(CalcDistSqrd(newCell, matchedStorm)))
             # Adding a new point to the established storm track
-	    strmTracks[newCell['trackID']] = numpy.hstack((strmTracks[newCell['trackID']], newCell))
+	    strmTracks[trackID] = numpy.hstack((strmTracks[trackID], newCell))
 
 	else :
             # We did not find a suitable match, so we create a new track.

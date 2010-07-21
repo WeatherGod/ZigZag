@@ -93,7 +93,7 @@ else :
         # TODO: Need to have consistent domains, maybe?
         (xLims, yLims, tLims) = DomainFromTracks(aTracker[0] + aTracker[1])
 
-        curAxis = theFig.add_subplot(1, len(args), index + 1, axisbg = bgcolor)
+        curAxis = theFig.add_subplot(1, len(trackerData), index + 1)
         curAxis.hold(True)
         PlotTrack(aTracker[0], tLims, axis = curAxis,
 		  marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)

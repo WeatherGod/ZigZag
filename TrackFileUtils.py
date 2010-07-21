@@ -10,11 +10,11 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
     for (index, track) in enumerate(tracks) :
         dataFile.write("%d %d\n" % (index, len(track)))
         for centroid in track :
-	    dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f 0.0 0.0 0.0 0 %(frameNums)d CONSTANT VELOCITY\n" % 
+	    dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f 0.0 0.0 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
                             centroid)
 
     for false_alarm in falarms :
-        dataFile.write("%(xLocs).10f %(yLocs).10f %(frameNums)d\n" % false_alarm[0])
+        dataFile.write("%(xLocs).10f %(yLocs).10f %(frameNums)d %(cornerIDs)d\n" % false_alarm[0])
         
     dataFile.close()
 
@@ -61,6 +61,7 @@ def ReadTracks(fileName) :
 	    tracks[-1]['xLocs'][centroidCnt] = float(tempList[1])
 	    tracks[-1]['yLocs'][centroidCnt] = float(tempList[2])
 	    tracks[-1]['frameNums'][centroidCnt] = int(tempList[7])
+            tracks[-1]['cornerIDs'][centroidCnt] = int(tempList[10])
             centroidCnt += 1
             if centroidCnt == trackLen :
 		trackCounter += 1
@@ -68,7 +69,7 @@ def ReadTracks(fileName) :
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
-	    falseAlarms.append(numpy.array([(float(tempList[0]), float(tempList[1]), int(tempList[2]), 'F')],
+	    falseAlarms.append(numpy.array([(float(tempList[0]), float(tempList[1]), int(tempList[3]), int(tempList[2]), 'F')],
 					   dtype=TrackUtils.track_dtype))
 
     #print "\n\n\n"
@@ -77,6 +78,12 @@ def ReadTracks(fileName) :
 
 
 def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
+    """
+    Save to corner files.
+    Corner files comprise of a set of data files, and one control file.
+    The control file contains the filestem of the data files, the number of
+    data files, and the number of storm cells in each data file.
+    """
     startFrame = volume_data[0]['volTime']
     dataFile = open(inputDataFile, 'w')
     dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, startFrame))
@@ -84,13 +91,21 @@ def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
     for (frameNo, aVol) in enumerate(volume_data) :
         outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) + ' '.join(['0'] * 25) + '\n')
+            outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
+                          + ' '.join(['0'] * 25) + ' '
+                          + str(strmCell['cornerIDs']) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
 
     dataFile.close()
 
 def ReadCorners(inputDataFile) :
+    """
+    Read corner files.
+
+    inputDataFile is the filename of the 'control file' that contains
+    all the info needed to load the corner data files.
+    """
     dataFile = open(inputDataFile, 'r')
     headerList = dataFile.readline().split()
     corner_filestem = headerList[0]
@@ -108,8 +123,8 @@ def ReadCorners(inputDataFile) :
                     # That situation will cause loadtxt() (and just about all other readers)
                     # to raise an exception.
                     'stormCells': numpy.atleast_1d(numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
-					        dtype=TrackUtils.corner_dtype,
-                                                usecols=(0, 1)))}
+					           dtype=TrackUtils.corner_dtype,
+                                                   usecols=(0, 1, 27)))}
                     for frameNum in xrange(startFrame, frameCnt + startFrame)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}

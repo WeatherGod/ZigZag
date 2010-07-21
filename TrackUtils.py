@@ -2,7 +2,7 @@ import math
 import numpy
 import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 
-corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4')]
+corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4'), ('cornerIDs', 'i4')]
 track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
 volume_dtype = track_dtype + [('trackID', 'i4')]
 #storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
@@ -166,13 +166,7 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
             #print aRealSeg
             #print predSegs[predIndex]
             #print "----------------"
-	    if (is_eq(aRealSeg['xLocs'][0], predSegs[predIndex]['xLocs'][0]) and
-	        is_eq(aRealSeg['xLocs'][1], predSegs[predIndex]['xLocs'][1]) and
-	        is_eq(aRealSeg['yLocs'][0], predSegs[predIndex]['yLocs'][0]) and
-	        is_eq(aRealSeg['yLocs'][1], predSegs[predIndex]['yLocs'][1]) and
-	        aRealSeg['frameNums'][0] == predSegs[predIndex]['frameNums'][0] and
-	        aRealSeg['frameNums'][1] == predSegs[predIndex]['frameNums'][1]) :
-
+            if is_eq(aRealSeg, predSegs[predIndex]) :
                 assocs_Correct.append(predSegs[predIndex])
 		# To make sure that I don't compare against that item again.
 		del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
@@ -190,21 +184,11 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     assocs_Wrong = [predSegs[index] for index in unmatchedPredTrackSegs]
 
     # Now for the falarms...
-    """
-    print "PredFAlarmSegs: "
-    for predFAlarm in zip(predFAlarmSegs['xLocs'],
-						  predFAlarmSegs['yLocs'],
-						  predFAlarmSegs['frameNums']) :
-	print predFAlarm
-    """
     unmatchedPredFAlarms = range(len(predFAlarmSegs))
     for aRealFASeg in realFAlarmSegs :
 	foundMatch = False
 	for predIndex in unmatchedPredFAlarms :
-	    if (is_eq(aRealFASeg['xLocs'][0], predFAlarmSegs[predIndex]['xLocs'][0]) and
-		is_eq(aRealFASeg['yLocs'][0], predFAlarmSegs[predIndex]['yLocs'][0]) and
-		aRealFASeg['frameNums'][0] == predFAlarmSegs[predIndex]['frameNums'][0]) :
-		
+            if is_eq(aRealFASeg, predFAlarmSegs[predIndex]) :		
                 falarms_Correct.append(aRealFASeg)
 		# To make sure that I don't compare against that item again.
 		del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
@@ -318,7 +302,7 @@ def DomainFromTracks(tracks, falarms = []) :
             (allPoints['frameNums'].min(), allPoints['frameNums'].max()))
 
 
-def is_eq(val1, val2) :
+def is_eq(seg1, seg2) :
     """
     Yeah, I know this isn't the smartest thing I have done, but
     most of my code only needs float type math, and it would be
@@ -328,6 +312,11 @@ def is_eq(val1, val2) :
     6 decimal places, which is how I am dealing with it for now.
 
     TODO: Come up with a better way!
+
+    Maybe tag storm cells with id numbers and get the trackers to carry those tags through?
     """
 #    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
-    return math.fabs(val1 - val2) < 0.00000001
+#    return numpy.all(numpy.hstack((numpy.abs(seg1['xLocs'] - seg2['xLocs']) < 0.00000001,
+#                                   numpy.abs(seg1['yLocs'] - seg2['yLocs']) < 0.00000001,
+#                                   seg1['frameNums'] == seg2['frameNums'])))
+    return numpy.all(seg1['cornerIDs'] == seg2['cornerIDs'])

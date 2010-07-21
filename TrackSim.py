@@ -27,13 +27,16 @@ class TrackPoint :
 
     """
 
-    def __init__(self, tLims, xPosLims, yPosLims, angleLims, speedLims,
+    def __init__(self, cornerID, tLims, xPosLims, yPosLims, angleLims, speedLims,
                        deltaT, posNoise, speedNoise, trackDeathProb) :
         """
         Create a point that will be used to create a track.
 
         Parameters
         ----------
+        cornerID : int
+            Integer to use to begin incrementally ID-ing the points generated.
+
         tLims : tuple of ints
             Start and end frames  E.g., (5, 12)
 
@@ -97,6 +100,7 @@ class TrackPoint :
         self.yLoc = None
         self.xSpeed = None
         self.ySpeed = None
+        self.cornerID = cornerID
 
 
     def __iter__(self) :
@@ -126,28 +130,33 @@ class TrackPoint :
             self.yLoc += (self.ySpeed * self.deltaT) + numpy.random.uniform(-self.posNoise, self.posNoise)
             self.xSpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
             self.ySpeed += numpy.random.uniform(-self.speedNoise, self.speedNoise)
+            self.cornerID += 1
 
-        return ('M', self.xLoc, self.yLoc, self.frameNum)
+        return (self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M')
 
 
-def MakeTrack(tLims, angleLims, speedLims,
+def MakeTrack(cornerID, tLims, angleLims, speedLims,
               speed_variance, prob_track_ends, 
-              xLims, yLims, trackID) :
+              xLims, yLims) :
 
-    aPoint = TrackPoint(tLims, xLims, yLims, angleLims, speedLims,
+    aPoint = TrackPoint(cornerID, tLims, xLims, yLims, angleLims, speedLims,
                         1, 1.5, speed_variance, prob_track_ends)
 
     return numpy.fromiter(aPoint, TrackUtils.track_dtype)
-    #return nprf.append_fields(tracks, 'trackID', [trackID] * len(tracks), usemask=False)
 
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
 	       speed_variance, meanAngle, angle_variance, prob_track_ends) :
+    cornerID = 0
+    theTracks = [None] * trackCnt
+    for index in xrange(trackCnt) :
+        theTracks[index] = MakeTrack(cornerID, tLims, 
+                                     (meanAngle - angle_variance,
+                                      meanAngle + angle_variance),
+		                     speedLims, speed_variance, prob_track_ends, 
+		                     xLims, yLims)
+        cornerID += len(theTracks[index])
 
-    theTracks = [MakeTrack(tLims, (meanAngle - angle_variance, meanAngle + angle_variance),
-		           speedLims, speed_variance, prob_track_ends, 
-		           xLims, yLims, index)
-		 for index in xrange(trackCnt)]
     theFAlarms = []
     TrackUtils.CleanupTracks(theTracks, theFAlarms)
 
@@ -284,7 +293,7 @@ if __name__ == '__main__' :
 
 
     parser = argparse.ArgumentParser(description="Produce a track simulation")
-    parser.add_argument("sim_name", nargs=1,
+    parser.add_argument("simName",
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
     ParamUtils.SetupParser(parser)
@@ -293,19 +302,20 @@ if __name__ == '__main__' :
 
     simParams = ParamUtils.ParamsFromOptions(args)
 
+    print "Sim Name:", args.simName
     print "The Seed:", simParams['theSeed']
 
     # Seed the PRNG
     random.seed(simParams['theSeed'])
 
     # Create the simulation directory.
-    if (not os.path.exists(options.simName)) :
-        os.makedirs(options.simName)
+    if (not os.path.exists(args.simName)) :
+        os.makedirs(args.simName)
     
-    theSimulation = TrackSim(options.simName, simParams)
+    theSimulation = TrackSim(args.simName, simParams)
 
 
-    ParamUtils.SaveSimulationParams(options.simName + os.sep + "simParams.conf", simParams)
+    ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
     SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
     SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
     SaveCorners(simParams['inputDataFile'], simParams['corner_file'], simParams['frameCnt'], theSimulation['noisy_volumes'])
