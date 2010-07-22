@@ -16,7 +16,40 @@ class InitModel(object) :
     def __call__(self) :
         return None
 
+class SplitInit(InitModel) :
+    useInitState = False
+    def __init__(self, frameNum, xPos, yPos, parentTrack, speedOff, headOff) :
+        """
+        frameNum, xPos, yPos specifies the initial position of the
+        track that splits off.  Note that this position will not be
+        reported however because it already exists in the parent track.
+
+        parentTrack is the track data that can be used to analyze and
+        help initialize the characteristics of the new storm.
+
+        speedOff, headOff is the change in the speed and heading that the 
+        new storm will have compared to the heading of the parent track, in degrees.
+        """
+        self.initFrame = frameNum
+        self.initXPos = xPos
+        self.initYPos = yPos
+        xDiffs = numpy.diff(parentTrack['xLocs'])
+        yDiffs = numpy.diff(parentTrack['yLocs'])
+        tDiffs = numpy.diff(parentTrack['frameNums'])
+        angles = numpy.arctan2(yDiffs, xDiffs)
+        self.initSpeed = numpy.mean(numpy.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + speedOff
+        self.initHeading = numpy.arctan2(numpy.sum(numpy.sin(angles)), 
+                                         numpy.sum(numpy.cos(angles))) + (headOff * numpy.pi / 180.0)
+        InitModel()
+
+    def __call__(self) :
+        return (self.initFrame, self.initXPos, self.initYPos,
+                                self.initSpeed * numpy.cos(self.initHeading),
+                                self.initSpeed * numpy.sin(self.initHeading))
+
 class UniformInit(InitModel) :
+    useInitState = True
+
     def __init__(self, tLims, xPosLims, yPosLims, speedLims, headingLims) :
         """
         tLims : tuple of ints
@@ -49,6 +82,7 @@ class UniformInit(InitModel) :
         self.yPosLims = (min(yPosLims), max(yPosLims))
         self.speedLims = (min(speedLims), max(speedLims))
         self.headingLims = (min(headingLims), max(headingLims))
+        InitModel()
 
     def __call__(self) :
         initFrame = numpy.random.randint(*self.tLims)
@@ -89,13 +123,14 @@ class ConstVel_Model(MotionModel) :
         """
         self.deltaT = deltaT
         self.velModify = velModify
+        MotionModel()
 
     def __call__(self, xSpeed, ySpeed) :
         dx = self.deltaT * xSpeed
         dy = self.deltaT * ySpeed
         dVelx = numpy.random.uniform(-self.velModify, self.velModify)
         dVely = numpy.random.uniform(-self.velModify, self.velModify)
-        return (dx, dy, dVelx, dVely)
+        return (self.deltaT, dx, dy, dVelx, dVely)
 
 
 #############################
@@ -138,19 +173,17 @@ class TrackPoint(object) :
         # These are "read-only" properties that are used in iterating
         self.trackDeathProb = trackDeathProb
         self.cornerID = cornerID
-        self.initModel = initModel
-        self.motionModel = motionModel
-        self.framesRemain = maxLen
+        self._motionModel = motionModel
+        self._framesRemain = maxLen
 
         # These are the internal state variables that will change
-        # They are set to None for now as the first call to next() will
-        # initialize the state, while subsequent calls will update the state.
-        self.frameNum = None
-        self.xLoc = None
-        self.yLoc = None
-        self.xSpeed = None
-        self.ySpeed = None
+        # subsequent calls will update the state.
+        self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = initModel()
 
+        # Determine if this initial state is to be reported
+        self._useInitState = initModel.useInitState
+        # Used to prevent the track-maker from killing a track in the first call to next()
+        self._isFirstCall = True
 
 
     def __iter__(self) :
@@ -161,24 +194,25 @@ class TrackPoint(object) :
         Each iteration through the loop will cause the point to "move" itself according to
         a psuedo-constant velocity model.
         """
-        if self.frameNum is None :
-            # Then this is the first call to next(), and we shall initialize the state and return that
-            # Otherwise, this is a subsequent call and therefore we need to check to see if the track
-            # should be ended or if it should be updated.
-            self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = self.initModel()
+        if self._useInitState :
+            # Then this is the first call to next() and the initial data is to be used
+            self._useInitState = False
         else :
-            if numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb or self.framesRemain <= 0 :
+            if (not self._isFirstCall and
+                (numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb 
+                 or self._framesRemain <= 0)) :
                 raise StopIteration
         
-            self.frameNum += 1
-            dx, dy, dVelx, dVely = self.motionModel(self.xSpeed, self.ySpeed)
+            dt, dx, dy, dVelx, dVely = self._motionModel(self.xSpeed, self.ySpeed)
+            self.frameNum += dt
             self.xLoc += dx
             self.yLoc += dy
             self.xSpeed += dVelx
             self.ySpeed += dVely
-            self.cornerID += 1
+            self.cornerID += 1 if not self._isFirstCall else 0
 
-        self.framesRemain -= 1
+        self._framesRemain -= 1
+        self._isFirstCall = False
         return (self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M')
 
 
@@ -190,15 +224,44 @@ def MakeTrack(cornerID, probTrackEnds, initModel, motionModel, maxLen) :
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
 	           speed_variance, meanAngle, angle_variance, prob_track_ends) :
+    number_of_splits = 3
+    number_of_mergers = 3
+
     cornerID = 0
     initModel = UniformInit(tLims, xLims, yLims, speedLims, (meanAngle - angle_variance,
                                                              meanAngle - angle_variance))
     motionModel = ConstVel_Model(1.0, speed_variance)
-    theTracks = [None] * trackCnt
+
+    theTracks = []
+
+    # Create regular tracks
     for index in xrange(trackCnt) :
-        theTracks[index] = MakeTrack(cornerID, prob_track_ends, 
-                                     initModel, motionModel, max(tLims) - min(tLims))
-        cornerID += len(theTracks[index])
+        newTrack = MakeTrack(cornerID, prob_track_ends, 
+                             initModel, motionModel, max(tLims) - min(tLims))
+        cornerID += len(newTrack)
+        theTracks.append(newTrack)
+
+    # Create splitted tracks
+    for index in xrange(number_of_splits) :
+        # Choose a track to split
+        trackIndex = numpy.random.randint(0, len(theTracks))
+        # Choose a frame to initiate a split
+        # Make a new track with a special split model
+        # Increment the cornerID
+        # Append to theTracks
+
+
+    # Create merged tracks
+    # We shall go with the "Benjamin Button" approach.
+    # In other words, we do the same thing we did with
+    # splitting tracks, but the tracks grow in reversed time.
+    for index in xrange(number_of_mergers) :
+        # Choose a track to split
+        trackIndex = numpy.random.randint(0, len(theTracks))
+        # Choose a frame to initiate a split
+        # Make a new track with a special split model
+        # Increment the cornerID
+        # Append to theTracks
 
     theFAlarms = []
     TrackUtils.CleanupTracks(theTracks, theFAlarms)
