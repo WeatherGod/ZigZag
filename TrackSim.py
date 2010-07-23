@@ -224,44 +224,74 @@ def MakeTrack(cornerID, probTrackEnds, initModel, motionModel, maxLen) :
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
 	           speed_variance, meanAngle, angle_variance, prob_track_ends) :
-    number_of_splits = 3
-    number_of_mergers = 3
+    number_of_splits = 6
+    number_of_mergers = 6
 
     cornerID = 0
     initModel = UniformInit(tLims, xLims, yLims, speedLims, (meanAngle - angle_variance,
                                                              meanAngle - angle_variance))
     motionModel = ConstVel_Model(1.0, speed_variance)
 
+
     theTracks = []
+    theTrackLens = []
 
     # Create regular tracks
     for index in xrange(trackCnt) :
         newTrack = MakeTrack(cornerID, prob_track_ends, 
                              initModel, motionModel, max(tLims) - min(tLims))
-        cornerID += len(newTrack)
+        trackLen = len(newTrack)
+        cornerID += trackLen
+        theTrackLens.append(trackLen)
         theTracks.append(newTrack)
 
     # Create splitted tracks
     for index in xrange(number_of_splits) :
+        validTracks, = numpy.nonzero(numpy.asarray(theTrackLens) >= 3)
+	
         # Choose a track to split
-        trackIndex = numpy.random.randint(0, len(theTracks))
-        # Choose a frame to initiate a split
+        trackIndex = numpy.random.random_integers(0, len(validTracks) - 1)
+        # Choose a frame to initiate a split.
+        # Note, I want a frame like how I want my sliced bread,
+        #       no end-pieces!
+        frameIndex = numpy.random.random_integers(1, theTrackLens[validTracks[trackIndex]] - 2)
+        frameData = theTracks[validTracks[trackIndex]][frameIndex]
         # Make a new track with a special split model
-        # Increment the cornerID
-        # Append to theTracks
+        initModel = SplitInit(frameData['frameNums'], frameData['xLocs'], frameData['yLocs'],
+                                        theTracks[validTracks[trackIndex]],
+                                        0.0, -25.0)
+        newTrack = MakeTrack(cornerID, prob_track_ends,
+                                       initModel, motionModel, max(tLims) - frameData['frameNums'])
+        trackLen = len(newTrack)
+        cornerID += trackLen
+        theTrackLens.append(trackLen)
+        theTracks.append(newTrack)
 
-
+    motionModel = ConstVel_Model(-1.0, speed_variance)
     # Create merged tracks
     # We shall go with the "Benjamin Button" approach.
     # In other words, we do the same thing we did with
     # splitting tracks, but the tracks grow in reversed time.
     for index in xrange(number_of_mergers) :
+        validTracks, = numpy.nonzero(numpy.asarray(theTrackLens) >= 3)
+
         # Choose a track to split
-        trackIndex = numpy.random.randint(0, len(theTracks))
-        # Choose a frame to initiate a split
+        trackIndex = numpy.random.random_integers(0, len(validTracks) - 1)
+        # Choose a frame to initiate a split.
+        # Note, I want a frame like how I want my sliced bread,
+        #       no end-pieces!
+        frameIndex = numpy.random.random_integers(1, theTrackLens[validTracks[trackIndex]] - 2)
+        frameData = theTracks[validTracks[trackIndex]][frameIndex]
         # Make a new track with a special split model
-        # Increment the cornerID
-        # Append to theTracks
+        initModel = SplitInit(frameData['frameNums'], frameData['xLocs'], frameData['yLocs'],
+                                        theTracks[validTracks[trackIndex]][::-1],
+                                        0.0, -25.0)
+        newTrack = MakeTrack(cornerID, prob_track_ends,
+                                       initModel, motionModel, frameData['frameNums'] - min(tLims))
+        trackLen = len(newTrack)
+        cornerID += trackLen
+        theTrackLens.append(trackLen)
+        theTracks.append(newTrack)
 
     theFAlarms = []
     TrackUtils.CleanupTracks(theTracks, theFAlarms)
