@@ -11,14 +11,32 @@ import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 #############################
 class InitModel(object) :
     def __init__(self) :
-        pass
+        self._initFrame = None
+        self._initXPos = None
+        self._initYPos = None
+        self._initSpeed = None
+        self._initHeading = None
 
     def __call__(self) :
-        return None
+        return (self._initFrame, self._initXPos, self._initYPos,
+                                 self._initSpeed * numpy.cos(self._initHeading),
+                                 self._initSpeed * numpy.sin(self._initHeading))
+
 
 class SplitInit(InitModel) :
     useInitState = False
-    def __init__(self, frameNum, xPos, yPos, parentTrack, speedOff, headOff) :
+
+    def __init__(self, speedOff, headOff) :
+        """
+        speedOff, headOff is the change in the speed and heading that the 
+        new storm will have compared to the heading of the parent track, in degrees.
+        """
+        InitModel.__init__(self)
+        self._speedOff = speedOff
+        self._headOff = headOff
+
+
+    def setsplit(self, parentTrack, frameNums, xLocs, yLocs) :
         """
         frameNum, xPos, yPos specifies the initial position of the
         track that splits off.  Note that this position will not be
@@ -26,26 +44,20 @@ class SplitInit(InitModel) :
 
         parentTrack is the track data that can be used to analyze and
         help initialize the characteristics of the new storm.
-
-        speedOff, headOff is the change in the speed and heading that the 
-        new storm will have compared to the heading of the parent track, in degrees.
         """
-        self.initFrame = frameNum
-        self.initXPos = xPos
-        self.initYPos = yPos
+        self._initFrame = frameNums
+        self._initXPos = xLocs
+        self._initYPos = yLocs
         xDiffs = numpy.diff(parentTrack['xLocs'])
         yDiffs = numpy.diff(parentTrack['yLocs'])
         tDiffs = numpy.diff(parentTrack['frameNums'])
         angles = numpy.arctan2(yDiffs, xDiffs)
-        self.initSpeed = numpy.mean(numpy.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + speedOff
-        self.initHeading = numpy.arctan2(numpy.sum(numpy.sin(angles)), 
-                                         numpy.sum(numpy.cos(angles))) + (headOff * numpy.pi / 180.0)
-        InitModel()
+        self._initSpeed = numpy.mean(numpy.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + self._speedOff
+        self._initHeading = numpy.arctan2(numpy.sum(numpy.sin(angles)), 
+                                          numpy.sum(numpy.cos(angles))) + (self._headOff * numpy.pi / 180.0)
 
     def __call__(self) :
-        return (self.initFrame, self.initXPos, self.initYPos,
-                                self.initSpeed * numpy.cos(self.initHeading),
-                                self.initSpeed * numpy.sin(self.initHeading))
+        return InitModel.__call__(self)
 
 class UniformInit(InitModel) :
     useInitState = True
@@ -77,23 +89,22 @@ class UniformInit(InitModel) :
             speed afterwards.
             Ex: (5.0, 25.0)
         """
+        InitModel.__init__(self)
         self.tLims = (min(tLims), max(tLims))
         self.xPosLims = (min(xPosLims), max(xPosLims))
         self.yPosLims = (min(yPosLims), max(yPosLims))
         self.speedLims = (min(speedLims), max(speedLims))
         self.headingLims = (min(headingLims), max(headingLims))
-        InitModel()
+
 
     def __call__(self) :
-        initFrame = numpy.random.randint(*self.tLims)
-        initXPos = numpy.random.uniform(*self.xPosLims)
-        initYPos = numpy.random.uniform(*self.yPosLims)
-        initSpeed = numpy.random.uniform(*self.speedLims)
-        initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
+        self._initFrame = numpy.random.randint(*self.tLims)
+        self._initXPos = numpy.random.uniform(*self.xPosLims)
+        self._initYPos = numpy.random.uniform(*self.yPosLims)
+        self._initSpeed = numpy.random.uniform(*self.speedLims)
+        self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
 
-        return (initFrame, initXPos, initYPos,
-                           initSpeed * numpy.cos(initHeading),
-                           initSpeed * numpy.sin(initHeading))
+        return InitModel.__call__(self)
 
 
 #############################
@@ -121,16 +132,38 @@ class ConstVel_Model(MotionModel) :
             The variance (+/-) of the uniform noise to apply to the x/y speed
             of the track point for each iteration of the track.
         """
+        MotionModel.__init__(self)
         self.deltaT = deltaT
         self.velModify = velModify
-        MotionModel()
+        
 
     def __call__(self, xSpeed, ySpeed) :
         dx = self.deltaT * xSpeed
         dy = self.deltaT * ySpeed
         dVelx = numpy.random.uniform(-self.velModify, self.velModify)
         dVely = numpy.random.uniform(-self.velModify, self.velModify)
-        return (self.deltaT, dx, dy, dVelx, dVely)
+        return self.deltaT, dx, dy, dVelx, dVely
+
+
+#############################
+#    Track Simulators
+#############################
+class TrackSimulator(object) :
+    def __init__(self, initModel, motionModel, trackMaker) :
+        self._initModel = initModel
+        self._motionModel = motionModel
+        self._trackMaker = trackMaker
+        
+    def __call__(self, cornerID, trackCnt, *makerParams) :
+        theTracks = []
+        for index in xrange(trackCnt) :
+            newTrack = self._trackMaker(cornerID, index, self._initModel,
+                                        self._motionModel, *makerParams)
+        
+            cornerID += len(newTrack)
+            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
+
+        return theTracks, cornerID
 
 
 #############################
@@ -213,85 +246,76 @@ class TrackPoint(object) :
 
         self._framesRemain -= 1
         self._isFirstCall = False
-        return (self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M')
+        return self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M'
 
-
-def MakeTrack(cornerID, probTrackEnds, initModel, motionModel, maxLen) :
-
+#####################################################################################
+#  Track Maker Functions
+def MakeTrack(cornerID, index, initModel, motionModel, probTrackEnds, maxLen) :
     aPoint = TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
     return numpy.fromiter(aPoint, TrackUtils.track_dtype)
+
+def MakeSplit(cornerID, index, initModel, motionModel, theTracks, probTrackEnds, maxLen) :
+    # Choose a frame to initiate a split.
+    # Note, I want a frame like how I want my sliced bread,
+    #       no end-pieces!
+    frameIndex = numpy.random.random_integers(1, len(theTracks[index]) - 2)
+    initModel.setsplit(theTracks[index], theTracks[index][frameIndex]['frameNums'],
+                                         theTracks[index][frameIndex]['xLocs'],
+                                         theTracks[index][frameIndex]['yLocs'])
+    aPoint = TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
+    return numpy.fromiter(aPoint, TrackUtils.track_dtype)
+###################################################################################
 
 
 def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
 	           speed_variance, meanAngle, angle_variance, prob_track_ends) :
     number_of_splits = 6
     number_of_mergers = 6
-
+    maxTrackLen = max(tLims) - min(tLims)
     cornerID = 0
+
+    #########################
+    # These things should probably be created elsewhere and have the trackSim passed in.
     initModel = UniformInit(tLims, xLims, yLims, speedLims, (meanAngle - angle_variance,
                                                              meanAngle - angle_variance))
     motionModel = ConstVel_Model(1.0, speed_variance)
+    trackSim = TrackSimulator(initModel, motionModel, MakeTrack)
 
+    splitInit_Model = SplitInit(0.0, -25.0)
+    splitSim = TrackSimulator(splitInit_Model, motionModel, MakeSplit)
 
-    theTracks = []
-    theTrackLens = []
+    mergeMotion_Model = ConstVel_Model(-1.0, speed_variance)
+    mergeSim = TrackSimulator(splitInit_Model, mergeMotion_Model, MakeSplit)
+    #########################
 
-    # Create regular tracks
-    for index in xrange(trackCnt) :
-        newTrack = MakeTrack(cornerID, prob_track_ends, 
-                             initModel, motionModel, max(tLims) - min(tLims))
-        trackLen = len(newTrack)
-        cornerID += trackLen
-        theTrackLens.append(trackLen)
-        theTracks.append(newTrack)
+    # create the tracks
+    theTracks, cornerID = trackSim(cornerID, trackCnt, prob_track_ends, maxTrackLen)
 
-    # Create splitted tracks
-    for index in xrange(number_of_splits) :
-        validTracks, = numpy.nonzero(numpy.asarray(theTrackLens) >= 3)
-	
-        # Choose a track to split
-        trackIndex = numpy.random.random_integers(0, len(validTracks) - 1)
-        # Choose a frame to initiate a split.
-        # Note, I want a frame like how I want my sliced bread,
-        #       no end-pieces!
-        frameIndex = numpy.random.random_integers(1, theTrackLens[validTracks[trackIndex]] - 2)
-        frameData = theTracks[validTracks[trackIndex]][frameIndex]
-        # Make a new track with a special split model
-        initModel = SplitInit(frameData['frameNums'], frameData['xLocs'], frameData['yLocs'],
-                                        theTracks[validTracks[trackIndex]],
-                                        0.0, -25.0)
-        newTrack = MakeTrack(cornerID, prob_track_ends,
-                                       initModel, motionModel, max(tLims) - frameData['frameNums'])
-        trackLen = len(newTrack)
-        cornerID += trackLen
-        theTrackLens.append(trackLen)
-        theTracks.append(newTrack)
+    theTrackLens = numpy.array([len(aTrack) for aTrack in theTracks])
+    validTracks, = numpy.nonzero(theTrackLens >= 3)
+    # Currently, we are sampling without replacement.
+    #   Each track can only split at most once in its life.
+    tracksToSplit = [theTracks[validTracks[anIndex]] for anIndex in 
+                      numpy.random.rand(len(validTracks)).argsort()[:number_of_splits]]
 
-    motionModel = ConstVel_Model(-1.0, speed_variance)
+    splitTracks, cornerID = splitSim(cornerID, len(tracksToSplit), tracksToSplit, 0.0, maxTrackLen)
+
+    theTracks.extend(splitTracks)
+
+    theTrackLens = numpy.array([len(aTrack) for aTrack in theTracks])
+    validTracks, = numpy.nonzero(theTrackLens >= 3)
+    # Currently, we are sampling without replacement.
+    #   Each track can only split at most once in its life.
+    tracksToMerge = [theTracks[validTracks[anIndex]] for anIndex in 
+                      numpy.random.rand(len(validTracks)).argsort()[:number_of_mergers]]
+    
     # Create merged tracks
     # We shall go with the "Benjamin Button" approach.
     # In other words, we do the same thing we did with
     # splitting tracks, but the tracks grow in reversed time.
-    for index in xrange(number_of_mergers) :
-        validTracks, = numpy.nonzero(numpy.asarray(theTrackLens) >= 3)
+    mergeTracks, cornerID = mergeSim(cornerID, len(tracksToMerge), tracksToMerge, 0.0, maxTrackLen)
 
-        # Choose a track to split
-        trackIndex = numpy.random.random_integers(0, len(validTracks) - 1)
-        # Choose a frame to initiate a split.
-        # Note, I want a frame like how I want my sliced bread,
-        #       no end-pieces!
-        frameIndex = numpy.random.random_integers(1, theTrackLens[validTracks[trackIndex]] - 2)
-        frameData = theTracks[validTracks[trackIndex]][frameIndex]
-        # Make a new track with a special split model
-        initModel = SplitInit(frameData['frameNums'], frameData['xLocs'], frameData['yLocs'],
-                                        theTracks[validTracks[trackIndex]][::-1],
-                                        0.0, -25.0)
-        newTrack = MakeTrack(cornerID, prob_track_ends,
-                                       initModel, motionModel, frameData['frameNums'] - min(tLims))
-        trackLen = len(newTrack)
-        cornerID += trackLen
-        theTrackLens.append(trackLen)
-        theTracks.append(newTrack)
+    theTracks.extend(mergeTracks)
 
     theFAlarms = []
     TrackUtils.CleanupTracks(theTracks, theFAlarms)
@@ -395,11 +419,7 @@ def TrackSim(simName, simParams) :
 
 
     fake_tracks, fake_falarms = DisturbTracks(clippedTracks, clippedFalarms,
-                                              simParams['tLims'], 
-		                              {'false_merge_dist':
-                                                     simParams['false_merge_dist'], 
-					       'false_merge_prob':
-                                                     simParams['false_merge_prob']})
+                                              simParams['tLims'], simParams)
 
     # TODO: Automatically build this file, instead!
     os.system("cp ./Parameters %s/Parameters" % simName)
