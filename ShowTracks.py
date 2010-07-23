@@ -70,8 +70,8 @@ if args.truthTrackFile is not None :
     true_FAlarmSegs = CreateSegments(true_falarms)
 
     for (index, aTracker) in enumerate(trackerData) :
-	trackAssocSegs = CreateSegments(aTracker[0])
-	trackFAlarmSegs = CreateSegments(aTracker[1])
+        trackAssocSegs = CreateSegments(aTracker[0])
+        trackFAlarmSegs = CreateSegments(aTracker[1])
 
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
 
@@ -96,9 +96,9 @@ else :
         curAxis = theFig.add_subplot(1, len(trackerData), index + 1)
         curAxis.hold(True)
         PlotTrack(aTracker[0], tLims, axis = curAxis,
-		  marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
-	PlotTrack(aTracker[1], tLims, axis = curAxis,
-		  marker = '.', markersize = 6.0, linestyle = ' ', color = 'r')
+		          marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
+        PlotTrack(aTracker[1], tLims, axis = curAxis,
+                  marker = '.', markersize = 6.0, linestyle = ' ', color = 'r')
 
 
         curAxis.set_xlim(xLims)
@@ -107,7 +107,7 @@ else :
 
         curAxis.set_title(trackTitles[index])
         curAxis.set_xlabel("X [km]")
-	curAxis.set_ylabel("Y [km]")
+        curAxis.set_ylabel("Y [km]")
 
 
 
