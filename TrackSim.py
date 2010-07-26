@@ -59,6 +59,54 @@ class SplitInit(InitModel) :
     def __call__(self) :
         return InitModel.__call__(self)
 
+
+class NormalInit(InitModel) :
+    useInitState = True
+
+    def __init__(self, tLims, xPos, yPos, xScale, yScale, speedLims, headingLims) :
+        """
+        tLims : tuple of ints
+            Start and end frames  E.g., (5, 12)
+
+        xPos, yPos : floats
+            Mean location for the center of the initial positions.
+
+        xScale, yScale : floats
+            The spread of the initial positions.
+
+        headingLims : tuple of floats
+            The limits of the initial angle that a track may move.
+            The units is in degrees and is using math coordinates.
+            I.E., 0.0 degrees is East, 90.0 degrees is North.
+            Ex: (30.0, 60.0) to generally head NorthEast.
+            Note that, like xPosLims, this constraint is only applied
+            to the initialization, and the track may head anywhere afterwards.
+
+        speedLims : tuple of floats
+            The limits of the initial speed (in magnitude) that a track
+            may have. Note that this constraint is only
+            applied to the initialization and the track may have any
+            speed afterwards.
+            Ex: (5.0, 25.0)
+        """
+        InitModel.__init__(self)
+        self.tLims = (min(tLims), max(tLims))
+        self.xPos = xPos
+        self.yPos = yPos
+        self.xScale = xScale
+        self.yScale = yScale
+        self.speedLims = (min(speedLims), max(speedLims))
+        self.headingLims = (min(headingLims), max(headingLims))
+
+    def __call__(self) :
+        self._initFrame = numpy.random.randint(*self.tLims)
+        self._initXPos = self.xScale * numpy.random.randn(1) + self.xPos
+        self._initYPos = self.yScale * numpy.random.randn(1) + self.yPos
+        self._initSpeed = numpy.random.uniform(*self.speedLims)
+        self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
+
+        return InitModel.__call__(self)
+
 class UniformInit(InitModel) :
     useInitState = True
 
@@ -267,55 +315,55 @@ def MakeSplit(cornerID, index, initModel, motionModel, theTracks, probTrackEnds,
 ###################################################################################
 
 
-def MakeTracks(trackCnt, tLims, xLims, yLims, speedLims,
-	           speed_variance, meanAngle, angle_variance, prob_track_ends) :
-    number_of_splits = 6
-    number_of_mergers = 6
-    maxTrackLen = max(tLims) - min(tLims)
+def MakeTracks(trackGens, splitGens, mergeGens,
+               trackCnts, splitCnts, mergeCnts,
+               prob_track_ends, maxTrackLen) :
     cornerID = 0
-
-    #########################
-    # These things should probably be created elsewhere and have the trackSim passed in.
-    initModel = UniformInit(tLims, xLims, yLims, speedLims, (meanAngle - angle_variance,
-                                                             meanAngle - angle_variance))
-    motionModel = ConstVel_Model(1.0, speed_variance)
-    trackSim = TrackSimulator(initModel, motionModel, MakeTrack)
-
-    splitInit_Model = SplitInit(0.0, -25.0)
-    splitSim = TrackSimulator(splitInit_Model, motionModel, MakeSplit)
-
-    mergeMotion_Model = ConstVel_Model(-1.0, speed_variance)
-    mergeSim = TrackSimulator(splitInit_Model, mergeMotion_Model, MakeSplit)
-    #########################
-
-    # create the tracks
-    theTracks, cornerID = trackSim(cornerID, trackCnt, prob_track_ends, maxTrackLen)
-
-    theTrackLens = numpy.array([len(aTrack) for aTrack in theTracks])
-    validTracks, = numpy.nonzero(theTrackLens >= 3)
-    # Currently, we are sampling without replacement.
-    #   Each track can only split at most once in its life.
-    tracksToSplit = [theTracks[validTracks[anIndex]] for anIndex in 
-                      numpy.random.rand(len(validTracks)).argsort()[:number_of_splits]]
-
-    splitTracks, cornerID = splitSim(cornerID, len(tracksToSplit), tracksToSplit, 0.0, maxTrackLen)
-
-    theTracks.extend(splitTracks)
-
-    theTrackLens = numpy.array([len(aTrack) for aTrack in theTracks])
-    validTracks, = numpy.nonzero(theTrackLens >= 3)
-    # Currently, we are sampling without replacement.
-    #   Each track can only split at most once in its life.
-    tracksToMerge = [theTracks[validTracks[anIndex]] for anIndex in 
-                      numpy.random.rand(len(validTracks)).argsort()[:number_of_mergers]]
+    theTracks = []
+    theTrackLens = []
     
-    # Create merged tracks
-    # We shall go with the "Benjamin Button" approach.
-    # In other words, we do the same thing we did with
-    # splitting tracks, but the tracks grow in reversed time.
-    mergeTracks, cornerID = mergeSim(cornerID, len(tracksToMerge), tracksToMerge, 0.0, maxTrackLen)
+    # Loop over various track generators
+    for aGen, trackCnt, splitGen, splitCnt, mergeGen, mergeCnt \
+                        in zip(trackGens, trackCnts,
+                               splitGens, splitCnts,
+                               mergeGens, mergeCnts) :
+        modelTracks = []
+        modelTrackLens = []
+        tracks, cornerID = aGen(cornerID, trackCnt, prob_track_ends, maxTrackLen)
+        modelTracks.extend(tracks)
+        modelTrackLens.extend([len(aTrack) for aTrack in tracks])        
 
-    theTracks.extend(mergeTracks)
+        if splitGen is not None :
+            # Now, split some of those tracks
+            validTracks, = numpy.nonzero(numpy.array(modelTrackLens) >= 3)
+            # Currently, we are sampling without replacement.
+            #   Each track can only split at most once in its life.
+            tracksToSplit = [modelTracks[validTracks[anIndex]] for anIndex in 
+                              numpy.random.rand(len(validTracks)).argsort()[:splitCnt]]
+            splitTracks, cornerID = splitGen(cornerID, len(tracksToSplit), tracksToSplit, 0.0, maxTrackLen)
+            modelTracks.extend(splitTracks)
+            modelTrackLens.extend([len(aTrack) for aTrack in splitTracks])
+
+        if mergeGen is not None :
+            # Now, merge some of those tracks
+            validTracks, = numpy.nonzero(numpy.array(modelTrackLens) >= 3)
+            # Currently, we are sampling without replacement.
+            #   Each track can only split at most once in its life.
+            #   We also need to reverse these tracks so that the mergeSim
+            #   will detect a reversed direction of motion
+            tracksToMerge = [modelTracks[validTracks[anIndex]][::-1] for anIndex in 
+                              numpy.random.rand(len(validTracks)).argsort()[:mergeCnt]]
+    
+            # Create merged tracks
+            # We shall go with the "Benjamin Button" approach.
+            # In other words, we do the same thing we did with
+            # splitting tracks, but the tracks grow in reversed time.
+            mergeTracks, cornerID = mergeGen(cornerID, len(tracksToMerge), tracksToMerge, 0.0, maxTrackLen)
+            modelTracks.extend(mergeTracks)
+            modelTrackLens.extend([len(aTrack) for aTrack in mergeTracks])
+
+        theTracks.extend(modelTracks)
+        theTrackLens.extend(modelTrackLens)
 
     theFAlarms = []
     TrackUtils.CleanupTracks(theTracks, theFAlarms)
@@ -336,12 +384,21 @@ def DisturbTracks(trueTracks, trueFalarms, tLims, noise_params) :
     noiseTracks = [aTrack.copy() for aTrack in trueTracks]
     noiseFalarms = [aTrack.copy() for aTrack in trueFalarms]
 
+    
     FalseMerge(noiseTracks, noiseFalarms, tLims, noise_params)
+    NoisifyTracks(noiseTracks, noiseFalarms, noise_params)
 
 
     return noiseTracks, noiseFalarms
 
-
+def NoisifyTracks(noiseTracks, noiseFalarms, noise_params) :
+    """
+    Noisify the positions of the points in a track, maybe even cause some
+    dropouts/dropins?
+    """
+    for aTrack in noiseTracks :
+        aTrack['xLocs'] += noise_params['loc_variance'] * numpy.random.randn(len(aTrack))
+        aTrack['yLocs'] += noise_params['loc_variance'] * numpy.random.randn(len(aTrack))
 
 
 def FalseMerge(tracks, falarms, tLims, noise_params) :
@@ -351,6 +408,9 @@ def FalseMerge(tracks, falarms, tLims, noise_params) :
 
     # False mergers in this algorithm is only done
     # between tracks.  False Alarms are not included.
+    # This hstack call is merging all the tracks together into one massive array.
+    #   Plus, for each track, a trackID is appended on for each point in the track
+    #   to help identify the track a point came from.
     trackStrms = numpy.hstack([nprf.append_fields(aTrack, 'trackID',
                                                   [trackIndex] * len(aTrack),
                                                   usemask=False)
@@ -365,33 +425,34 @@ def FalseMerge(tracks, falarms, tLims, noise_params) :
 
 
         # take a storm cell, and see if there is a false merger
-	for strm1Index in xrange(len(strmCells)) :
+        for strm1Index in xrange(len(strmCells)) :
             strm1TrackID = strmCells['trackID'][strm1Index]
 
-	    # ...check strm1 against the remaining storm cells.
+            # ...check strm1 against the remaining storm cells.
             # TODO: Maybe use some sort of diag or tri function
+            #       or maybe kdtrees?
             # to get all the possible combinations in an orderly manner?
             # However, for now, this works just fine.
-	    for strm2Index in xrange(strm1Index, len(strmCells)) :
+            for strm2Index in xrange(strm1Index, len(strmCells)) :
                 strm2TrackID = strmCells['trackID'][strm2Index]
 
                 # See if the two points are close enough together (false_merge_dist),
                 # and see if it satisfy the random chance of being merged
-		if (distMatrix[strm1Index, strm2Index] <= noise_params['false_merge_dist'] and
-		    len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
-		    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index, strm2Index] / 
+                if (distMatrix[strm1Index, strm2Index] <= noise_params['false_merge_dist'] and
+                    len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
+                    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index, strm2Index] / 
                          noise_params['false_merge_dist'] < noise_params['false_merge_prob'])) :
 
-		    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
-		    #print tracks[trackID1]['frameNums']
+                    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
+                    #print tracks[trackID1]['frameNums']
 
                     # Ok, we will have strm1 occluded by strm2, remove it from the track
                     tracks[strm1TrackID] = \
-                          tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == \
-                                                                        volData[volIndex]['volTime'])]
+                        tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == \
+                                                               volData[volIndex]['volTime'])]
                     
-		    # No need to continue searching strm2s against this strm1
-		    break
+                # No need to continue searching strm2s against this strm1
+                break
 
     # rebuild the tracks list and possibly move some to falarms
     TrackUtils.CleanupTracks(tracks, falarms)
@@ -401,51 +462,69 @@ def FalseMerge(tracks, falarms, tLims, noise_params) :
 #############################
 #   Track Simulator
 #############################
-def TrackSim(simName, simParams) :
-    true_tracks, true_falarms = MakeTracks(simParams['totalTracks'],
-					   simParams['tLims'],
-                                           simParams['xLims'], simParams['yLims'],
-			          	   simParams['speedLims'], simParams['speed_variance'],
-                                           simParams['mean_dir'], simParams['angle_variance'],
-                                           simParams['endTrackProb'])
+def TrackSim(simName, tLims, xLims, yLims,
+                      speedLims, speed_variance,
+                      mean_dir, angle_variance,
+                      **simParams) :
+
+    initModel = UniformInit(tLims, xLims, yLims, speedLims, (mean_dir - angle_variance,
+                                                             mean_dir + angle_variance))
+    motionModel = ConstVel_Model(1.0, speed_variance)
+    trackSim = TrackSimulator(initModel, motionModel, MakeTrack)
+
+    clutterModel = NormalInit((min(tLims), min(tLims) + 1),
+                              numpy.mean(xLims), numpy.mean(yLims),
+                              0.15 * (max(xLims) - min(xLims)),
+                              0.15 * (max(yLims) - min(yLims)),
+                              (0.0, 0.0), (0.0, 0.0))
+    clutterMotion = ConstVel_Model(1.0, 0.0)
+    clutterSim = TrackSimulator(clutterModel, clutterMotion, MakeTrack)
+                                
+
+    splitInit_Model = SplitInit(0.0, -25.0)
+    splitSim = TrackSimulator(splitInit_Model, motionModel, MakeSplit)
+
+    mergeMotion_Model = ConstVel_Model(-1.0, speed_variance)
+    mergeSim = TrackSimulator(splitInit_Model, mergeMotion_Model, MakeSplit)
+
+    true_tracks, true_falarms = MakeTracks((trackSim, clutterSim),
+                                           (splitSim, None),
+                                           (mergeSim, None),
+                                           (simParams['totalTracks'], 25),
+                                           (6, 0), (6, 0),
+					                       simParams['endTrackProb'],
+                                           max(tLims) - min(tLims))
 
     # Clip tracks to the domain
     clippedTracks, clippedFalarms = TrackUtils.ClipTracks(true_tracks,
                                                           true_falarms,
-                                                          simParams['xLims'],
-                                                          simParams['yLims'],
-                                                          simParams['tLims'])
+                                                          xLims, yLims, tLims)
+
 
 
 
     fake_tracks, fake_falarms = DisturbTracks(clippedTracks, clippedFalarms,
-                                              simParams['tLims'], simParams)
+                                              tLims, simParams)
 
     # TODO: Automatically build this file, instead!
     os.system("cp ./Parameters %s/Parameters" % simName)
 
     volume_data = TrackUtils.CreateVolData(clippedTracks, clippedFalarms,
-                                           simParams['tLims'],
-                                           simParams['xLims'],
-                                           simParams['yLims'])
+                                           tLims, xLims, yLims)
+
 
     fake_volData = TrackUtils.CreateVolData(fake_tracks, fake_falarms,
-                                            simParams['tLims'],
-                                            simParams['xLims'],
-                                            simParams['yLims'])
+                                            tLims, xLims, yLims)
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
-	    'noisy_tracks': fake_tracks, 'noisy_falarms': fake_falarms,
-	    'true_volumes': volume_data, 'noisy_volumes': fake_volData}
-
-
+            'noisy_tracks': fake_tracks, 'noisy_falarms': fake_falarms,
+            'true_volumes': volume_data, 'noisy_volumes': fake_volData}
 
 		    
 if __name__ == '__main__' :
     from TrackFileUtils import *		# for writing the track data
-    import argparse	                        # Command-line parsing
+    import argparse	                    # Command-line parsing
     import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
-    import random				# for seeding the PRNG
 
 
     parser = argparse.ArgumentParser(description="Produce a track simulation")
@@ -457,18 +536,20 @@ if __name__ == '__main__' :
     args = parser.parse_args()
 
     simParams = ParamUtils.ParamsFromOptions(args)
+    # TODO: Just for now...
+    simParams['loc_variance'] = 0.5
 
     print "Sim Name:", args.simName
     print "The Seed:", simParams['theSeed']
 
     # Seed the PRNG
-    random.seed(simParams['theSeed'])
+    numpy.random.seed(simParams['theSeed'])
 
     # Create the simulation directory.
     if (not os.path.exists(args.simName)) :
         os.makedirs(args.simName)
     
-    theSimulation = TrackSim(args.simName, simParams)
+    theSimulation = TrackSim(args.simName, **simParams)
 
 
     ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
