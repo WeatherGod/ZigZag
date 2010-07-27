@@ -540,10 +540,10 @@ if __name__ == '__main__' :
     simParams['loc_variance'] = 0.5
 
     print "Sim Name:", args.simName
-    print "The Seed:", simParams['theSeed']
+    print "The Seed:", simParams['seed']
 
     # Seed the PRNG
-    numpy.random.seed(simParams['theSeed'])
+    numpy.random.seed(simParams['seed'])
 
     # Create the simulation directory.
     if (not os.path.exists(args.simName)) :

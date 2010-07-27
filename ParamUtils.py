@@ -1,10 +1,10 @@
-import random
 import os
 import argparse
+from configobj import ConfigObj
 
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
-		    theSeed = 42,
+		    seed = 42,
 		    simTrackFile = "%s" + os.sep + "true_tracks",
 		    noisyTrackFile = "%s" + os.sep + "noise_tracks",
 		    endTrackProb = 0.1,
@@ -24,87 +24,40 @@ trackerDefaults = dict(trackers = ['SCIT'],
 
 
 def SaveSimulationParams(simParamName, simParams) :
-    simParamFile = open(simParamName, 'w')
-    simParamFile.write("seed = %d\n" % (simParams['theSeed']))
-    simParamFile.write("frameCnt = %d\n" % (simParams['frameCnt']))
-    simParamFile.write("totalTracks = %d\n" % (simParams['totalTracks']))
-    simParamFile.write("speed_variance = %.2f\n" % (simParams['speed_variance']))
-    simParamFile.write("mean_dir = %.1f\n" % (simParams['mean_dir']))
-    simParamFile.write("angle_variance = %.1f\n" % (simParams['angle_variance']))
-    simParamFile.write("endTrackProb = %.5f\n" % (simParams['endTrackProb']))
-    simParamFile.write("xLims = %f %f\n" % (min(simParams['xLims']), max(simParams['xLims'])))
-    simParamFile.write("yLims = %f %f\n" % (min(simParams['yLims']), max(simParams['yLims'])))
-    simParamFile.write("speedLims = %f %f\n" % (min(simParams['speedLims']), max(simParams['speedLims'])))
+    config = ConfigObj(simParams)
+    tLims = config.pop('tLims')
+    config['frameCnt'] = max(tLims) - min(tLims)
+    config.filename = simParamName
+    config.write()
 
-    simParamFile.write("false_merge_dist = %.2f\n" % (simParams['false_merge_dist']))
-    simParamFile.write("false_merge_prob = %.5f\n" % (simParams['false_merge_prob']))
-
-    simParamFile.write("simTrackFile = " + simParams['simTrackFile'] + "\n")
-    simParamFile.write("noisyTrackFile = " + simParams['noisyTrackFile'] + "\n")
-    simParamFile.write("trackers = " + ' '.join(simParams['trackers']) + "\n")
-
-    simParamFile.write("result_file = " + simParams['result_file'] + "\n")
-    simParamFile.write("inputDataFile = " + simParams['inputDataFile'] + "\n")
-    simParamFile.write("corner_file = " + simParams['corner_file'] + "\n")
-    
-
-    simParamFile.close()
 
 def ReadSimulationParams(simParamName) :
-
-    simParams = {}
-
-    # TODO: Should I be copying these?  Am I going to run into an issue with references/objects?
-    simParams.update(simDefaults)
-    simParams.update(trackerDefaults)
-
-    for aLine in open(simParamName, 'r') :
-        # Split string by the equal sign.
-	lineSplit = aLine.split('=')
-
-        # The first field will be the key name (stripped of whitespace)
-	keyName = lineSplit[0].strip()
-
-        # Backwards compatibility...
-	if keyName == "corner_filestem" :
-	    keyName = "corner_file"
-
-        # Backwards compatibility...
-	if keyName == "result_filestem" :
-	    keyName = "result_file"
-
-        # The rest of the fields (in case there is an equal sign somewhere else)
-	#     are reconstructed back together, with whitespace stripped AFTER
-        #     the reconstruction.  This produces a key/value pair.
-	assignVal = '='.join(lineSplit[1:]).strip()
-
-	if keyName in ['seed', 'frameCnt', 'totalTracks'] :
-	    # Grab single integer
-	    assignVal = int(assignVal)
-	elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
-                        'endTrackProb', 'false_merge_dist', 'false_merge_prob']:
-            # Grab single float
-	    assignVal = float(assignVal)
-	elif keyName in ['xLims', 'yLims', 'speedLims'] :
-            # Grab array of floats, from a spliting by whitespace
-	    assignVal = map(float, assignVal.split())
-	elif keyName == 'trackers' :
-	    # Grab array of strings, from a spliting by whitespace
-	    assignVal = assignVal.split()
-	    
-
-	simParams[keyName] = assignVal
+    config = ConfigObj(simParamName)
     
-    simParams['tLims'] = [1, simParams['frameCnt']]
+    # TODO: For now, until I get the validator going...
+    for keyName in config :
+        if keyName in ['seed', 'frameCnt', 'totalTracks'] :
+            # Grab single integer
+            config[keyName] = int(config[keyName])
+        elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
+                         'endTrackProb', 'false_merge_dist', 'false_merge_prob']:
+            # Grab single float
+	        config[keyName] = float(config[keyName])
+        elif keyName in ['xLims', 'yLims', 'speedLims'] :
+            # Grab array of floats, from a spliting by whitespace
+            config[keyName] = map(float, config[keyName])
+
+    simParams = simDefaults.copy()
+    simParams.update(trackerDefaults)
+    simParams.update(config)
+
+    frameCnt = simParams.pop('frameCnt')
+    simParams['tLims'] = (1, frameCnt)
     return simParams
 
 def SetupParser(parser) :
-    
-    #parser.add_argument_group(SimGroup(parser))
-    #parser.add_argument_group(TrackerGroup(parser))
     SimGroup(parser)
     TrackerGroup(parser)
-
 
 
 def SimGroup(parser) :
@@ -120,9 +73,9 @@ def SimGroup(parser) :
 		     help="Simulate N tracks. (default: %(default)s)",
 		     metavar="N", default = simDefaults['totalTracks'])
 
-    group.add_argument("--seed", dest="theSeed", type=int,
+    group.add_argument("--seed", dest="seed", type=int,
 		     help="Initialize RNG with SEED. (default: %(default)s)",
-		     metavar="SEED", default = simDefaults['theSeed'])
+		     metavar="SEED", default = simDefaults['seed'])
 
     group.add_argument("--cleanfile", dest="simTrackFile", type=str,
 		     help="Output clean set of tracks to FILE. (default: %(default)s)", 
@@ -264,6 +217,6 @@ def ParamsFromOptions(options, simName = None) :
                 speedLims = options.speedLims,
                 false_merge_dist = options.false_merge_dist,
                 false_merge_prob = options.false_merge_prob,
-                theSeed = options.theSeed
+                seed = options.seed
                ) 
 
