@@ -1,5 +1,7 @@
 import numpy
 
+motion_modelList = {}
+
 #############################             
 #   Motion Models
 #############################
@@ -28,7 +30,6 @@ class ConstVel_Model(MotionModel) :
         MotionModel.__init__(self)
         self.deltaT = deltaT
         self.velModify = velModify
-        
 
     def __call__(self, xSpeed, ySpeed) :
         dx = self.deltaT * xSpeed
@@ -37,3 +38,4 @@ class ConstVel_Model(MotionModel) :
         dVely = numpy.random.uniform(-self.velModify, self.velModify)
         return self.deltaT, dx, dy, dVelx, dVely
 
+motion_modelList['ConstVel_Model'] = ConstVel_Model 

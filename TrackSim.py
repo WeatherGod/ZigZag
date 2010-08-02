@@ -278,6 +278,14 @@ def FalseMerge(tracks, falarms, tLims, noise_params) :
 
 #########################################################################################################
 
+def MakeModels(modParams, modelList) :
+    models = {}
+    for modname in modParams :
+        typename = modParams[modname].pop('type')
+        models[modname] = modelList[typename](**modParams[modname])
+
+    return models
+
 #############################
 #   Track Simulator
 #############################
@@ -286,21 +294,20 @@ def TrackSim(simName, initParams, motionParams,
                       speedLims, speed_variance,
                       mean_dir, angle_variance,
                       **simParams) :
+    initModels = MakeModels(initParams, init_modelList)
+    motionModels = MakeModels(motionParams, motion_modelList)
 
-    initModel = UniformInit(**initParams['TrackInit'])
-    motionModel = ConstVel_Model(**motionParams['StormMotion'])
-    trackSim = TrackSimulator(initModel, motionModel, MakeTrack)
+    trackSim = TrackSimulator(initModels['TrackInit'],
+                              motionModels['StormMotion'], MakeTrack)
 
-    clutterModel = NormalInit(**initParams['ClutterInit'])
-    clutterMotion = ConstVel_Model(**motionParams['Clutter'])
-    clutterSim = TrackSimulator(clutterModel, clutterMotion, MakeTrack)
-                                
+    clutterSim = TrackSimulator(initModels['ClutterInit'],
+                                motionModels['Clutter'], MakeTrack)
 
-    splitInit_Model = SplitInit(**initParams['SplitInit'])
-    splitSim = TrackSimulator(splitInit_Model, motionModel, MakeSplit)
+    splitSim = TrackSimulator(initModels['SplitInit'],
+                              motionModels['StormMotion'], MakeSplit)
 
-    mergeMotion_Model = ConstVel_Model(**initParams['mergeMotion'])
-    mergeSim = TrackSimulator(splitInit_Model, mergeMotion_Model, MakeSplit)
+    mergeSim = TrackSimulator(initModels['SplitInit'],
+                              motionModels['MergeMotion'], MakeSplit)
 
     true_tracks, true_falarms = MakeTracks((trackSim, clutterSim),
                                            (splitSim, None),
@@ -354,7 +361,9 @@ if __name__ == '__main__' :
 
     # TODO: temporary...
     initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels")
+    print initParams
     motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels")
+    print motionParams
 
     # TODO: Just for now...
     simParams['loc_variance'] = 0.5

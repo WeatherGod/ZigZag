@@ -1,5 +1,7 @@
 import numpy
 
+init_modelList = {}
+
 #############################
 #   Initialization Models
 #############################
@@ -29,7 +31,6 @@ class SplitInit(InitModel) :
         self._speedOff = speedOff
         self._headOff = headOff
 
-
     def setsplit(self, parentTrack, frameNums, xLocs, yLocs) :
         """
         frameNum, xPos, yPos specifies the initial position of the
@@ -52,6 +53,8 @@ class SplitInit(InitModel) :
 
     def __call__(self) :
         return InitModel.__call__(self)
+
+init_modelList['SplitInit'] = SplitInit
 
 class NormalInit(InitModel) :
     useInitState = True
@@ -100,6 +103,9 @@ class NormalInit(InitModel) :
 
         return InitModel.__call__(self)
 
+init_modelList['NormalInit'] = NormalInit
+
+
 class UniformInit(InitModel) :
     useInitState = True
 
@@ -137,7 +143,6 @@ class UniformInit(InitModel) :
         self.speedLims = (min(speedLims), max(speedLims))
         self.headingLims = (min(headingLims), max(headingLims))
 
-
     def __call__(self) :
         self._initFrame = numpy.random.randint(*self.tLims)
         self._initXPos = numpy.random.uniform(*self.xPosLims)
@@ -147,3 +152,4 @@ class UniformInit(InitModel) :
 
         return InitModel.__call__(self)
 
+init_modelList['UniformInit'] = UniformInit

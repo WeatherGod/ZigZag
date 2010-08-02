@@ -30,22 +30,29 @@ def SaveSimulationParams(simParamName, simParams) :
     config.filename = simParamName
     config.write()
 
-
-def ReadSimulationParams(simParamName) :
-    config = ConfigObj(simParamName)
-    
+def Validator(config) :
     # TODO: For now, until I get the validator going...
     for keyName in config :
         if keyName in ['seed', 'frameCnt', 'totalTracks'] :
             # Grab single integer
             config[keyName] = int(config[keyName])
         elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
-                         'endTrackProb', 'false_merge_dist', 'false_merge_prob']:
+                         'endTrackProb', 'false_merge_dist', 'false_merge_prob',
+                         'deltaT', 'velModify', 'xPos', 'yPos', 'xScale', 'yScale',
+                         'speedOff', 'headOff']:
             # Grab single float
 	        config[keyName] = float(config[keyName])
-        elif keyName in ['xLims', 'yLims', 'speedLims'] :
+        elif keyName in ['xLims', 'yLims', 'speedLims',
+                         'headingLims'] :
             # Grab array of floats, from a spliting by whitespace
             config[keyName] = map(float, config[keyName])
+        elif keyName in ['tLims'] :
+            config[keyName] = map(int, config[keyName])
+
+def ReadSimulationParams(simParamName) :
+    config = ConfigObj(simParamName)
+    
+    Validator(config)
 
     simParams = simDefaults.copy()
     simParams.update(trackerDefaults)
@@ -59,6 +66,8 @@ def _loadModelParams(filename, headerName) :
     config = ConfigObj(filename)
 
     subhead = config[headerName]
+    for key in subhead :
+        Validator(subhead[key])
 
     return subhead
 
