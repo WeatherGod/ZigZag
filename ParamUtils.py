@@ -55,6 +55,14 @@ def ReadSimulationParams(simParamName) :
     simParams['tLims'] = (1, frameCnt)
     return simParams
 
+def _loadModelParams(filename, headerName) :
+    config = ConfigObj(filename)
+
+    subhead = config[headerName]
+
+    return subhead
+
+
 def SetupParser(parser) :
     SimGroup(parser)
     TrackerGroup(parser)
