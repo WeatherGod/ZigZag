@@ -7,8 +7,8 @@ import numpy.lib.recfunctions as nprf	# for .append_fields()
 import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
 # TODO: Better packaging!
-from TrackInit import *
-from MotionModel import *
+from Sim.TrackInit import *
+from Sim.MotionModel import *
 
 
 
