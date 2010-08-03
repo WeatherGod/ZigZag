@@ -6,25 +6,24 @@ import numpy				# for Numpy
 import numpy.lib.recfunctions as nprf	# for .append_fields()
 import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
-# TODO: Better packaging!
-from Sim.TrackInit import *
-from Sim.MotionModel import *
-
+import Sim
 
 
 #############################
 #    Track Simulators
 #############################
+sim_modelList = {}
+
 class TrackSimulator(object) :
     def __init__(self, initModel, motionModel, trackMaker) :
         self._initModel = initModel
         self._motionModel = motionModel
         self._trackMaker = trackMaker
         
-    def __call__(self, cornerID, trackCnt, *makerParams) :
+    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
         theTracks = []
-        for index in xrange(trackCnt) :
-            newTrack = self._trackMaker(cornerID, index, self._initModel,
+        for index in range(trackCnt) :
+            newTrack = self._trackMaker(cornerID, self._initModel,
                                         self._motionModel, *makerParams)
         
             cornerID += len(newTrack)
@@ -32,251 +31,156 @@ class TrackSimulator(object) :
 
         return theTracks, cornerID
 
+sim_modelList['Tracker'] = TrackSimulator
 
-#############################
-#   Track Making
-#############################
-class TrackPoint(object) :
-    """
-    TrackPoint is a useful data object that helps with making simulated tracks.
-    When created, it will randomly initialize itself, according to parameters, to
-    give it a random starting time, position, speed and direction.
+class SplitSimulator(TrackSimulator) :
+    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
+        theTracks = []
+        # Now, split/merge some of those tracks
+        validTracks, = numpy.nonzero(numpy.array(simState['theTrackLens']) >= 3)
 
-    Then, the object can be simply iterated in a for loop to update its state.
-    When it 'dies', or it reached the predetermined end-of-life, the iterator
-    will stop (just like looping through an array or a file).
+        # Generate a list of tracks that will have a split/merge
+        # Currently, we are sampling without replacement.
+        #   Each track can only split at most once in its life.
+        tracksToSplit = [simState['theTracks'][validTracks[anIndex]] for anIndex in 
+                          numpy.random.rand(len(validTracks)).argsort()[:trackCnt]]
 
-    Each iteration will yield a tuple of (trackStatus, xPos, yPos, frameNum).
-    Note that track status is currently always 'M' to indicate a good track.
-    Future revisions may make this a little bit more robust and allow for
-    tracks to disappear and such, thereby changing its status, maybe?
+        for choosenTrack in tracksToSplit :
+            # Choose a frame to initiate a split.
+            # Note, I want a frame like how I want my sliced bread,
+            #       no end-pieces!
+            frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
+            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
+                                                   choosenTrack[frameIndex]['xLocs'],
+                                                   choosenTrack[frameIndex]['yLocs'])
+            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
+            cornerID += len(newTrack)
+            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
 
-    """
+        return theTracks, cornerID
 
-    def __init__(self, cornerID, trackDeathProb,
-                       initModel, motionModel, maxLen = 50) :
-        """
-        Create a point that will be used to create a track.
+sim_modelList['Splitter'] = SplitSimulator
 
-        Parameters
-        ----------
-        cornerID : int
-            Integer to use to begin incrementally ID-ing the points generated.
+class MergeSimulator(TrackSimulator) :
+    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
+        theTracks = []
+        # Now, split/merge some of those tracks
+        validTracks, = numpy.nonzero(numpy.array(simState['theTrackLens']) >= 3)
 
-        trackDeathProb : float between 0 and 1
-            The probability that a track will die at some particular iteration.
-            0.0 for eternal tracks, 1.0 for single points.
+        # Generate a list of tracks that will have a split/merge
+        # Currently, we are sampling without replacement.
+        #   Each track can only split at most once in its life.
+        tracksToSplit = [simState['theTracks'][validTracks[anIndex]] for anIndex in 
+                          numpy.random.rand(len(validTracks)).argsort()[:trackCnt]]
 
-        maxLen : int
-            Maximum length of the track
-        """
-        # These are "read-only" properties that are used in iterating
-        self.trackDeathProb = trackDeathProb
-        self.cornerID = cornerID
-        self._motionModel = motionModel
-        self._framesRemain = maxLen
+        for choosenTrack in tracksToSplit :
+            # Reverse the track to make it look like a merge done backwards.
+            choosenTrack = choosenTrack[::-1]
 
-        # These are the internal state variables that will change
-        # subsequent calls will update the state.
-        self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = initModel()
+            # Choose a frame to initiate a split.
+            # Note, I want a frame like how I want my sliced bread,
+            #       no end-pieces!
+            frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
+            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
+                                                   choosenTrack[frameIndex]['xLocs'],
+                                                   choosenTrack[frameIndex]['yLocs'])
+            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
+            cornerID += len(newTrack)
+            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
 
-        # Determine if this initial state is to be reported
-        self._useInitState = initModel.useInitState
-        # Used to prevent the track-maker from killing a track in the first call to next()
-        self._isFirstCall = True
+        return theTracks, cornerID
 
-
-    def __iter__(self) :
-        return self
-
-    def next(self) :
-        """
-        Each iteration through the loop will cause the point to "move" itself according to
-        a psuedo-constant velocity model.
-        """
-        if self._useInitState :
-            # Then this is the first call to next() and the initial data is to be used
-            self._useInitState = False
-        else :
-            if (not self._isFirstCall and
-                (numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb 
-                 or self._framesRemain <= 0)) :
-                raise StopIteration
-        
-            dt, dx, dy, dVelx, dVely = self._motionModel(self.xSpeed, self.ySpeed)
-            self.frameNum += dt
-            self.xLoc += dx
-            self.yLoc += dy
-            self.xSpeed += dVelx
-            self.ySpeed += dVely
-            self.cornerID += 1 if not self._isFirstCall else 0
-
-        self._framesRemain -= 1
-        self._isFirstCall = False
-        return self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M'
+sim_modelList['Merger'] = MergeSimulator
 
 #####################################################################################
 #  Track Maker Functions
-def MakeTrack(cornerID, index, initModel, motionModel, probTrackEnds, maxLen) :
-    aPoint = TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
+trackMakers = {}
+
+def MakeTrack(cornerID, initModel, motionModel, probTrackEnds, maxLen) :
+    aPoint = Sim.TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
     return numpy.fromiter(aPoint, TrackUtils.track_dtype)
 
-def MakeSplit(cornerID, index, initModel, motionModel, theTracks, probTrackEnds, maxLen) :
-    # Choose a frame to initiate a split.
-    # Note, I want a frame like how I want my sliced bread,
-    #       no end-pieces!
-    frameIndex = numpy.random.random_integers(1, len(theTracks[index]) - 2)
-    initModel.setsplit(theTracks[index], theTracks[index][frameIndex]['frameNums'],
-                                         theTracks[index][frameIndex]['xLocs'],
-                                         theTracks[index][frameIndex]['yLocs'])
-    aPoint = TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
-    return numpy.fromiter(aPoint, TrackUtils.track_dtype)
+trackMakers['MakeTrack'] = MakeTrack
 ###################################################################################
 
 
-def MakeTracks(trackGens, splitGens, mergeGens,
-               trackCnts, splitCnts, mergeCnts,
-               prob_track_ends, maxTrackLen) :
-    cornerID = 0
+
+
+
+
+def MakeTracks(trackGens, noiseModels,
+               simParams, procParams,
+               prob_track_ends, maxTrackLen, tLims,
+               cornerID=0, simState=None, genName='Processing') :
     theTracks = []
-    theTrackLens = []
+    theFAlarms = []
+
+    noisesToApply = procParams.pop('noises', [])
+    trackCnt = int(procParams.pop('cnt', 1))
+
+    if simState is None :
+        simState = {'theTracks': [],
+                    'theFAlarms': [],
+                    'theTrackLens': []}
+
+
+    if genName in simParams['TrackSims'] :
+        tracks, cornerID = trackGens[genName](cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
+        falarms = []
+
+    elif genName == 'Processing' :
+        tracks = []
+        falarms = []
+
+    else :
+        # TODO: Change this to raising an exception.
+        print "ERROR: Bad generator name:", genName
+
+    TrackUtils.CleanupTracks(tracks, falarms)
+
+    theTracks.extend(tracks)
+    theFAlarms.extend(falarms)
     
     # Loop over various track generators
-    for aGen, trackCnt, splitGen, splitCnt, mergeGen, mergeCnt \
-                        in zip(trackGens, trackCnts,
-                               splitGens, splitCnts,
-                               mergeGens, mergeCnts) :
-        modelTracks = []
-        modelTrackLens = []
-        tracks, cornerID = aGen(cornerID, trackCnt, prob_track_ends, maxTrackLen)
-        modelTracks.extend(tracks)
-        modelTrackLens.extend([len(aTrack) for aTrack in tracks])        
+    for aGen in procParams :
+        currState = {'theTracks': simState['theTracks'] + tracks,
+                     'theFAlarms': simState['theFAlarms'] + falarms,
+                     'theTrackLens': simState['theTrackLens'] + [len(aTrack) for aTrack in tracks]}
 
-        if splitGen is not None :
-            # Now, split some of those tracks
-            validTracks, = numpy.nonzero(numpy.array(modelTrackLens) >= 3)
-            # Currently, we are sampling without replacement.
-            #   Each track can only split at most once in its life.
-            tracksToSplit = [modelTracks[validTracks[anIndex]] for anIndex in 
-                              numpy.random.rand(len(validTracks)).argsort()[:splitCnt]]
-            splitTracks, cornerID = splitGen(cornerID, len(tracksToSplit), tracksToSplit, 0.0, maxTrackLen)
-            modelTracks.extend(splitTracks)
-            modelTrackLens.extend([len(aTrack) for aTrack in splitTracks])
+        # Recursively perform track simulations using this loop's simulation
+        #   This is typically done to restrict splits/merges on only the
+        #   storm tracks and allow for clutter tracks to be made without
+        #   any splitting/merging done upon them.
+        # This will also allow for noise models to be applied to specific
+        #   subsets of the tracks.
+        subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
+                                                     simParams, procParams[aGen],
+                                                     prob_track_ends, maxTrackLen, tLims,
+                                                     cornerID, currState, aGen)
 
-        if mergeGen is not None :
-            # Now, merge some of those tracks
-            validTracks, = numpy.nonzero(numpy.array(modelTrackLens) >= 3)
-            # Currently, we are sampling without replacement.
-            #   Each track can only split at most once in its life.
-            #   We also need to reverse these tracks so that the mergeSim
-            #   will detect a reversed direction of motion
-            tracksToMerge = [modelTracks[validTracks[anIndex]][::-1] for anIndex in 
-                              numpy.random.rand(len(validTracks)).argsort()[:mergeCnt]]
-    
-            # Create merged tracks
-            # We shall go with the "Benjamin Button" approach.
-            # In other words, we do the same thing we did with
-            # splitting tracks, but the tracks grow in reversed time.
-            mergeTracks, cornerID = mergeGen(cornerID, len(tracksToMerge), tracksToMerge, 0.0, maxTrackLen)
-            modelTracks.extend(mergeTracks)
-            modelTrackLens.extend([len(aTrack) for aTrack in mergeTracks])
+        theTracks.extend(subTracks)
+        theFAlarms.extend(subFAlarms)
 
-        theTracks.extend(modelTracks)
-        theTrackLens.extend(modelTrackLens)
+    # Noisify the generated tracks.
+    for aNoise in noisesToApply :
+        if isinstance(noiseModels[aNoise], Sim.Noise_Lagrangian) :
+            noiseModels[aNoise](theTracks, theFAlarms)
 
-    theFAlarms = []
-    TrackUtils.CleanupTracks(theTracks, theFAlarms)
+        elif isinstance(noiseModels[aNoise], Sim.Noise_Semi) :
+            noiseModels[aNoise](theTracks, theFAlarms, tLims)
 
-    return theTracks, theFAlarms
+        elif isinstance(noiseModels[aNoise], Sim.Noise_Eularian) :
+            raise NotImplemented("Eurlarian noise models not implemented yet: %s" % aNoise)
+
+        else :
+            raise ValueError("Noise model with unknown parent type: %s" % aNoise)
+
+        TrackUtils.CleanupTracks(theTracks, theFAlarms)
+
+    return theTracks, theFAlarms, cornerID
 
 
 ###################################################################################################
-
-##########################
-#   Noise Making
-##########################
-def DisturbTracks(trueTracks, trueFalarms, tLims, noise_params) :
-    """
-    Perform a variety of actions to 'disturb' tracks.
-    """
-    
-    noiseTracks = [aTrack.copy() for aTrack in trueTracks]
-    noiseFalarms = [aTrack.copy() for aTrack in trueFalarms]
-
-    
-    FalseMerge(noiseTracks, noiseFalarms, tLims, noise_params)
-    NoisifyTracks(noiseTracks, noiseFalarms, noise_params)
-
-
-    return noiseTracks, noiseFalarms
-
-def NoisifyTracks(noiseTracks, noiseFalarms, noise_params) :
-    """
-    Noisify the positions of the points in a track, maybe even cause some
-    dropouts/dropins?
-    """
-    for aTrack in noiseTracks :
-        aTrack['xLocs'] += noise_params['loc_variance'] * numpy.random.randn(len(aTrack))
-        aTrack['yLocs'] += noise_params['loc_variance'] * numpy.random.randn(len(aTrack))
-
-
-def FalseMerge(tracks, falarms, tLims, noise_params) :
-    """
-    Perform random "false mergers" of the tracks in volData.
-    """
-
-    # False mergers in this algorithm is only done
-    # between tracks.  False Alarms are not included.
-    # This hstack call is merging all the tracks together into one massive array.
-    #   Plus, for each track, a trackID is appended on for each point in the track
-    #   to help identify the track a point came from.
-    trackStrms = numpy.hstack([nprf.append_fields(aTrack, 'trackID',
-                                                  [trackIndex] * len(aTrack),
-                                                  usemask=False)
-                               for trackIndex, aTrack in enumerate(tracks)])
-
-    # Go frame by frame to see which storms could be occluded.
-    for volTime in xrange(min(tLims), max(tLims) + 1) :
-        strmCells = trackStrms[trackStrms['frameNums'] == volTime]
-        # Calc the distances between each storm cell in this volume
-        distMatrix = numpy.hypot(strmCells['xLocs'] - numpy.atleast_2d(strmCells['xLocs']).T,
-                                 strmCells['yLocs'] - numpy.atleast_2d(strmCells['yLocs']).T)
-
-
-        # take a storm cell, and see if there is a false merger
-        for strm1Index in xrange(len(strmCells)) :
-            strm1TrackID = strmCells['trackID'][strm1Index]
-
-            # ...check strm1 against the remaining storm cells.
-            # TODO: Maybe use some sort of diag or tri function
-            #       or maybe kdtrees?
-            # to get all the possible combinations in an orderly manner?
-            # However, for now, this works just fine.
-            for strm2Index in xrange(strm1Index, len(strmCells)) :
-                strm2TrackID = strmCells['trackID'][strm2Index]
-
-                # See if the two points are close enough together (false_merge_dist),
-                # and see if it satisfy the random chance of being merged
-                if (distMatrix[strm1Index, strm2Index] <= noise_params['false_merge_dist'] and
-                    len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
-                    (numpy.random.uniform(0., 1.) * distMatrix[strm1Index, strm2Index] / 
-                         noise_params['false_merge_dist'] < noise_params['false_merge_prob'])) :
-
-                    #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
-                    #print tracks[trackID1]['frameNums']
-
-                    # Ok, we will have strm1 occluded by strm2, remove it from the track
-                    tracks[strm1TrackID] = \
-                        tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == \
-                                                               volData[volIndex]['volTime'])]
-                    
-                # No need to continue searching strm2s against this strm1
-                break
-
-    # rebuild the tracks list and possibly move some to falarms
-    TrackUtils.CleanupTracks(tracks, falarms)
-
-#########################################################################################################
 
 def MakeModels(modParams, modelList) :
     models = {}
@@ -286,61 +190,56 @@ def MakeModels(modParams, modelList) :
 
     return models
 
+def MakeGenModels(modParams, initModels, motionModels, sim_modelList, trackMakers) :
+    models = {}
+    for modname in modParams :
+        params = modParams[modname]
+        models[modname] = sim_modelList[params['type']](initModels[params['init']],
+                                         motionModels[params['motion']],
+                                         trackMakers[params['trackmaker']])
+
+    return models
+
 #############################
 #   Track Simulator
 #############################
-def TrackSim(simName, initParams, motionParams,
+def TrackSim(simName, initParams, motionParams, tracksimParams, noiseParams,
                       tLims, xLims, yLims,
                       speedLims, speed_variance,
                       mean_dir, angle_variance,
                       **simParams) :
-    initModels = MakeModels(initParams, init_modelList)
-    motionModels = MakeModels(motionParams, motion_modelList)
+    initModels = MakeModels(initParams, Sim.init_modelList)
+    motionModels = MakeModels(motionParams, Sim.motion_modelList)
+    noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
 
-    trackSim = TrackSimulator(initModels['TrackInit'],
-                              motionModels['StormMotion'], MakeTrack)
+    simGens = MakeGenModels(tracksimParams['TrackSims'], initModels, motionModels, sim_modelList, trackMakers)
 
-    clutterSim = TrackSimulator(initModels['ClutterInit'],
-                                motionModels['Clutter'], MakeTrack)
 
-    splitSim = TrackSimulator(initModels['SplitInit'],
-                              motionModels['StormMotion'], MakeSplit)
-
-    mergeSim = TrackSimulator(initModels['SplitInit'],
-                              motionModels['MergeMotion'], MakeSplit)
-
-    true_tracks, true_falarms = MakeTracks((trackSim, clutterSim),
-                                           (splitSim, None),
-                                           (mergeSim, None),
-                                           (simParams['totalTracks'], 25),
-                                           (6, 0), (6, 0),
-					                       simParams['endTrackProb'],
-                                           max(tLims) - min(tLims))
+    true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
+                                                     tracksimParams,
+                                                     tracksimParams['Processing'],
+					                                 simParams['endTrackProb'],
+                                                     max(tLims) - min(tLims), tLims)
 
     # Clip tracks to the domain
-    clippedTracks, clippedFalarms = TrackUtils.ClipTracks(true_tracks,
+    clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
                                                           true_falarms,
                                                           xLims, yLims, tLims)
 
 
-
-
-    fake_tracks, fake_falarms = DisturbTracks(clippedTracks, clippedFalarms,
-                                              tLims, simParams)
-
     # TODO: Automatically build this file, instead!
     os.system("cp ./Parameters %s/Parameters" % simName)
 
-    volume_data = TrackUtils.CreateVolData(clippedTracks, clippedFalarms,
+    volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
                                            tLims, xLims, yLims)
 
 
-    fake_volData = TrackUtils.CreateVolData(fake_tracks, fake_falarms,
-                                            tLims, xLims, yLims)
+    noise_volData = TrackUtils.CreateVolData(clippedTracks, clippedFAlarms,
+                                             tLims, xLims, yLims)
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
-            'noisy_tracks': fake_tracks, 'noisy_falarms': fake_falarms,
-            'true_volumes': volume_data, 'noisy_volumes': fake_volData}
+            'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
+            'true_volumes': volume_data, 'noisy_volumes': noise_volData}
 
 		    
 if __name__ == '__main__' :
@@ -361,9 +260,9 @@ if __name__ == '__main__' :
 
     # TODO: temporary...
     initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels")
-    print initParams
     motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels")
-    print motionParams
+    tracksimParams = ParamUtils._loadModelParams("SimModels.conf", "SimModels")
+    noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels")
 
     # TODO: Just for now...
     simParams['loc_variance'] = 0.5
@@ -378,7 +277,7 @@ if __name__ == '__main__' :
     if (not os.path.exists(args.simName)) :
         os.makedirs(args.simName)
     
-    theSimulation = TrackSim(args.simName, initParams, motionParams, **simParams)
+    theSimulation = TrackSim(args.simName, initParams, motionParams, tracksimParams, noiseParams, **simParams)
 
 
     ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)

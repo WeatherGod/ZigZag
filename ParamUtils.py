@@ -39,7 +39,9 @@ def Validator(config) :
         elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
                          'endTrackProb', 'false_merge_dist', 'false_merge_prob',
                          'deltaT', 'velModify', 'xPos', 'yPos', 'xScale', 'yScale',
-                         'speedOff', 'headOff']:
+                         'speedOff', 'headOff',
+                         'loc_variance',
+                         'false_merge_prob', 'false_merge_dist']:
             # Grab single float
 	        config[keyName] = float(config[keyName])
         elif keyName in ['xLims', 'yLims', 'speedLims',
