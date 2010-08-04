@@ -22,7 +22,7 @@ trackMakers['MakeTrack'] = MakeTrack
 
 
 def MakeTracks(trackGens, noiseModels,
-               simParams, procParams,
+               procParams,
                currGen,
                trackCnt, prob_track_ends, maxTrackLen,
                tLims, cornerID=0, simState=None) :
@@ -61,7 +61,7 @@ def MakeTracks(trackGens, noiseModels,
         # This will also allow for noise models to be applied to specific
         #   subsets of the tracks.
         subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
-                                                     simParams, procParams[aGen],
+                                                     procParams[aGen],
                                                      trackGens[aGen],
                                                      trackCnt, prob_track_ends, maxTrackLen,
                                                      tLims, cornerID, currState)
@@ -81,36 +81,38 @@ def MakeTracks(trackGens, noiseModels,
 
 def MakeModels(modParams, modelList) :
     models = {}
+    defType = modParams.pop("type", None)
+
     for modname in modParams :
-        typename = modParams[modname].pop('type')
+        typename = modParams[modname].pop('type', defType)
         models[modname] = modelList[typename](**modParams[modname])
 
     return models
 
 def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMakers) :
     models = {}
-    defMotion = None #modParams.pop("motion", "UNKNOWN")
-    defInit = None #modParams.pop("init", "UNKNOWN")
-    defType = None #modParams.pop("type", "UNKNOWN")
-    defMaker = None #modParams.pop("trackmaker", "UNKNOWN")
+    defMotion = modParams.pop("motion", None)
+    defInit = modParams.pop("init", None)
+    defType = modParams.pop("type", None)
+    defMaker = modParams.pop("trackmaker", None)
 
     for modname in modParams :
         params = modParams[modname]
-        genType = gen_modelList[params.get('type', defType)]
-        models[modname] = genType(initModels[params.get('init', defInit)],
-                                  motionModels[params.get('motion', defMotion)],
-                                  trackMakers[params.get('trackmaker', defMaker)])
+        genType = gen_modelList[params.pop('type', defType)]
+        models[modname] = genType(initModels[params.pop('init', defInit)],
+                                  motionModels[params.pop('motion', defMotion)],
+                                  trackMakers[params.pop('trackmaker', defMaker)],
+                                  **params)
 
     return models
 
 #############################
 #   Track Simulator
 #############################
-def TrackSim(simName, initParams, motionParams, tracksimParams, noiseParams,
-                      tLims, xLims, yLims,
-                      speedLims, speed_variance,
-                      mean_dir, angle_variance,
-                      **simParams) :
+def TrackSim(simName, initParams, motionParams,
+             tracksimParams, noiseParams,
+             tLims, xLims, yLims,
+             **simParams) :
     initModels = MakeModels(initParams, Sim.init_modelList)
     motionModels = MakeModels(motionParams, Sim.motion_modelList)
     noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
@@ -125,7 +127,6 @@ def TrackSim(simName, initParams, motionParams, tracksimParams, noiseParams,
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
-                                                     tracksimParams,
                                                      tracksimParams['Processing'],
                                                      rootGenerator,
 					                                 trackCnt, endTrackProb, maxTrackLen,
@@ -174,9 +175,6 @@ if __name__ == '__main__' :
     tracksimParams = ParamUtils._loadModelParams("SimModels.conf", "SimModels")
     noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels")
 
-    # TODO: Just for now...
-    simParams['loc_variance'] = 0.5
-
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
 
@@ -187,7 +185,8 @@ if __name__ == '__main__' :
     if (not os.path.exists(args.simName)) :
         os.makedirs(args.simName)
     
-    theSimulation = TrackSim(args.simName, initParams, motionParams, tracksimParams, noiseParams, **simParams)
+    theSimulation = TrackSim(args.simName, initParams, motionParams,
+                             tracksimParams, noiseParams, **simParams)
 
 
     ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
