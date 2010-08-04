@@ -67,18 +67,7 @@ def MakeTracks(trackGens, noiseModels,
 
     # Noisify the generated tracks.
     for aNoise in noisesToApply :
-        if isinstance(noiseModels[aNoise], Sim.Noise_Lagrangian) :
-            noiseModels[aNoise](theTracks, theFAlarms)
-
-        elif isinstance(noiseModels[aNoise], Sim.Noise_Semi) :
-            noiseModels[aNoise](theTracks, theFAlarms, tLims)
-
-        elif isinstance(noiseModels[aNoise], Sim.Noise_Eularian) :
-            raise NotImplemented("Eurlarian noise models not implemented yet: %s" % aNoise)
-
-        else :
-            raise ValueError("Noise model with unknown parent type: %s" % aNoise)
-
+        noiseModels[aNoise](theTracks, theFAlarms, tLims)
         TrackUtils.CleanupTracks(theTracks, theFAlarms)
 
     return theTracks, theFAlarms, cornerID

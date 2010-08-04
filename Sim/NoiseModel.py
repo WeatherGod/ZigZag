@@ -16,26 +16,14 @@ class NoiseModel(object) :
 
 
 
-class Noise_Eulerian(NoiseModel) :
-    pass
-
-
-class Noise_Lagrangian(NoiseModel) :
-    pass
-
-class Noise_Semi(NoiseModel) :
-    pass
-
-
-
-class TrackNoise(Noise_Lagrangian) :
+class TrackNoise(NoiseModel) :
     """
     Noisify the positions of the points in a track.
     """
     def __init__(self, loc_variance) :
         self._loc_variance = loc_variance
 
-    def __call__(self, tracks, falarms) :
+    def __call__(self, tracks, falarms, tLims) :
         for aTrack in tracks :
             aTrack['xLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
             aTrack['yLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
@@ -43,7 +31,7 @@ class TrackNoise(Noise_Lagrangian) :
 _noise_register(TrackNoise, "PosNoise")
 
 
-class FalseMerge(Noise_Semi) :
+class FalseMerge(NoiseModel) :
     """
     Perform random "false mergers" of the tracks.
     """
@@ -52,7 +40,6 @@ class FalseMerge(Noise_Semi) :
         self._false_merge_prob = false_merge_prob
         self._false_merge_dist = false_merge_dist
 
-    # TODO: Make this a true semi lagrangian
     def __call__(self, tracks, falarms, tLims) :
         # False mergers in this algorithm is only done
         # between tracks.  False Alarms are not included.
@@ -103,3 +90,12 @@ class FalseMerge(Noise_Semi) :
                     break
 
 _noise_register(FalseMerge, 'FalseMerge')
+
+class DropOut(NoiseModel) :
+    def __init__(self, dropout_prob) :
+       self._dropout_prob = dropout_prob
+
+    def __call__(self, tracks, falarms, tLims) :
+        pass
+
+_noise_register(DropOut, 'DropOut') 
