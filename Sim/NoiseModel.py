@@ -1,5 +1,6 @@
 import numpy
 import numpy.lib.recfunctions as nprf   # for .append_fields()
+from scipy.spatial import KDTree
 
 
 noise_modelList = {}
@@ -54,40 +55,33 @@ class FalseMerge(NoiseModel) :
         # Go frame by frame to see which storms could be occluded.
         for volTime in xrange(min(tLims), max(tLims) + 1) :
             strmCells = trackStrms[trackStrms['frameNums'] == volTime]
-            # Calc the distances between each storm cell in this volume
-            distMatrix = numpy.hypot(strmCells['xLocs'] - numpy.atleast_2d(strmCells['xLocs']).T,
-                                     strmCells['yLocs'] - numpy.atleast_2d(strmCells['yLocs']).T)
+            tree = KDTree(zip(strmCells['xLocs'], strmCells['yLocs']))
 
+            candidatePairs = list(tree.query_pairs(self._false_merge_dist))
+            pointsRemoved = set([])
+            for aPair in candidatePairs :
+                if aPair[0] in pointsRemoved or aPair[1] in pointsRemoved :
+                    # One of these points have already been removed, skip this pair
+                    continue
 
-            # take a storm cell, and see if there is a false merger
-            for strm1Index in xrange(len(strmCells)) :
-                strm1TrackID = strmCells['trackID'][strm1Index]
+                strm1Cell = strmCells[aPair[0]]
+                strm2Cell = strmCells[aPair[1]]
+                strm1TrackID = strm1Cell['trackID']
+                strm2TrackID = strm2Cell['trackID']
 
-                # ...check strm1 against the remaining storm cells.
-                # TODO: Maybe use some sort of diag or tri function
-                #       or maybe kdtrees?
-                # to get all the possible combinations in an orderly manner?
-                # However, for now, this works just fine.
-                for strm2Index in xrange(strm1Index, len(strmCells)) :
-                    strm2TrackID = strmCells['trackID'][strm2Index]
+                if (len(tracks[strm1TrackID]) > 3
+                    and len(tracks[strm2TrackID]) > 2
+                    and (numpy.random.uniform(0.1, 1.0) *
+                         numpy.hypot(strm1Cell['xLocs'] - strm2Cell['xLocs'],
+                                     strm1Cell['yLocs'] - strm2Cell['yLocs'])
+                         / self._false_merge_dist < self._false_merge_prob)) :
+                    # If the tracks are long enough, and the PRNG determines that a false
+                    #   merger should occur, then add this point to the list and then
+                    #   rebuild the list of points for the track without the removed point.
+                    pointsRemoved.add(aPair[0])
+                    tracks[strm1TrackID] = tracks[strm1TrackID][strm1Cell['cornerIDs']
+                                                  != tracks[strm1TrackID]['cornerIDs']]
 
-                    # See if the two points are close enough together (false_merge_dist),
-                    # and see if it satisfy the random chance of being merged
-                    if (distMatrix[strm1Index, strm2Index] <= self._false_merge_dist and
-                        len(tracks[strm1TrackID]) > 3 and len(tracks[strm2TrackID]) > 2 and
-                        (numpy.random.uniform(0., 1.) * distMatrix[strm1Index, strm2Index] /
-                             self._false_merge_dist < self._false_merge_prob)) :
-
-                        #print "\nWe have Occlusion!  trackID1: %d  trackID2:  %d   frameNum: %d\n" % (trackID1, trackID2, aVol['volTime'])
-                        #print tracks[trackID1]['frameNums']
-
-                        # Ok, we will have strm1 occluded by strm2, remove it from the track
-                        tracks[strm1TrackID] = \
-                            tracks[strm1TrackID][numpy.logical_not(tracks[strm1TrackID]['frameNums'] == \
-                                                                   volData[volIndex]['volTime'])]
-
-                    # No need to continue searching strm2s against this strm1
-                    break
 
 _noise_register(FalseMerge, 'FalseMerge')
 
@@ -96,6 +90,9 @@ class DropOut(NoiseModel) :
        self._dropout_prob = dropout_prob
 
     def __call__(self, tracks, falarms, tLims) :
-        pass
+        for trackIndex in range(len(tracks)) :
+            trackLen = len(tracks[trackIndex])
+            stormsToKeep = numpy.random.random_sample(trackLen) >= self._dropout_prob
+            tracks[trackIndex] = tracks[trackIndex][stormsToKeep]
 
-_noise_register(DropOut, 'DropOut') 
+_noise_register(DropOut, 'DropOut')

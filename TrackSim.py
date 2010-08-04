@@ -24,13 +24,15 @@ trackMakers['MakeTrack'] = MakeTrack
 def MakeTracks(trackGens, noiseModels,
                simParams, procParams,
                currGen,
-               prob_track_ends, maxTrackLen, tLims,
-               cornerID=0, simState=None) :
+               trackCnt, prob_track_ends, maxTrackLen,
+               tLims, cornerID=0, simState=None) :
     theTracks = []
     theFAlarms = []
 
     noisesToApply = procParams.pop('noises', [])
-    trackCnt = int(procParams.pop('cnt', 1))
+    trackCnt = int(procParams.pop('cnt', trackCnt))
+    prob_track_ends = float(procParams.pop('prob_track_ends', prob_track_ends))
+    maxTrackLen = int(procParams.pop('maxTrackLen', maxTrackLen))
 
     if simState is None :
         simState = {'theTracks': [],
@@ -38,18 +40,20 @@ def MakeTracks(trackGens, noiseModels,
                     'theTrackLens': []}
 
     tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
-
     TrackUtils.CleanupTracks(tracks, falarms)
+    trackLens = [len(aTrack) for aTrack in tracks]
+
+
 
     theTracks.extend(tracks)
     theFAlarms.extend(falarms)
+
+    currState = {'theTracks': simState['theTracks'] + tracks,
+                 'theFAlarms': simState['theFAlarms'] + falarms,
+                 'theTrackLens': simState['theTrackLens'] + trackLens}
     
     # Loop over various track generators
     for aGen in procParams :
-        currState = {'theTracks': simState['theTracks'] + tracks,
-                     'theFAlarms': simState['theFAlarms'] + falarms,
-                     'theTrackLens': simState['theTrackLens'] + [len(aTrack) for aTrack in tracks]}
-
         # Recursively perform track simulations using this loop's simulation
         #   This is typically done to restrict splits/merges on only the
         #   storm tracks and allow for clutter tracks to be made without
@@ -59,8 +63,8 @@ def MakeTracks(trackGens, noiseModels,
         subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
                                                      simParams, procParams[aGen],
                                                      trackGens[aGen],
-                                                     prob_track_ends, maxTrackLen, tLims,
-                                                     cornerID, currState)
+                                                     trackCnt, prob_track_ends, maxTrackLen,
+                                                     tLims, cornerID, currState)
 
         theTracks.extend(subTracks)
         theFAlarms.extend(subFAlarms)
@@ -83,13 +87,19 @@ def MakeModels(modParams, modelList) :
 
     return models
 
-def MakeGenModels(modParams, initModels, motionModels, sim_modelList, trackMakers) :
+def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMakers) :
     models = {}
+    defMotion = None #modParams.pop("motion", "UNKNOWN")
+    defInit = None #modParams.pop("init", "UNKNOWN")
+    defType = None #modParams.pop("type", "UNKNOWN")
+    defMaker = None #modParams.pop("trackmaker", "UNKNOWN")
+
     for modname in modParams :
         params = modParams[modname]
-        models[modname] = sim_modelList[params['type']](initModels[params['init']],
-                                         motionModels[params['motion']],
-                                         trackMakers[params['trackmaker']])
+        genType = gen_modelList[params.get('type', defType)]
+        models[modname] = genType(initModels[params.get('init', defInit)],
+                                  motionModels[params.get('motion', defMotion)],
+                                  trackMakers[params.get('trackmaker', defMaker)])
 
     return models
 
@@ -109,14 +119,17 @@ def TrackSim(simName, initParams, motionParams, tracksimParams, noiseParams,
                             Sim.gen_modelList, trackMakers)
 
     rootGenerator = Sim.NullGenerator()
+    trackCnt = int(tracksimParams['Processing'].pop("cnt", simParams['totalTracks']))
+    endTrackProb = float(tracksimParams['Processing'].pop("prob_track_ends", simParams['endTrackProb']))
+    maxTrackLen = int(tracksimParams['Processing'].pop("maxTrackLen", max(tLims) - min(tLims)))
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
                                                      tracksimParams,
                                                      tracksimParams['Processing'],
                                                      rootGenerator,
-					                                 simParams['endTrackProb'],
-                                                     max(tLims) - min(tLims), tLims)
+					                                 trackCnt, endTrackProb, maxTrackLen,
+                                                     tLims)
 
     # Clip tracks to the domain
     clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
