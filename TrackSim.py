@@ -9,89 +9,6 @@ import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 import Sim
 
 
-#############################
-#    Track Simulators
-#############################
-sim_modelList = {}
-
-class TrackSimulator(object) :
-    def __init__(self, initModel, motionModel, trackMaker) :
-        self._initModel = initModel
-        self._motionModel = motionModel
-        self._trackMaker = trackMaker
-        
-    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
-        theTracks = []
-        for index in range(trackCnt) :
-            newTrack = self._trackMaker(cornerID, self._initModel,
-                                        self._motionModel, *makerParams)
-        
-            cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
-
-        return theTracks, cornerID
-
-sim_modelList['Tracker'] = TrackSimulator
-
-class SplitSimulator(TrackSimulator) :
-    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
-        theTracks = []
-        # Now, split/merge some of those tracks
-        validTracks, = numpy.nonzero(numpy.array(simState['theTrackLens']) >= 3)
-
-        # Generate a list of tracks that will have a split/merge
-        # Currently, we are sampling without replacement.
-        #   Each track can only split at most once in its life.
-        tracksToSplit = [simState['theTracks'][validTracks[anIndex]] for anIndex in 
-                          numpy.random.rand(len(validTracks)).argsort()[:trackCnt]]
-
-        for choosenTrack in tracksToSplit :
-            # Choose a frame to initiate a split.
-            # Note, I want a frame like how I want my sliced bread,
-            #       no end-pieces!
-            frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
-            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
-                                                   choosenTrack[frameIndex]['xLocs'],
-                                                   choosenTrack[frameIndex]['yLocs'])
-            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
-            cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
-
-        return theTracks, cornerID
-
-sim_modelList['Splitter'] = SplitSimulator
-
-class MergeSimulator(TrackSimulator) :
-    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
-        theTracks = []
-        # Now, split/merge some of those tracks
-        validTracks, = numpy.nonzero(numpy.array(simState['theTrackLens']) >= 3)
-
-        # Generate a list of tracks that will have a split/merge
-        # Currently, we are sampling without replacement.
-        #   Each track can only split at most once in its life.
-        tracksToSplit = [simState['theTracks'][validTracks[anIndex]] for anIndex in 
-                          numpy.random.rand(len(validTracks)).argsort()[:trackCnt]]
-
-        for choosenTrack in tracksToSplit :
-            # Reverse the track to make it look like a merge done backwards.
-            choosenTrack = choosenTrack[::-1]
-
-            # Choose a frame to initiate a split.
-            # Note, I want a frame like how I want my sliced bread,
-            #       no end-pieces!
-            frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
-            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
-                                                   choosenTrack[frameIndex]['xLocs'],
-                                                   choosenTrack[frameIndex]['yLocs'])
-            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
-            cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
-
-        return theTracks, cornerID
-
-sim_modelList['Merger'] = MergeSimulator
-
 #####################################################################################
 #  Track Maker Functions
 trackMakers = {}
@@ -104,14 +21,11 @@ trackMakers['MakeTrack'] = MakeTrack
 ###################################################################################
 
 
-
-
-
-
 def MakeTracks(trackGens, noiseModels,
                simParams, procParams,
+               currGen,
                prob_track_ends, maxTrackLen, tLims,
-               cornerID=0, simState=None, genName='Processing') :
+               cornerID=0, simState=None) :
     theTracks = []
     theFAlarms = []
 
@@ -123,18 +37,7 @@ def MakeTracks(trackGens, noiseModels,
                     'theFAlarms': [],
                     'theTrackLens': []}
 
-
-    if genName in simParams['TrackSims'] :
-        tracks, cornerID = trackGens[genName](cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
-        falarms = []
-
-    elif genName == 'Processing' :
-        tracks = []
-        falarms = []
-
-    else :
-        # TODO: Change this to raising an exception.
-        print "ERROR: Bad generator name:", genName
+    tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
 
     TrackUtils.CleanupTracks(tracks, falarms)
 
@@ -155,8 +58,9 @@ def MakeTracks(trackGens, noiseModels,
         #   subsets of the tracks.
         subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
                                                      simParams, procParams[aGen],
+                                                     trackGens[aGen],
                                                      prob_track_ends, maxTrackLen, tLims,
-                                                     cornerID, currState, aGen)
+                                                     cornerID, currState)
 
         theTracks.extend(subTracks)
         theFAlarms.extend(subFAlarms)
@@ -212,12 +116,16 @@ def TrackSim(simName, initParams, motionParams, tracksimParams, noiseParams,
     motionModels = MakeModels(motionParams, Sim.motion_modelList)
     noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
 
-    simGens = MakeGenModels(tracksimParams['TrackSims'], initModels, motionModels, sim_modelList, trackMakers)
+    simGens = MakeGenModels(tracksimParams['TrackSims'], initModels, motionModels,
+                            Sim.gen_modelList, trackMakers)
+
+    rootGenerator = Sim.NullGenerator()
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
                                                      tracksimParams,
                                                      tracksimParams['Processing'],
+                                                     rootGenerator,
 					                                 simParams['endTrackProb'],
                                                      max(tLims) - min(tLims), tLims)
 
