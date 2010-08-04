@@ -2,7 +2,7 @@
 
 from TrackFileUtils import *		# for writing track files, and reading corner files
 
-from TrackUtils import FilterMHTTracks
+from TrackUtils import FilterMHTTracks, CleanupTracks
 import scit
 
 import os                               # for os.sep.join(), os.system()
@@ -21,7 +21,7 @@ def DoTracking(tracker, trackParams, returnResults = False) :
         if returnResults : theTracks = FilterMHTTracks(*ReadTracks(trackParams['result_file'] + "_MHT"))
 
     elif tracker == "SCIT" :
-	cornerInfo = ReadCorners(trackParams['inputDataFile'])
+        cornerInfo = ReadCorners(trackParams['inputDataFile'])
         strmAdap = {'distThresh': 7.5}
         stateHist = []
         strmTracks = []
@@ -32,7 +32,10 @@ def DoTracking(tracker, trackParams, returnResults = False) :
 
         scit.EndTracks(stateHist, strmTracks)
 
-        SaveTracks(trackParams['result_file'] + "_SCIT", strmTracks)
+        falarms = []
+        CleanupTracks(strmTracks, falarms)
+
+        SaveTracks(trackParams['result_file'] + "_SCIT", strmTracks, falarms)
 
         if returnResults : theTracks = (strmTracks, [])
 
