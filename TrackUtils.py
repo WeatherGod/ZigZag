@@ -1,6 +1,7 @@
 import math
 import numpy
 import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
+from scipy.spatial import KDTree
 
 corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4'), ('cornerIDs', 'i4')]
 track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
@@ -150,35 +151,37 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
-    # TODO: Is this working anymore?
-    # I want to change over to a stormID tagging approach...
     assocs_Correct = []
     falarms_Correct = []
     assocs_Wrong = []
     falarms_Wrong = []
 
-
     unmatchedPredTrackSegs = range(len(predSegs))
 
-    for aRealSeg in realSegs :
+    predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs])
+    trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in trueSegs]
+
+    closestMatches = predTree.query(trueData)
+
+    for trueIndex, (dist, predIndex) in enumerate(closestMatches) :
         foundMatch = False
 
-        for predIndex in unmatchedPredTrackSegs :
+#        for predIndex in unmatchedPredTrackSegs :
             #print aRealSeg
             #print predSegs[predIndex]
             #print "----------------"
-            if is_eq(aRealSeg, predSegs[predIndex]) :
+        if is_eq(realSegs[trueIndex], predSegs[predIndex]) :
                 assocs_Correct.append(predSegs[predIndex])
                 # To make sure that I don't compare against that item again.
                 del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
                 foundMatch = True
                 # Break out of this loop...
-                break
+                #break
 
         # This segment represents those that were completely
         # missed by the tracking algorithm.
         if not foundMatch : 
-	        falarms_Wrong.append(aRealSeg)
+	        falarms_Wrong.append(realSegs[trueIndex])
 
     # Anything left from the predicted segments must be unmatched with reality,
     # therefore, these segments belong in the "assocs_Wrong" array.
