@@ -42,7 +42,9 @@ def Validator(config) :
                          'speedOff', 'headOff',
                          'loc_variance',
                          'false_merge_prob', 'false_merge_dist',
-                         'dropout_prob']:
+                         'dropout_prob',
+                         'xOffset', 'yOffset', 'offsetHeading', 'offsetSpeed',
+                         'a', 'b', 'orient']:
             # Grab single float
 	        config[keyName] = float(config[keyName])
         elif keyName in ['xLims', 'yLims', 'speedLims',
