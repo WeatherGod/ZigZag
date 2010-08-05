@@ -82,7 +82,6 @@ if args.truthTrackFile is not None :
         curAxis.set_xlim(xLims)
         curAxis.set_ylim(yLims)
         curAxis.set_aspect("equal", 'datalim')
-
         curAxis.set_title(trackTitles[index])
         curAxis.set_xlabel("X [km]")
         curAxis.set_ylabel("Y [km]")
@@ -95,16 +94,11 @@ else :
 
         curAxis = theFig.add_subplot(1, len(trackerData), index + 1)
         curAxis.hold(True)
-        PlotTrack(aTracker[0], tLims, axis = curAxis,
-		          marker = '.', markersize = 6.0, color = 'k', linewidth = 1.5)
-        PlotTrack(aTracker[1], tLims, axis = curAxis,
-                  marker = '.', markersize = 6.0, linestyle = ' ', color = 'r')
-
+        PlotPlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis)
 
         curAxis.set_xlim(xLims)
         curAxis.set_ylim(yLims)
         curAxis.set_aspect("equal", 'datalim')
-
         curAxis.set_title(trackTitles[index])
         curAxis.set_xlabel("X [km]")
         curAxis.set_ylabel("Y [km]")

@@ -61,7 +61,7 @@ def PlotSegments(truthTable, tLims,
 
 def Animate_Segments(truthTable, tLims, axis=None, **kwargs) :
     if axis is None :
-	axis = pyplot.gca()
+        axis = pyplot.gca()
 
     tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=True) 
 
@@ -78,12 +78,17 @@ def Animate_Segments(truthTable, tLims, axis=None, **kwargs) :
 
 
 def AnimateLines(lines, lineData, startFrame, endFrame, 
-		 speed=1.0, loop_hold=2.0, figure=None, axis=None) :
+                 figure=None, axis=None,
+                 speed=1.0, loop_hold=2.0, tail=None) :
+
     if figure is None :
-	figure = pyplot.gcf()
+        figure = pyplot.gcf()
 
     if axis is None :
         axis = figure.gca()
+
+    if tail is None :
+        tail = endFrame - startFrame
 
     canvas = figure.canvas
     canvas.draw()
@@ -93,17 +98,20 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
             update_line.background = canvas.copy_from_bbox(axis.bbox)
 
         
-	if (int(update_line.cnt) > update_line.currFrame) : 
-	    update_line.currFrame = int(update_line.cnt)
-
+        if (int(update_line.cnt) > update_line.currFrame) : 
+            update_line.currFrame = int(update_line.cnt)
             canvas.restore_region(update_line.background)
 
-	    for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
-                mask = numpy.logical_and(aSeg['frameNums'] <= update_line.currFrame,
-                                         aSeg['frameNums'] >= startFrame)
+            theHead = min(max(update_line.currFrame, startFrame), endFrame)
+            startTail = max(theHead - tail, startFrame)
+            
+
+            for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
+                mask = numpy.logical_and(aSeg['frameNums'] <= theHead,
+                                         aSeg['frameNums'] >= startTail)
 		
-		line.set_xdata(aSeg['xLocs'][mask])
-		line.set_ydata(aSeg['yLocs'][mask])
+                line.set_xdata(aSeg['xLocs'][mask])
+                line.set_ydata(aSeg['yLocs'][mask])
 
                 axis.draw_artist(line)
 		
@@ -111,7 +119,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 
         if update_line.cnt >= (endFrame + (loop_hold - speed)):
             update_line.cnt = startFrame
-	    update_line.currFrame = startFrame - 1.
+            update_line.currFrame = startFrame - 1.
 
         update_line.cnt += speed
         return(True)
@@ -129,7 +137,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 
 
 ###################################################
-#		Track Plotting			  #
+#		Track Plotting                            #
 ###################################################
 
 def PlotTrack(tracks, tLims, axis=None, **kwargs) :
@@ -168,22 +176,52 @@ def PlotTracks(true_tracks, model_tracks, tLims, startFrame=None, endFrame=None,
 			   zorder=2, animated=animated, axis=axis)
     return {'trueLines': trueLines, 'modelLines': modelLines}
 
+def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis=None, animated=False) :
+    if axis is None :
+        axis = pyplot.gca()
+
+    if startFrame is None : startFrame = min(tLims)
+    if endFrame is None : endFrame = max(tLims)
+
+    trackLines = PlotTrack(tracks, tLims, axis=axis, marker='.', markersize=6.0,
+                           color='k', linewidth=1.5, animated=animated)
+    falarmLines = PlotTrack(falarms, tLims, axis=axis, marker='.', markersize=6.0,
+                            linestyle=' ', color='r', animated=animated)
+
+    return {'trackLines': trackLines, 'falarmLines': falarmLines}
+
 
 
 def Animate_Tracks(true_tracks, model_tracks, tLims, 
-		   speed=1.0, loop_hold=2.0, figure=None, axis=None) :
-    if (axis is None) :
-        axis = figure.gca()
+                   axis=None, **kwargs) :
+    if axis is None :
+        axis = pyplot.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
 
-    axis.hold(True)
-
     # create the initial lines    
     theLines = PlotTracks(true_tracks, model_tracks, tLims, 
-			  startFrame, endFrame, axis=axis, animated=True)
+                          startFrame, endFrame, axis=axis, animated=True)
 
-    AnimateLines(theLines['modelLines'], model_tracks, startFrame, endFrame, axis=axis, figure=figure)
-    
+    AnimateLines(theLines['trueLines'] + theLines['modelLines'],
+                 true_tracks + model_tracks, startFrame, endFrame,
+                 axis=axis, **kwargs)
+
+
+def Animate_PlainTracks(tracks, falarms, tLims,
+                        axis=None, **kwargs) :
+    if axis is None :
+        axis = pyplot.gca()
+
+    startFrame = min(tLims)
+    endFrame = max(tLims)
+
+    # Create the initial lines
+    theLines = PlotPlainTracks(tracks, falarms, tLims,
+                               startFrame, endFrame, axis=axis, animated=True)
+
+    AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
+                 tracks + falarms, startFrame, endFrame, axis=axis, **kwargs)
+
 
