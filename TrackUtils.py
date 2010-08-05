@@ -161,23 +161,24 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     unmatchedPredTrackSegs = range(len(predSegs))
 
     for aRealSeg in realSegs :
-	foundMatch = False
-	for predIndex in unmatchedPredTrackSegs :
+        foundMatch = False
+
+        for predIndex in unmatchedPredTrackSegs :
             #print aRealSeg
             #print predSegs[predIndex]
             #print "----------------"
             if is_eq(aRealSeg, predSegs[predIndex]) :
                 assocs_Correct.append(predSegs[predIndex])
-		# To make sure that I don't compare against that item again.
-		del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
-		foundMatch = True
-		# Break out of this loop...
-		break
+                # To make sure that I don't compare against that item again.
+                del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
+                foundMatch = True
+                # Break out of this loop...
+                break
 
-	# This segment represents those that were completely
+        # This segment represents those that were completely
         # missed by the tracking algorithm.
-	if not foundMatch : 
-	    falarms_Wrong.append(aRealSeg)
+        if not foundMatch : 
+	        falarms_Wrong.append(aRealSeg)
 
     # Anything left from the predicted segments must be unmatched with reality,
     # therefore, these segments belong in the "assocs_Wrong" array.
@@ -186,18 +187,18 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     # Now for the falarms...
     unmatchedPredFAlarms = range(len(predFAlarmSegs))
     for aRealFASeg in realFAlarmSegs :
-	foundMatch = False
-	for predIndex in unmatchedPredFAlarms :
+        foundMatch = False
+        for predIndex in unmatchedPredFAlarms :
             if is_eq(aRealFASeg, predFAlarmSegs[predIndex]) :		
                 falarms_Correct.append(aRealFASeg)
-		# To make sure that I don't compare against that item again.
-		del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
+                # To make sure that I don't compare against that item again.
+                del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
                 #print "Deleting: ", predIndex
-		foundMatch = True
-		# Break out of this loop
-		break
+                foundMatch = True
+                # Break out of this loop
+                break
 
-	# This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
+        # This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
         # Well... technically, it just means that the tracking algorithm did not declare it
         #         as a false alarm.  Maybe it did not declare it as anything?
 	# TODO: Not sure if there is anything I want to do about these for now...
