@@ -158,48 +158,34 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 
     unmatchedPredTrackSegs = range(len(predSegs))
 
+
     predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs])
-    trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in trueSegs]
+    trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
 
     closestMatches = predTree.query(trueData)
 
-    for trueIndex, (dist, predIndex) in enumerate(closestMatches) :
-        foundMatch = False
-
-#        for predIndex in unmatchedPredTrackSegs :
-            #print aRealSeg
-            #print predSegs[predIndex]
-            #print "----------------"
+    for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
         if is_eq(realSegs[trueIndex], predSegs[predIndex]) :
-                assocs_Correct.append(predSegs[predIndex])
-                # To make sure that I don't compare against that item again.
-                del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
-                foundMatch = True
-                # Break out of this loop...
-                #break
-
-        # This segment represents those that were completely
-        # missed by the tracking algorithm.
-        if not foundMatch : 
-	        falarms_Wrong.append(realSegs[trueIndex])
+            assocs_Correct.append(predSegs[predIndex])
+            # To make sure that I don't compare against that item again.
+            del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
+        else :
+            # This segment represents those that were completely
+            # missed by the tracking algorithm.
+            falarms_Wrong.append(realSegs[trueIndex])
 
     # Anything left from the predicted segments must be unmatched with reality,
     # therefore, these segments belong in the "assocs_Wrong" array.
     assocs_Wrong = [predSegs[index] for index in unmatchedPredTrackSegs]
 
+    predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predFAlarmSegs])
+    trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realFAlarmSegs]
+
+    closestMatches = predTree.query(trueData)
     # Now for the falarms...
-    unmatchedPredFAlarms = range(len(predFAlarmSegs))
-    for aRealFASeg in realFAlarmSegs :
-        foundMatch = False
-        for predIndex in unmatchedPredFAlarms :
-            if is_eq(aRealFASeg, predFAlarmSegs[predIndex]) :		
-                falarms_Correct.append(aRealFASeg)
-                # To make sure that I don't compare against that item again.
-                del unmatchedPredFAlarms[unmatchedPredFAlarms.index(predIndex)]
-                #print "Deleting: ", predIndex
-                foundMatch = True
-                # Break out of this loop
-                break
+    for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
+        if is_eq(realFAlarmSegs[trueIndex], predFAlarmSegs[predIndex]) :		
+            falarms_Correct.append(realFAlarmSegs[trueIndex])
 
         # This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
         # Well... technically, it just means that the tracking algorithm did not declare it
