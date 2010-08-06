@@ -1,16 +1,17 @@
+#------------------------
+# for the animation code
 import gtk, gobject
 
 import matplotlib
 matplotlib.use('GTKAgg')
+#------------------------
 
-#import pylab
 import numpy
 import matplotlib.pyplot as pyplot
 
-#################################################
-#		Segment Plotting		#
-#################################################
-
+#################################
+#		Segment Plotting        #
+#################################
 def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
     if (axis is None) :
        axis = pyplot.gca()
@@ -59,9 +60,12 @@ def PlotSegments(truthTable, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, tLims, axis=None, **kwargs) :
+def Animate_Segments(truthTable, tLims, axis=None, figure=None, **kwargs) :
+    if figure is None :
+        figure = pyplot.gcf()
+
     if axis is None :
-        axis = pyplot.gca()
+        axis = figure.gca()
 
     tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=True) 
 
@@ -72,11 +76,74 @@ def Animate_Segments(truthTable, tLims, axis=None, **kwargs) :
         theLines += tableLines[keyname]
         theSegs += truthTable[keyname]
 
-    AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, **kwargs)
+    AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, **kwargs)
+
+#############################################
+#           Corner Plotting                 #
+#############################################
+def PlotCorners(volData, tLims, axis=None, **kwargs) :
+    if axis is None :
+        axis = pyplot.gca()
+
+    corners = []
+    for aVol in volData :
+        if aVol['volTime'] >= min(tLims) and aVol['volTime'] <= max(tLims) :
+            corners.append(axis.scatter(aVol['stormCells']['xLocs'],
+                                        aVol['stormCells']['yLocs'], s=1, **kwargs))
+
+    return corners
+
+def Animate_Corners(volData, tLims, axis=None, figure=None,
+                    speed=1.0, loop_hold=2.0, **kwargs) :
+    if figure is None :
+        figure = pyplot.gcf()
+
+    if axis is None :
+        axis = pyplot.gca()
+
+    corners = PlotCorners(volData, tLims, axis=axis, animated=True)
+
+    startFrame = min(tLims)
+    endFrame = max(tLims)
+
+    canvas = figure.canvas
+    canvas.draw()
+
+    def update_corners(*args) :
+        if update_corners.background is None :
+            update_corners.background = canvas.copy_from_bbox(axis.bbox)
+
+        if (int(update_corners.cnt) > update_corners.currFrame) :
+            update_corners.currFrame = int(update_corners.cnt)
+            canvas.restore_region(update_corners.background)
+
+            for index, scatterCol in enumerate(corners) :
+                scatterCol.set_visible(index == update_corners.currFrame)
+                axis.draw_artist(scatterCol)
+
+            canvas.blit(axis.bbox)
+
+        if update_corners.cnt >= (endFrame + (loop_hold - speed)):
+            update_corners.cnt = startFrame
+            update_corners.currFrame = startFrame - 1.
+
+        update_corners.cnt += speed
+        return(True)
+
+    update_corners.cnt = endFrame
+    update_corners.currFrame = startFrame - 1.
+    update_corners.background = None
 
 
+    def start_anim(event):
+        gobject.idle_add(update_corners)
+        canvas.mpl_disconnect(start_anim.cid)
 
+    start_anim.cid = canvas.mpl_connect('draw_event', start_anim)
 
+#############################################
+#           Animation Code                  #
+#############################################
 def AnimateLines(lines, lineData, startFrame, endFrame, 
                  figure=None, axis=None,
                  speed=1.0, loop_hold=2.0, tail=None) :
@@ -139,7 +206,6 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 ###################################################
 #		Track Plotting                            #
 ###################################################
-
 def PlotTrack(tracks, tLims, axis=None, **kwargs) :
     if axis is None :
         axis = pyplot.gca()
@@ -193,9 +259,12 @@ def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis
 
 
 def Animate_Tracks(true_tracks, model_tracks, tLims, 
-                   axis=None, **kwargs) :
+                   axis=None, figure=None, **kwargs) :
+    if figure is None :
+        figure = pyplot.gcf()
+
     if axis is None :
-        axis = pyplot.gca()
+        axis = figure.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
@@ -206,13 +275,16 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
 
     AnimateLines(theLines['trueLines'] + theLines['modelLines'],
                  true_tracks + model_tracks, startFrame, endFrame,
-                 axis=axis, **kwargs)
+                 axis=axis, figure=figure, **kwargs)
 
 
-def Animate_PlainTracks(tracks, falarms, tLims,
+def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
                         axis=None, **kwargs) :
+    if figure is None :
+        figure = pyplot.gcf()
+
     if axis is None :
-        axis = pyplot.gca()
+        axis = figure.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
@@ -222,6 +294,6 @@ def Animate_PlainTracks(tracks, falarms, tLims,
                                startFrame, endFrame, axis=axis, animated=True)
 
     AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-                 tracks + falarms, startFrame, endFrame, axis=axis, **kwargs)
+                 tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, **kwargs)
 
 

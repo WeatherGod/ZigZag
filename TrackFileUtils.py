@@ -1,5 +1,6 @@
 import numpy
 import TrackUtils
+import os           # for os.sep
 
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
@@ -99,7 +100,7 @@ def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
 
     dataFile.close()
 
-def ReadCorners(inputDataFile) :
+def ReadCorners(inputDataFile, dir='.') :
     """
     Read corner files.
 
@@ -122,7 +123,7 @@ def ReadCorners(inputDataFile) :
                     # HOWEVER!  This still does not address the issue with empty files!
                     # That situation will cause loadtxt() (and just about all other readers)
                     # to raise an exception.
-                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s.%d" % (corner_filestem, frameNum),
+                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s%s%s.%d" % (dir, os.sep, corner_filestem, frameNum),
 					           dtype=TrackUtils.corner_dtype,
                                                    usecols=(0, 1, 27)))}
                     for frameNum in xrange(startFrame, frameCnt + startFrame)]
