@@ -22,7 +22,7 @@ def DoTracking(tracker, trackParams, returnResults = False) :
 
     elif tracker == "SCIT" :
         cornerInfo = ReadCorners(trackParams['inputDataFile'])
-        strmAdap = {'distThresh': 7.5}
+        strmAdap = {'distThresh': 5.0}
         stateHist = []
         strmTracks = []
         infoTracks = []

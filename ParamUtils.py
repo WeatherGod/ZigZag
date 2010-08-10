@@ -1,6 +1,8 @@
 import os
 import argparse
 from configobj import ConfigObj
+from Sim import gen_modelList, noise_modelList, motion_modelList, init_modelList
+from validate import Validator
 
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
@@ -30,21 +32,22 @@ def SaveSimulationParams(simParamName, simParams) :
     config.filename = simParamName
     config.write()
 
-def Validator(config) :
+def ArgValidator(config) :
     # TODO: For now, until I get the validator going...
     for keyName in config :
         if keyName in ['seed', 'frameCnt', 'totalTracks'] :
             # Grab single integer
             config[keyName] = int(config[keyName])
         elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
-                         'endTrackProb', 'false_merge_dist', 'false_merge_prob',
-                         'deltaT', 'velModify', 'xPos', 'yPos', 'xScale', 'yScale',
-                         'speedOff', 'headOff',
-                         'loc_variance',
-                         'false_merge_prob', 'false_merge_dist',
-                         'dropout_prob',
-                         'xOffset', 'yOffset', 'offsetHeading', 'offsetSpeed',
-                         'a', 'b', 'orient']:
+                         'endTrackProb', 'false_merge_dist', 'false_merge_prob'] :
+#,
+#                         'deltaT', 'velModify', 'xPos', 'yPos', 'xScale', 'yScale',
+#                         'speedOff', 'headOff',
+#                         'loc_variance',
+#                         'false_merge_prob', 'false_merge_dist',
+#                         'dropout_prob',
+#                         'xOffset', 'yOffset', 'offsetHeading', 'offsetSpeed',
+#                         'a', 'b', 'orient']:
             # Grab single float
 	        config[keyName] = float(config[keyName])
         elif keyName in ['xLims', 'yLims', 'speedLims',
@@ -57,7 +60,7 @@ def Validator(config) :
 def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName)
     
-    Validator(config)
+    ArgValidator(config)
 
     simParams = simDefaults.copy()
     simParams.update(trackerDefaults)
@@ -67,14 +70,36 @@ def ReadSimulationParams(simParamName) :
     simParams['tLims'] = (1, frameCnt)
     return simParams
 
-def _loadModelParams(filename, headerName) :
+def _loadSimParams(filename, headerName) :
+    config = ConfigObj(filename)
+    configSpec = {headerName : {'__many__' : dict(prob_track_ends="float(0, 1)",
+                                                  maxTrackLen="int(min=0)",
+                                                  cnt="int(min=0)",
+                                                  noises="force_list")}}
+
+    vdtor = Validator()
+    config.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+
+    config.validate(vdtor)
+
+    return config[headerName]
+
+def _loadModelParams(filename, headerName, modelList) :
     config = ConfigObj(filename)
 
+    configSpec = {headerName : {}}
     subhead = config[headerName]
-    for key in subhead :
-        Validator(subhead[key])
 
-    return subhead
+    for key in subhead :
+        theType = subhead[key].get("type")
+        configSpec[headerName][key] = modelList[theType][1]
+
+    vdtor = Validator()
+    config.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+
+    config.validate(vdtor)
+
+    return config[headerName]
 
 
 def SetupParser(parser) :

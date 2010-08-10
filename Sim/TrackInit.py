@@ -2,6 +2,12 @@ import numpy
 
 init_modelList = {}
 
+def _init_register(modelclass, name, argValidator) :
+    if name in init_modelList :
+        raise ValueError("%s is already a registered track initializer." % name)
+
+    init_modelList[name] = (modelclass, argValidator)
+
 #############################
 #   Initialization Models
 #############################
@@ -54,7 +60,8 @@ class SplitInit(InitModel) :
     def __call__(self) :
         return InitModel.__call__(self)
 
-init_modelList['SplitInit'] = SplitInit
+_init_register(SplitInit, 'SplitInit', dict(speedOff="float(min=0.0)",
+                                            headOff="float(min=-360.0, max=360.0)"))
 
 class NormalInit(InitModel) :
     useInitState = True
@@ -103,7 +110,11 @@ class NormalInit(InitModel) :
 
         return InitModel.__call__(self)
 
-init_modelList['NormalInit'] = NormalInit
+_init_register(NormalInit, 'NormalInit', dict(tLims="float_list(min=2, max=2)",
+                                              xPos="float", yPos="float",
+                                              xScale="float(min=0.0)", yScale="float(min=0.0)",
+                                              speedLims="float_list(min=2, max=2)",
+                                              headingLims="float_list(min=2, max=2)"))
 
 
 class UniformInit(InitModel) :
@@ -154,7 +165,11 @@ class UniformInit(InitModel) :
 
         return InitModel.__call__(self)
 
-init_modelList['UniformInit'] = UniformInit
+_init_register(UniformInit, 'UniformInit', dict(tLims="float_list(min=2, max=2)",
+                                                xLims="float_list(min=2, max=2)",
+                                                yLims="float_list(min=2, max=2)",
+                                                speedLims="float_list(min=2, max=2)",
+                                                headingLims="float_list(min=2, max=2)"))
 
 class UniformEllipse(InitModel) :
     useInitState = True
@@ -246,5 +261,12 @@ class UniformEllipse(InitModel) :
 
         return InitModel.__call__(self)
 
-init_modelList['EllipseUni'] = UniformEllipse
+_init_register(UniformEllipse, 'EllipseUni', dict(tLims="float_list(min=2, max=2)",
+                                              a="float", b="float",
+                                              orient="float(min=-360.0, max=360.0)",
+                                              xOffset="float", yOffset="float",
+                                              speedLims="float_list(min=2, max=2)",
+                                              headingLims="float_list(min=2, max=2)",
+                                              offsetSpeed="float(min=0.0)",
+                                              offsetHeading="float(min=-360.0, max=360.0)"))
 

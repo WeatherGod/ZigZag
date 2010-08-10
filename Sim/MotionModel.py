@@ -2,6 +2,12 @@ import numpy
 
 motion_modelList = {}
 
+def _motion_register(modelclass, name, argValidator) :
+    if name in motion_modelList :
+        raise ValueError("%s is already a registered motion model." % name)
+
+    motion_modelList[name] = (modelclass, argValidator)
+
 #############################             
 #   Motion Models
 #############################
@@ -38,4 +44,6 @@ class ConstVel_Model(MotionModel) :
         dVely = numpy.random.uniform(-self.velModify, self.velModify)
         return self.deltaT, dx, dy, dVelx, dVely
 
-motion_modelList['ConstVel_Model'] = ConstVel_Model 
+_motion_register(ConstVel_Model, 'ConstVel_Model', dict(deltaT="float",
+                                                        velModify="float(min=0)"))
+

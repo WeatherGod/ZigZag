@@ -3,11 +3,11 @@ import numpy
 
 gen_modelList = {}
 
-def _gen_register(modelclass, name) :
+def _gen_register(modelclass, name, argValidator) :
     if name in gen_modelList :
         raise ValueError("%s is already a registered generator" % name)
 
-    gen_modelList[name] = modelclass
+    gen_modelList[name] = (modelclass, argValidator)
 
 class TrackGenerator(object) :
     def __init__(self, initModel, motionModel, trackMaker) :
@@ -28,7 +28,9 @@ class TrackGenerator(object) :
 
         return theTracks, theFAlarms, cornerID
 
-_gen_register(TrackGenerator, 'Tracker')
+_gen_register(TrackGenerator, 'Tracker', dict(init="string",
+                                              motion="string",
+                                              trackmaker="string"))
 
 class NullGenerator(TrackGenerator) :
     def __init__(self) :
@@ -37,7 +39,7 @@ class NullGenerator(TrackGenerator) :
     def __call__(self, cornerID, trackCnt, simState, *makerParams) :
         return [], [], cornerID
 
-_gen_register(NullGenerator, 'Processing')
+_gen_register(NullGenerator, 'Processing', dict())
 
 
 class SplitGenerator(TrackGenerator) :
@@ -79,7 +81,9 @@ class SplitGenerator(TrackGenerator) :
 
         return theTracks, theFAlarms, cornerID
 
-_gen_register(SplitGenerator, "Splitter")
+_gen_register(SplitGenerator, "Splitter", dict(init="string",
+                                               motion="string",
+                                               trackmaker="string"))
 
 class MergeGenerator(SplitGenerator) :
     def __init__(self, initModel, motionModel, trackMaker):
@@ -87,5 +91,7 @@ class MergeGenerator(SplitGenerator) :
         # Tracks are analyzed from end to 0
         self._trackSort = -1
 
-_gen_register(MergeGenerator, "Merger")
+_gen_register(MergeGenerator, "Merger", dict(init="string",
+                                             motion="string",
+                                             trackmaker="string"))
 

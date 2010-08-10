@@ -5,11 +5,11 @@ from scipy.spatial import KDTree
 
 noise_modelList = {}
 
-def _noise_register(modelclass, name) :
+def _noise_register(modelclass, name, argValidator) :
     if name in noise_modelList :
-        raise ValueError("%s is already registered" % name)
+        raise ValueError("%s is already a registered noise maker." % name)
 
-    noise_modelList[name] = modelclass
+    noise_modelList[name] = (modelclass, argValidator)
 
 
 class NoiseModel(object) :
@@ -29,7 +29,7 @@ class TrackNoise(NoiseModel) :
             aTrack['xLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
             aTrack['yLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
 
-_noise_register(TrackNoise, "PosNoise")
+_noise_register(TrackNoise, "PosNoise", dict(loc_variance="float(min=0)"))
 
 
 class FalseMerge(NoiseModel) :
@@ -88,7 +88,8 @@ class FalseMerge(NoiseModel) :
                                                   != tracks[strm1TrackID]['cornerIDs']]
 
 
-_noise_register(FalseMerge, 'FalseMerge')
+_noise_register(FalseMerge, 'FalseMerge', dict(false_merge_prob="float(min=0, max=1)",
+                                               false_merge_dist="float(min=0)"))
 
 class DropOut(NoiseModel) :
     def __init__(self, dropout_prob) :
@@ -100,4 +101,4 @@ class DropOut(NoiseModel) :
             stormsToKeep = numpy.random.random_sample(trackLen) >= self._dropout_prob
             tracks[trackIndex] = tracks[trackIndex][stormsToKeep]
 
-_noise_register(DropOut, 'DropOut')
+_noise_register(DropOut, 'DropOut', dict(dropout_prob="float(min=0, max=1)"))

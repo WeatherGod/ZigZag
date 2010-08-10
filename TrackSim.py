@@ -85,7 +85,7 @@ def MakeModels(modParams, modelList) :
 
     for modname in modParams :
         typename = modParams[modname].pop('type', defType)
-        models[modname] = modelList[typename](**modParams[modname])
+        models[modname] = modelList[typename][0](**modParams[modname])
 
     return models
 
@@ -98,7 +98,7 @@ def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMaker
 
     for modname in modParams :
         params = modParams[modname]
-        genType = gen_modelList[params.pop('type', defType)]
+        genType = gen_modelList[params.pop('type', defType)][0]
         models[modname] = genType(initModels[params.pop('init', defInit)],
                                   motionModels[params.pop('motion', defMotion)],
                                   trackMakers[params.pop('trackmaker', defMaker)],
@@ -110,14 +110,14 @@ def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMaker
 #   Track Simulator
 #############################
 def TrackSim(simName, initParams, motionParams,
-             tracksimParams, noiseParams,
+             genParams, noiseParams, tracksimParams,
              tLims, xLims, yLims,
              **simParams) :
     initModels = MakeModels(initParams, Sim.init_modelList)
     motionModels = MakeModels(motionParams, Sim.motion_modelList)
     noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
 
-    simGens = MakeGenModels(tracksimParams['TrackSims'], initModels, motionModels,
+    simGens = MakeGenModels(genParams, initModels, motionModels,
                             Sim.gen_modelList, trackMakers)
 
     rootGenerator = Sim.NullGenerator()
@@ -170,10 +170,13 @@ if __name__ == '__main__' :
     simParams = ParamUtils.ParamsFromOptions(args)
 
     # TODO: temporary...
-    initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels")
-    motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels")
-    tracksimParams = ParamUtils._loadModelParams("SimModels.conf", "SimModels")
-    noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels")
+    initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels", Sim.init_modelList)
+    motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels", Sim.motion_modelList)
+    genParams = ParamUtils._loadModelParams("GenModels.conf", "TrackGens", Sim.gen_modelList)
+    noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels", Sim.noise_modelList)
+
+    tracksimParams = ParamUtils._loadSimParams("SimModels.conf", "SimModels")
+
 
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
@@ -186,7 +189,7 @@ if __name__ == '__main__' :
         os.makedirs(args.simName)
     
     theSimulation = TrackSim(args.simName, initParams, motionParams,
-                             tracksimParams, noiseParams, **simParams)
+                             genParams, noiseParams, tracksimParams, **simParams)
 
 
     ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
