@@ -55,6 +55,11 @@ class FalseMerge(NoiseModel) :
         # Go frame by frame to see which storms could be occluded.
         for volTime in xrange(min(tLims), max(tLims) + 1) :
             strmCells = trackStrms[trackStrms['frameNums'] == volTime]
+
+            # Don't bother if there are no strmCells for this moment in time
+            if len(strmCells) == 0 :
+                continue
+
             tree = KDTree(zip(strmCells['xLocs'], strmCells['yLocs']))
 
             candidatePairs = list(tree.query_pairs(self._false_merge_dist))
