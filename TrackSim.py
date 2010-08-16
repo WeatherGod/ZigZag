@@ -145,7 +145,7 @@ def TrackSim(simName, initParams, motionParams,
 
 
     # TODO: Automatically build this file, instead!
-    os.system("cp ./Parameters %s/Parameters" % simName)
+    #os.system("cp ./Parameters %s/Parameters" % simName)
 
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
                                            tLims, xLims, yLims)
