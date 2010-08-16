@@ -3,7 +3,6 @@
 
 import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import numpy				# for Numpy
-import numpy.lib.recfunctions as nprf	# for .append_fields()
 import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
 import Sim
@@ -112,7 +111,14 @@ def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMaker
 def TrackSim(simName, initParams, motionParams,
              genParams, noiseParams, tracksimParams,
              tLims, xLims, yLims,
+             totalTracks, endTrackProb,
              **simParams) :
+    """
+    totalTracks acts as the top-most default value to use for the sim generators.
+    prob_track_ends also acts as the top-most default value.
+    The difference between the elements of tLims also acts as the top-most
+        default value for the maxTrackLen parameter.
+    """
     initModels = MakeModels(initParams, Sim.init_modelList)
     motionModels = MakeModels(motionParams, Sim.motion_modelList)
     noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
@@ -121,8 +127,8 @@ def TrackSim(simName, initParams, motionParams,
                             Sim.gen_modelList, trackMakers)
 
     rootGenerator = Sim.NullGenerator()
-    trackCnt = int(tracksimParams['Processing'].pop("cnt", simParams['totalTracks']))
-    endTrackProb = float(tracksimParams['Processing'].pop("prob_track_ends", simParams['endTrackProb']))
+    trackCnt = int(tracksimParams['Processing'].pop("cnt", totalTracks))
+    endTrackProb = float(tracksimParams['Processing'].pop("prob_track_ends", endTrackProb))
     maxTrackLen = int(tracksimParams['Processing'].pop("maxTrackLen", max(tLims) - min(tLims)))
 
 
@@ -187,7 +193,7 @@ if __name__ == '__main__' :
     # Create the simulation directory.
     if (not os.path.exists(args.simName)) :
         os.makedirs(args.simName)
-    
+
     theSimulation = TrackSim(args.simName, initParams, motionParams,
                              genParams, noiseParams, tracksimParams, **simParams)
 
@@ -195,6 +201,6 @@ if __name__ == '__main__' :
     ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
     SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
     SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], simParams['frameCnt'], theSimulation['noisy_volumes'])
+    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
 
 

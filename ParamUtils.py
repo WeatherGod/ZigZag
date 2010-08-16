@@ -10,14 +10,8 @@ simDefaults = dict( frameCnt = 12,
 		    simTrackFile = "%s" + os.sep + "true_tracks",
 		    noisyTrackFile = "%s" + os.sep + "noise_tracks",
 		    endTrackProb = 0.1,
-		    mean_dir = 50,
-		    speed_variance = 0.75,
-		    angle_variance = 20.0,
-		    false_merge_dist = 15.0,
-		    false_merge_prob = 0.0,
 		    xLims = [0.0, 255.0],
-		    yLims = [0.0, 255.0],
-		    speedLims = [1.0, 6.5])
+		    yLims = [0.0, 255.0])
 
 trackerDefaults = dict(trackers = ['SCIT'],
 		       corner_file = "%s" + os.sep + "corners",
@@ -33,29 +27,16 @@ def SaveSimulationParams(simParamName, simParams) :
     config.write()
 
 def ArgValidator(config) :
-    # TODO: For now, until I get the validator going...
     for keyName in config :
         if keyName in ['seed', 'frameCnt', 'totalTracks'] :
             # Grab single integer
             config[keyName] = int(config[keyName])
-        elif keyName in ['speed_variance', 'mean_dir', 'angle_variance',
-                         'endTrackProb', 'false_merge_dist', 'false_merge_prob'] :
-#,
-#                         'deltaT', 'velModify', 'xPos', 'yPos', 'xScale', 'yScale',
-#                         'speedOff', 'headOff',
-#                         'loc_variance',
-#                         'false_merge_prob', 'false_merge_dist',
-#                         'dropout_prob',
-#                         'xOffset', 'yOffset', 'offsetHeading', 'offsetSpeed',
-#                         'a', 'b', 'orient']:
+        elif keyName in ['endTrackProb'] :
             # Grab single float
 	        config[keyName] = float(config[keyName])
-        elif keyName in ['xLims', 'yLims', 'speedLims',
-                         'headingLims'] :
+        elif keyName in ['xLims', 'yLims'] :
             # Grab array of floats, from a spliting by whitespace
             config[keyName] = map(float, config[keyName])
-        elif keyName in ['tLims'] :
-            config[keyName] = map(int, config[keyName])
 
 def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName)
@@ -138,26 +119,6 @@ def SimGroup(parser) :
 		     help="Probability a track will end for a given frame. (default: %(default)s)",
 		     metavar="ENDPROB", default=simDefaults['endTrackProb'])
 
-    group.add_argument("--direction", dest="mean_dir", type=float,
-		     help="Mean direction of tracks in degrees. (default: %(default)s)", 
-		     metavar="ANGLE", default=simDefaults['mean_dir'])
-
-    group.add_argument("--spd_var", dest="speed_variance", type=float,
-		     help="Variance of track speed changes. (default: %(default)s)",
-		     metavar="VAR", default=simDefaults['speed_variance'])
-
-    group.add_argument("--dir_var", dest="angle_variance", type=float,
-		     help="Variance of initial track direction, in degrees. (default: %(default)s)",
-		     metavar="VAR", default=simDefaults['angle_variance'])
-
-    group.add_argument("--fmerge_dist", dest="false_merge_dist", type=float,
-		     help="Distance threshold for false mergers. (default: %(default)s)",
-		      metavar="DIST", default=simDefaults['false_merge_dist'])
-
-    group.add_argument("--fmerge_prob", dest="false_merge_prob", type=float,
-		     help="Probability of false merger for tracks within the DIST threshold. (default: %(default)s)",
-		     metavar="PROB", default=simDefaults['false_merge_prob'])
-
     group.add_argument("--xlims", dest="xLims", type=float,
 		     nargs = 2,
 		     help="Domain limits in x-axis. (default: %(default)s)", 
@@ -167,11 +128,6 @@ def SimGroup(parser) :
 		     nargs = 2,
 		     help="Domain limits in y-axis. (default: %(default)s)", 
 		     metavar="Y", default=simDefaults['yLims'])
-
-    group.add_argument("--spd_lims", dest="speedLims", type=float,
-		     nargs = 2,
-		     help="Range of speeds for track initialization. (default: %(default)s)", 
-		     metavar="SPD", default=simDefaults['speedLims'])
 
     return group
 
@@ -217,12 +173,6 @@ def ParamsFromOptions(options, simName = None) :
     if options.totalTracks <= 0 :
         parser.error("ERROR: Invalid TrackCnt value: %d" % (options.totalTracks))
 
-    if options.false_merge_dist <= 0. :
-        parser.error("ERROR: False Merge Dist must be positive! Value: %d" % (options.false_merge_dist))
-
-    if options.false_merge_prob < 0. :
-        parser.error("ERROR: False Merge Prob must be positive! Value: %d" % (options.false_merge_prob))
-
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
@@ -243,27 +193,18 @@ def ParamsFromOptions(options, simName = None) :
     else :
         noisyTrackFile = options.noisyTrackFile
 
-    # TODO: Some of these key/values are temporary.
-    #       I will be transistioning to having each tracker
-    #	    with its own parameterization file and controls.
     return dict(corner_file = options.corner_file % simName,
 		inputDataFile = options.inputDataFile % simName,
 		result_file = options.result_file % simName,
-	        simTrackFile = simTrackFile,
+        simTrackFile = simTrackFile,
 		noisyTrackFile = noisyTrackFile,
 		trackers = options.trackers,
-                frameCnt = options.frameCnt,
-                totalTracks = options.totalTracks,
-                speed_variance = options.speed_variance,
-                mean_dir = options.mean_dir,
-                angle_variance = options.angle_variance,
-                endTrackProb = options.endTrackProb,
-                xLims = options.xLims,
-                yLims = options.yLims,
+        frameCnt = options.frameCnt,
+        totalTracks = options.totalTracks,
+        endTrackProb = options.endTrackProb,
+        xLims = options.xLims,
+        yLims = options.yLims,
 		tLims = [1, options.frameCnt],
-                speedLims = options.speedLims,
-                false_merge_dist = options.false_merge_dist,
-                false_merge_prob = options.false_merge_prob,
-                seed = options.seed
-               ) 
+        seed = options.seed
+        ) 
 

@@ -78,7 +78,7 @@ def ReadTracks(fileName) :
     return tracks, falseAlarms
 
 
-def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
+def SaveCorners(inputDataFile, corner_filestem, volume_data) :
     """
     Save to corner files.
     Corner files comprise of a set of data files, and one control file.
@@ -87,7 +87,7 @@ def SaveCorners(inputDataFile, corner_filestem, frameCnt, volume_data) :
     """
     startFrame = volume_data[0]['volTime']
     dataFile = open(inputDataFile, 'w')
-    dataFile.write("%s %d %d\n" % (corner_filestem, frameCnt, startFrame))
+    dataFile.write("%s %d %d\n" % (corner_filestem, len(volume_data), startFrame))
 
     for (frameNo, aVol) in enumerate(volume_data) :
         outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
@@ -126,7 +126,7 @@ def ReadCorners(inputDataFile, dir='.') :
                     'stormCells': numpy.atleast_1d(numpy.loadtxt("%s%s%s.%d" % (dir, os.sep, corner_filestem, frameNum),
 					           dtype=TrackUtils.corner_dtype,
                                                    usecols=(0, 1, 27)))}
-                    for frameNum in xrange(startFrame, frameCnt + startFrame)]
+                    for frameNum in range(startFrame, frameCnt + startFrame)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
 
