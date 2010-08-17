@@ -1,14 +1,43 @@
 #!/usr/bin/env python
 
+import os				    # for os.sep
+from TrackSim import SingleSimulation
+import numpy
+import ParamUtils
+
+def MultiSimulation(multiParams, globalSimParams, initParams, motionParams,
+                                 genParams, noiseParams, tracksimParams) :
+
+    # Seed the PRNG
+    numpy.random.seed(multiParams['globalSeed'])
+
+    # Create the multi-sim directory
+    if (not os.path.exists(multiParams['simName'])) :
+        os.makedirs(multiParams['simName'])
+
+    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (multiParams['simName'], os.sep),
+                                    multiParams)
+
+    # Get the seeds that will be used for each sub-simulation
+    theSimSeeds = numpy.random.random_integers(9999999, size=multiParams['simCnt'])
+
+    for index, seed in enumerate(theSimSeeds) :
+        simName = multiParams['simName'] + ("%s%.3d" % (os.sep, index))
+
+        simParams = globalSimParams.copy()
+        for keyname in ('simTrackFile', 'noisyTrackFile', 'inputDataFile',
+                        'corner_file', 'result_file') :
+            simParams[keyname] = simParams[keyname].replace(multiParams['simName'], simName, 1)
+            
+        simParams['seed'] = seed
+
+        SingleSimulation(simName, simParams, initParams.dict(), motionParams.dict(),
+                                  genParams.dict(), noiseParams.dict(), tracksimParams.dict())
 
 if __name__ == '__main__' :
     import argparse
-    import os				    # for os.sep
-    import ParamUtils			# for SaveSimulationParams, SetupParser, ParamsFromOptions
-    from TrackSim import TrackSim
     import Sim
-    from TrackFileUtils import *
-    import numpy
+
 
     parser = argparse.ArgumentParser("Run and track several storm-track simulations")
     parser.add_argument("simName", type=str,
@@ -22,11 +51,12 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
+    simParams = ParamUtils.ParamsFromOptions(args)
+
     if args.simCnt <= 0 :
         parser.error("ERROR: Invalid N value: %d" % (args.simCnt))
 
-    globalSeed = int(args.seed)
-    numpy.random.seed(globalSeed)
+    globalSeed = int(simParams['seed'])
 
     # TODO: temporary...
     initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels", Sim.init_modelList)
@@ -36,32 +66,10 @@ if __name__ == '__main__' :
 
     tracksimParams = ParamUtils._loadSimParams("SimModels.conf", "SimModels")
 
-    if (not os.path.exists(args.simName)) :
-        os.makedirs(args.simName)
+    multiParams = dict(simCnt=args.simCnt,
+                       globalSeed=simParams['seed'],
+                       simName=args.simName)
 
-    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (args.simName, os.sep),
-                                    dict(simCnt=args.simCnt,
-                                         globalSeed=args.seed,
-                                         simName=args.simName))
-
-    theSimSeeds = numpy.random.random_integers(9999999, size=args.simCnt)
-
-    for index in range(args.simCnt) :
-        simName = args.simName + ("%s%.3d" % (os.sep, index))
-        simParams = ParamUtils.ParamsFromOptions(args, simName = simName)
-
-        simParams['seed'] = theSimSeeds[index]
-        numpy.random.seed(simParams['seed'])
-
-        if (not os.path.exists(simName)) :
-            os.makedirs(simName)
-
-        ParamUtils.SaveSimulationParams(simName + os.sep + 'simParams.conf', simParams)
-        theSimulation = TrackSim(simName, initParams.dict(), motionParams.dict(),
-                                 genParams.dict(), noiseParams.dict(),
-                                 tracksimParams.dict(), **simParams)
-
-        SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
-        SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-        SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
+    MultiSimulation(multiParams, simParams, initParams, motionParams,
+                                 genParams, noiseParams, tracksimParams)
 

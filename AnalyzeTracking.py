@@ -66,10 +66,6 @@ if __name__ == '__main__' :
     parser.add_argument("simName", type=str,
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
-#    parser.add_argument("--find_best", dest="doFindBest", action="store_true",
-#              help="Find the best comparisons.", default=False)
-#    parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
-#              help="Find the Worst comparisons.", default=False)
 
     args = parser.parse_args()
 

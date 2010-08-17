@@ -6,6 +6,8 @@ import numpy				# for Numpy
 import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
 
 import Sim
+import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
+from TrackFileUtils import *		# for writing the track data
 
 
 #####################################################################################
@@ -144,9 +146,6 @@ def TrackSim(simName, initParams, motionParams,
                                                           xLims, yLims, tLims)
 
 
-    # TODO: Automatically build this file, instead!
-    #os.system("cp ./Parameters %s/Parameters" % simName)
-
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
                                            tLims, xLims, yLims)
 
@@ -158,11 +157,31 @@ def TrackSim(simName, initParams, motionParams,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
             'true_volumes': volume_data, 'noisy_volumes': noise_volData}
 
+def SingleSimulation(simName, simParams, initParams, motionParams,
+                              genParams, noiseParams, tracksimParams) :
+    # Seed the PRNG
+    numpy.random.seed(simParams['seed'])
+
+    # Create the simulation directory.
+    if (not os.path.exists(simName)) :
+        os.makedirs(simName)
+
+    theSimulation = TrackSim(simName, initParams, motionParams,
+                             genParams, noiseParams, tracksimParams, **simParams)
+
+
+    ParamUtils.SaveSimulationParams(simName + os.sep + "simParams.conf", simParams)
+    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
+    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
+
+
+
 		    
 if __name__ == '__main__' :
-    from TrackFileUtils import *		# for writing the track data
+
     import argparse	                    # Command-line parsing
-    import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
+
 
 
     parser = argparse.ArgumentParser(description="Produce a track simulation")
@@ -172,6 +191,7 @@ if __name__ == '__main__' :
     ParamUtils.SetupParser(parser)
 
     args = parser.parse_args()
+
 
     simParams = ParamUtils.ParamsFromOptions(args)
 
@@ -187,20 +207,6 @@ if __name__ == '__main__' :
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
 
-    # Seed the PRNG
-    numpy.random.seed(simParams['seed'])
-
-    # Create the simulation directory.
-    if (not os.path.exists(args.simName)) :
-        os.makedirs(args.simName)
-
-    theSimulation = TrackSim(args.simName, initParams, motionParams,
-                             genParams, noiseParams, tracksimParams, **simParams)
-
-
-    ParamUtils.SaveSimulationParams(args.simName + os.sep + "simParams.conf", simParams)
-    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
-    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
-
+    SingleSimulation(args.simName, simParams, initParams, motionParams,
+                                   genParams, noiseParams, tracksimParams)
 
