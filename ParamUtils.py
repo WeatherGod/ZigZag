@@ -7,17 +7,21 @@ from validate import Validator
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
 		    seed = 42,
-		    simTrackFile = "%s" + os.sep + "true_tracks",
-		    noisyTrackFile = "%s" + os.sep + "noise_tracks",
+		    simTrackFile = "%(SimName)s" + os.sep + "true_tracks",
+		    noisyTrackFile = "%(SimName)s" + os.sep + "noise_tracks",
 		    endTrackProb = 0.1,
 		    xLims = [0.0, 255.0],
 		    yLims = [0.0, 255.0])
 
 trackerDefaults = dict(trackers = ['SCIT'],
-		       corner_file = "%s" + os.sep + "corners",
-		       inputDataFile = "%s" + os.sep + "InputDataFile",
-		       result_file = "%s" + os.sep + "testResults")
+		       corner_file = "%(SimName)s" + os.sep + "corners",
+		       inputDataFile = "%(SimName)s" + os.sep + "InputDataFile",
+		       result_file = "%(SimName)s" + os.sep + "testResults")
 
+def Save_MultiSim_Params(filename, params) :
+    config = ConfigObj(params)
+    config.filename = filename
+    config.write()
 
 def SaveSimulationParams(simParamName, simParams) :
     config = ConfigObj(simParams)
@@ -37,6 +41,19 @@ def ArgValidator(config) :
         elif keyName in ['xLims', 'yLims'] :
             # Grab array of floats, from a spliting by whitespace
             config[keyName] = map(float, config[keyName])
+
+def Read_MultiSim_Params(filename) :
+    config = ConfigObj(filename)
+
+    vdtor = Validator()
+    config.configspec = ConfigObj(dict(globalSeed="int",
+                                       simCnt="int(min=0)",
+                                       simName="str"),
+                                  list_values=False,
+                                  _inspec=True)
+    config.validate(vdtor)
+
+    return config
 
 def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName)
@@ -176,35 +193,22 @@ def ParamsFromOptions(options, simName = None) :
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
-    # NOTE: The default value for these two strings contain
-    #       a '%s' in the string.  This will allow for the
-    #       simulation name to be used as a part of the filenames.
+    # NOTE: The filename strings can have '%(SimName)s' in them to
+    #       dynamically indicate the filename/path that uses
+    #       the simulations' name.
     #       The user, of course, can choose not to use it.
-
-    # TODO: I can't seem to figure out a generic way to make this work without an 'if/else' statement...
-    #       Plus, this doesn't seem very kosher to me...
-    if (options.simTrackFile.find('%s') >= 0) : 
-        simTrackFile = options.simTrackFile % simName * options.simTrackFile.count('%s')
-    else :
-        simTrackFile = options.simTrackFile
-
-    if (options.noisyTrackFile.find('%s') >= 0) :
-        noisyTrackFile = options.noisyTrackFile % simName * options.noisyTrackFile.count('%s')
-    else :
-        noisyTrackFile = options.noisyTrackFile
-
-    return dict(corner_file = options.corner_file % simName,
-		inputDataFile = options.inputDataFile % simName,
-		result_file = options.result_file % simName,
-        simTrackFile = simTrackFile,
-		noisyTrackFile = noisyTrackFile,
+    simNameDict = {'SimName': simName}
+    return dict(corner_file = options.corner_file % simNameDict,
+		inputDataFile = options.inputDataFile % simNameDict,
+		result_file = options.result_file % simNameDict,
+        simTrackFile = options.simTrackFile % simNameDict,
+		noisyTrackFile = options.noisyTrackFile % simNameDict,
 		trackers = options.trackers,
-        frameCnt = options.frameCnt,
         totalTracks = options.totalTracks,
         endTrackProb = options.endTrackProb,
         xLims = options.xLims,
         yLims = options.yLims,
-		tLims = [1, options.frameCnt],
+		tLims = (1, options.frameCnt),
         seed = options.seed
         ) 
 
