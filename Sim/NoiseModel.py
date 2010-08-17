@@ -56,8 +56,8 @@ class FalseMerge(NoiseModel) :
         for volTime in xrange(min(tLims), max(tLims) + 1) :
             strmCells = trackStrms[trackStrms['frameNums'] == volTime]
 
-            # Don't bother if there are no strmCells for this moment in time
-            if len(strmCells) == 0 :
+            # Don't bother if there are only one or no strmCells for this moment in time
+            if len(strmCells) <= 1 :
                 continue
 
             tree = KDTree(zip(strmCells['xLocs'], strmCells['yLocs']))
