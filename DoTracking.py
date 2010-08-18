@@ -4,9 +4,9 @@ import Trackers
 import ParamUtils	  # for reading simParams files
 
 
-def SingleTracking(simFile, trackConfs) :
-    simParams = ParamUtils.ReadSimulationParams(simFile)
-    simParams['trackers'] = list(trackConfs)
+def SingleTracking(simFile, simParams, trackConfs) :
+
+    simParams['trackers'] = trackConfs.keys()
     # We want this simulation to know which trackers they used.
     ParamUtils.SaveSimulationParams(simFile, simParams.copy())
 
@@ -17,7 +17,6 @@ def SingleTracking(simFile, trackConfs) :
 
 if __name__ == "__main__" :
     import argparse       # Command-line parsing
-    from configobj import ConfigObj
     import os                               # for os.sep.join()
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
@@ -30,11 +29,9 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    trackConfs = ConfigObj()
-    for file in args.trackconfs :
-        partConf = ConfigObj(file)
-        trackConfs.merge(partConf)
-
     simFile = args.simName + os.sep + "simParams.conf"
-    SingleTracking(simFile, trackConfs.dict())
+    simParams = ParamUtils.ReadSimulationParams(simFile)
+    trackConfs = ParamUtils._loadTrackerParams(args.trackconfs, simParams)
+
+    SingleTracking(simFile, simParams, trackConfs.dict())
 

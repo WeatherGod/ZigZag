@@ -7,24 +7,25 @@ from validate import Validator
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
 		    seed = 42,
-		    simTrackFile = "%(SimName)s" + os.sep + "true_tracks",
-		    noisyTrackFile = "%(SimName)s" + os.sep + "noise_tracks",
+		    simTrackFile = "%(simName)s" + os.sep + "true_tracks",
+		    noisyTrackFile = "%(simName)s" + os.sep + "noise_tracks",
 		    endTrackProb = 0.1,
 		    xLims = [0.0, 255.0],
-		    yLims = [0.0, 255.0])
+		    yLims = [0.0, 255.0],
+            simName = 'NewSim')
 
 trackerDefaults = dict(trackers = ['SCIT'],
-		       corner_file = "%(SimName)s" + os.sep + "corners",
-		       inputDataFile = "%(SimName)s" + os.sep + "InputDataFile",
-		       result_file = "%(SimName)s" + os.sep + "testResults")
+		       corner_file = "%(simName)s" + os.sep + "corners",
+		       inputDataFile = "%(simName)s" + os.sep + "InputDataFile",
+		       result_file = "%(simName)s" + os.sep + "testResults")
 
 def Save_MultiSim_Params(filename, params) :
-    config = ConfigObj(params)
+    config = ConfigObj(params, interpolation=False)
     config.filename = filename
     config.write()
 
 def SaveSimulationParams(simParamName, simParams) :
-    config = ConfigObj(simParams)
+    config = ConfigObj(simParams, interpolation=False)
     tLims = config.pop('tLims')
     config['frameCnt'] = max(tLims) - min(tLims)
     config.filename = simParamName
@@ -43,7 +44,7 @@ def ArgValidator(config) :
             config[keyName] = map(float, config[keyName])
 
 def Read_MultiSim_Params(filename) :
-    config = ConfigObj(filename)
+    config = ConfigObj(filename, interpolation=False)
 
     vdtor = Validator()
     config.configspec = ConfigObj(dict(globalSeed="int",
@@ -56,7 +57,7 @@ def Read_MultiSim_Params(filename) :
     return config
 
 def ReadSimulationParams(simParamName) :
-    config = ConfigObj(simParamName)
+    config = ConfigObj(simParamName, interpolation=False)
     
     ArgValidator(config)
 
@@ -68,11 +69,29 @@ def ReadSimulationParams(simParamName) :
     simParams['tLims'] = (1, frameCnt)
     return simParams
 
+def _loadTrackerParams(filenames, simParams, trackers=None) :
+    trackConfs = ConfigObj(interpolation=False)
+    for name in filenames :
+        partConf = ConfigObj(name, interpolation=False)
+        trackConfs.merge(partConf)
+
+    def fakeinterp(section, key, **simParams) :
+        val = section[key]
+        if isinstance(val, str) :
+            section[key] = val % simParams
+
+    trackConfs.walk(fakeinterp,  call_on_sections=False, **simParams)
+
+    if trackers is not None :
+        raise NotImplementedError("Selecting trackers have not been implemented yet...")
+
+    return trackConfs
+
 def _loadSimParams(filename, headerName) :
     config = ConfigObj(filename)
     configSpec = {headerName : {'__many__' : dict(prob_track_ends="float(0, 1)",
-                                                  maxTrackLen="int(min=0)",
-                                                  cnt="int(min=0)",
+                                                  maxTrackLen="integer(min=0)",
+                                                  cnt="integer(min=0)",
                                                   noises="force_list")}}
 
     vdtor = Validator()
@@ -193,16 +212,17 @@ def ParamsFromOptions(options, simName = None) :
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
-    # NOTE: The filename strings can have '%(SimName)s' in them to
+    # NOTE: The filename strings can have '%(simName)s' in them to
     #       dynamically indicate the filename/path that uses
     #       the simulations' name.
     #       The user, of course, can choose not to use it.
-    simNameDict = {'SimName': simName}
+    simNameDict = {'simName': simName}
     return dict(corner_file = options.corner_file % simNameDict,
 		inputDataFile = options.inputDataFile % simNameDict,
 		result_file = options.result_file % simNameDict,
         simTrackFile = options.simTrackFile % simNameDict,
 		noisyTrackFile = options.noisyTrackFile % simNameDict,
+        simName = simName,
 		trackers = options.trackers,
         totalTracks = options.totalTracks,
         endTrackProb = options.endTrackProb,

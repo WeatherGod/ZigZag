@@ -5,20 +5,20 @@ import Trackers
 from DoTracking import SingleTracking
 import ParamUtils     # for reading simParams files
 
-def MultiTrack(paramFile, trackConfs) :
-    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
+def MultiTrack(multiSimParams, trackConfs) :
+
 
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%s%s%.3d" % (multiSimParams['simName'],
                                 os.sep, index)
         print "Sim:", simName
-        simFile = simName + os.sep + "simParams.conf"
-        SingleTracking(simFile, trackConfs.copy())
+        paramFile = simName + os.sep + "simParams.conf"
+        simParams = ParamUtils.ReadSimulationParams(paramFile)
+        SingleTracking(paramFile, simParams, trackConfs.copy())
 
 
 if __name__ == '__main__' :
     import argparse       # Command-line parsing
-    from configobj import ConfigObj
 
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
@@ -31,11 +31,10 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    trackConfs = ConfigObj()
-    for file in args.trackconfs :
-        partConf = ConfigObj(file)
-        trackConfs.merge(partConf)
+    paramFile = args.simName + os.sep + "MultiSim.ini"
+    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
+    trackConfs = ParamUtils._loadTrackerParams(args.trackconfs, multiSimParams)
 
-    MultiTrack("%s%sMultiSim.ini" % (args.simName, os.sep), trackConfs.dict())
+    MultiTrack(multiSimParams, trackConfs.dict())
 
 

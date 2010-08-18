@@ -110,10 +110,11 @@ def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMaker
 #############################
 #   Track Simulator
 #############################
-def TrackSim(simName, initParams, motionParams,
+def TrackSim(initParams, motionParams,
              genParams, noiseParams, tracksimParams,
              tLims, xLims, yLims,
              totalTracks, endTrackProb,
+             simName,
              **simParams) :
     """
     totalTracks acts as the top-most default value to use for the sim generators.
@@ -157,20 +158,20 @@ def TrackSim(simName, initParams, motionParams,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
             'true_volumes': volume_data, 'noisy_volumes': noise_volData}
 
-def SingleSimulation(simName, simParams, initParams, motionParams,
+def SingleSimulation(simParams, initParams, motionParams,
                               genParams, noiseParams, tracksimParams) :
     # Seed the PRNG
     numpy.random.seed(simParams['seed'])
 
     # Create the simulation directory.
-    if (not os.path.exists(simName)) :
-        os.makedirs(simName)
+    if (not os.path.exists(simParams['simName'])) :
+        os.makedirs(simParams['simName'])
 
-    theSimulation = TrackSim(simName, initParams, motionParams,
+    theSimulation = TrackSim(initParams, motionParams,
                              genParams, noiseParams, tracksimParams, **simParams)
 
 
-    ParamUtils.SaveSimulationParams(simName + os.sep + "simParams.conf", simParams)
+    ParamUtils.SaveSimulationParams(simParams['simName'] + os.sep + "simParams.conf", simParams)
     SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
     SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
     SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
@@ -207,6 +208,6 @@ if __name__ == '__main__' :
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
 
-    SingleSimulation(args.simName, simParams, initParams, motionParams,
+    SingleSimulation(simParams, initParams, motionParams,
                                    genParams, noiseParams, tracksimParams)
 

@@ -25,13 +25,14 @@ def MultiSimulation(multiParams, globalSimParams, initParams, motionParams,
         simName = multiParams['simName'] + ("%s%.3d" % (os.sep, index))
 
         simParams = globalSimParams.copy()
+        simParams['simName'] = simName
         for keyname in ('simTrackFile', 'noisyTrackFile', 'inputDataFile',
                         'corner_file', 'result_file') :
             simParams[keyname] = simParams[keyname].replace(multiParams['simName'], simName, 1)
             
         simParams['seed'] = seed
 
-        SingleSimulation(simName, simParams, initParams.dict(), motionParams.dict(),
+        SingleSimulation(simParams, initParams.dict(), motionParams.dict(),
                                   genParams.dict(), noiseParams.dict(), tracksimParams.dict())
 
 if __name__ == '__main__' :

@@ -3,10 +3,7 @@
 from AnalyzeTracking import *
 import ParamUtils
 
-def MultiAnalyze(paramFile, skills) :
-
-    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-
+def MultiAnalyze(multiSimParams, skills) :
     completeAnalysis = {}
 
     for index in range(int(multiSimParams['simCnt'])) :
@@ -47,7 +44,9 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    completeAnalysis = MultiAnalyze("%s%sMultiSim.ini" % (args.simName, os.sep),
+    paramFile = args.simName + os.sep + "MultiSim.ini"
+    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
+    completeAnalysis = MultiAnalyze(multiSimParams,
                                     [(CalcHeidkeSkillScore, 'HSS'),
                                      (CalcTrueSkillStatistic, 'TSS')])
 

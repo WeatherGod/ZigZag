@@ -6,7 +6,6 @@ from MultiTracking import MultiTrack
 if __name__ == '__main__' :
     import argparse
     import os           # for os.sep
-    from configobj import ConfigObj
 
     parser = argparse.ArgumentParser(description='Search for optimal parameters for a tracker for a given multi-sim')
     parser.add_argument("simName",
@@ -18,19 +17,16 @@ if __name__ == '__main__' :
                       metavar="CONF")
 
     args = parser.parse_args()
+    paramFile = args.simName + os.sep + "MultiSim.ini"
+    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
+    trackConfs = ParamUtils._loadTrackerParams(args.trackConfs.keys(), multiSimParams)
 
-    trackConfs = ConfigObj()
-    for file in args.trackconfs :
-        partConf = ConfigObj(file)
-        trackConfs.merge(partConf)
-
-    # Eliminate all but the one tracker I want
+    # Get only the one tracker I want
     trackConfs = {args.tracker: trackConfs.pop(args.tracker)}
 
     paramVals = [0.9999, 0.999, 0.99, 0.9]
     for val in paramVals :
         trackConfs[args.tracker]['pod'] = val
         # TODO: still need to modify the destination of the result files
-        MultiTrack("%s%sMultiSim.ini" % (args.simName, os.sep), trackConfs.dict())
-
+        MultiTrack(multiSimParams, trackConfs.dict())
 
