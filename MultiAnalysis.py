@@ -2,6 +2,7 @@
 
 from AnalyzeTracking import *
 import ParamUtils
+import Analyzers
 
 def MultiAnalyze(multiSimParams, skills) :
     completeAnalysis = {}
@@ -47,8 +48,9 @@ if __name__ == "__main__" :
     paramFile = args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     completeAnalysis = MultiAnalyze(multiSimParams,
-                                    [(CalcHeidkeSkillScore, 'HSS'),
-                                     (CalcTrueSkillStatistic, 'TSS')])
+                                    [(Analyzers.CalcHeidkeSkillScore, 'HSS'),
+                                     (Analyzers.CalcTrueSkillStatistic, 'TSS'),
+                                     (Analyzers.Skill_TrackLen, 'Dur')])
 
     for skillname in completeAnalysis :
         DisplayAnalysis(completeAnalysis[skillname], skillname,

@@ -3,7 +3,7 @@
 from TrackUtils import *
 from TrackFileUtils import *
 import numpy
-
+import Analyzers
 
 def DisplaySkillScores(skillScores, skillScoreName) :
 
@@ -32,7 +32,8 @@ def AnalyzeTrackings(simName, simParams, skillCalc) :
         truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackerAssocSegs, trackerFAlarmSegs)
 
-        analysis[tracker] = [skillCalc(truthTable)]
+        analysis[tracker] = [skillCalc(**dict(tracks=finalTracks, falarms=finalFAlarms,
+                                              truthTable=truthTable))]
         
     return analysis
 
@@ -71,8 +72,9 @@ if __name__ == '__main__' :
 
     simParams = ParamUtils.ReadSimulationParams(args.simName + os.sep + "simParams.conf")
 
-    for skillcalc, skillname in [(CalcHeidkeSkillScore, 'HSS'),
-                                 (CalcTrueSkillStatistic, 'TSS')] :
+    for skillcalc, skillname in [(Analyzers.CalcHeidkeSkillScore, 'HSS'),
+                                 (Analyzers.CalcTrueSkillStatistic, 'TSS'),
+                                 (Analyzers.Skill_TrackLen, 'Dur')] :
         analysis = AnalyzeTrackings(args.simName, simParams, skillcalc)
         DisplaySkillScores(analysis, skillname)
         print '\n\n'

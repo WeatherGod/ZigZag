@@ -207,61 +207,6 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 	    'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
 
 
-def CalcHeidkeSkillScore(truthTable) :
-    """
-    Skill score formula from 
-	http://www.eumetcal.org.uk/eumetcal/verification/www/english/msg/ver_categ_forec/uos3/uos3_ko1.htm
-
-    HSS = 2(ad - bc) / [(a + c)(c + d) + (a + b)(b + d)]
-
-    Note that a forecast is good when it is closer to 1, and
-    is worse if less than zero.
-
-                Observed
-              True    False
-Forecasted
-    True       a        b
-    False      c        d
-    """
-
-    a = float(len(truthTable['assocs_Correct']))
-    b = float(len(truthTable['assocs_Wrong']))
-    c = float(len(truthTable['falarms_Wrong']))
-    d = float(len(truthTable['falarms_Correct']))
-    if (((a + c) * (c + d)) + ((a + b) * (b + d))) < 0.1 :
-       # Prevent division by zero...
-       return 1.0
-    else :
-       return 2. * ((a * d) - (b * c)) / (((a + c) * (c + d)) + ((a + b) * (b + d)))
-
-
-def CalcTrueSkillStatistic(truthTable) :
-    """
-    Skill score formula from 
-	http://euromet.meteo.fr/resources/ukmeteocal/verification/www/english/msg/ver_categ_forec/uos3/uos3_ko2.htm
-
-    TSS = (ad - bc) / [(a + c)(b + d)]
-
-    Note that a forecast is good when it is closer to 1, and
-    is worse if closer to -1.
-
-                Observed
-              True    False
-Forecasted
-    True       a        b
-    False      c        d
-    """
-
-    a = float(len(truthTable['assocs_Correct']))
-    b = float(len(truthTable['assocs_Wrong']))
-    c = float(len(truthTable['falarms_Wrong']))
-    d = float(len(truthTable['falarms_Correct']))
-    if ((a + c) * (b + d)) < 0.1 :
-        # Prevent division by zero...
-        return 1.0
-    else :
-        return ((a * d) - (b * c)) / ((a + c) * (b + d))
-
 def FilterMHTTracks(origTracks, origFalarms) :
     """
     This function will 'clean up' the track output from ReadTracks()
