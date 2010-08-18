@@ -4,8 +4,8 @@ from AnalyzeTracking import *
 import ParamUtils
 import Analyzers
 
-def MultiAnalyze(multiSimParams, skills) :
-    completeAnalysis = {}
+def MultiAnalyze(multiSimParams, skillcalcs) :
+    completeAnalysis = None
 
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%s%s%.3d" % (multiSimParams['simName'],
@@ -13,16 +13,15 @@ def MultiAnalyze(multiSimParams, skills) :
         print "Sim:", simName
         simParams = ParamUtils.ReadSimulationParams(simName + os.sep + "simParams.conf")
 
-        for skillcalc, skillname in skills :
-            if skillname not in completeAnalysis :
-                completeAnalysis[skillname] = {}
 
-            analysis = AnalyzeTrackings(simName, simParams, skillcalc)
-            for tracker in analysis :
-                if tracker not in completeAnalysis[skillname] :
-                    completeAnalysis[skillname][tracker] = []
 
-                completeAnalysis[skillname][tracker].extend(analysis[tracker])
+        analysis = AnalyzeTrackings(simName, simParams, skillcalcs)
+        if completeAnalysis is None :
+            completeAnalysis = analysis
+        else :
+            for skillcalc, skillname in skillcalcs :
+                for tracker in simParams['trackers'] :
+                    completeAnalysis[skillname][tracker].extend(analysis[skillname][tracker])
 
     return completeAnalysis
  

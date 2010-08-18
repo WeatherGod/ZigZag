@@ -4,6 +4,7 @@ from TrackUtils import *
 from TrackFileUtils import *
 import numpy
 import Analyzers
+from la import larry        # Labeled arrays
 
 def DisplaySkillScores(skillScores, skillScoreName) :
 
@@ -17,7 +18,7 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     print "AVG   " + '  '.join(['%7.4f' % (sum(skillScores[scores])/len(skillScores[scores]))
                                 for scores in skillScores])
 
-def AnalyzeTrackings(simName, simParams, skillCalc) :
+def AnalyzeTrackings(simName, simParams, skillCalcs) :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
@@ -32,7 +33,11 @@ def AnalyzeTrackings(simName, simParams, skillCalc) :
         truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackerAssocSegs, trackerFAlarmSegs)
 
-        analysis[tracker] = [skillCalc(**dict(tracks=finalTracks, falarms=finalFAlarms,
+        for skillCalc, skill in skillCalcs :
+            if skill not in analysis :
+                analysis[skill] = {}
+
+            analysis[skill][tracker] = [skillCalc(**dict(tracks=finalTracks, falarms=finalFAlarms,
                                               truthTable=truthTable))]
         
     return analysis
@@ -72,10 +77,11 @@ if __name__ == '__main__' :
 
     simParams = ParamUtils.ReadSimulationParams(args.simName + os.sep + "simParams.conf")
 
-    for skillcalc, skillname in [(Analyzers.CalcHeidkeSkillScore, 'HSS'),
-                                 (Analyzers.CalcTrueSkillStatistic, 'TSS'),
-                                 (Analyzers.Skill_TrackLen, 'Dur')] :
-        analysis = AnalyzeTrackings(args.simName, simParams, skillcalc)
-        DisplaySkillScores(analysis, skillname)
+    skillcalcs = [(Analyzers.CalcHeidkeSkillScore, 'HSS'),
+                  (Analyzers.CalcTrueSkillStatistic, 'TSS'),
+                  (Analyzers.Skill_TrackLen, 'Dur')]
+    analysis = AnalyzeTrackings(args.simName, simParams, skillcalcs)
+    for skillCalc, skill in skillcalcs :
+        DisplaySkillScores(analysis[skill], skill)
         print '\n\n'
 
