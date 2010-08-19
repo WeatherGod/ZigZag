@@ -3,9 +3,10 @@
 from AnalyzeTracking import *
 import ParamUtils
 import Analyzers
+import la
 
 def MultiAnalyze(multiSimParams, skillcalcs) :
-    completeAnalysis = None
+    completeAnalysis = {}
 
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%s%s%.3d" % (multiSimParams['simName'],
@@ -15,15 +16,9 @@ def MultiAnalyze(multiSimParams, skillcalcs) :
 
 
 
-        analysis = AnalyzeTrackings(simName, simParams, skillcalcs)
-        if completeAnalysis is None :
-            completeAnalysis = analysis
-        else :
-            for skillcalc, skillname in skillcalcs :
-                for tracker in simParams['trackers'] :
-                    completeAnalysis[skillname][tracker].extend(analysis[skillname][tracker])
+        completeAnalysis[simName] = AnalyzeTrackings(simName, simParams, skillcalcs)
 
-    return completeAnalysis
+    return la.stack('intersection', **completeAnalysis)
  
 
 
@@ -52,7 +47,7 @@ if __name__ == "__main__" :
                                      (Analyzers.Skill_TrackLen, 'Dur')])
 
     for skillname in completeAnalysis :
-        DisplayAnalysis(completeAnalysis[skillname], skillname,
+        DisplayAnalysis(completeAnalysis.lix[:, [skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
                         compareTo='MHT')
         print "\n\n"

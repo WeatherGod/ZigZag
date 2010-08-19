@@ -9,23 +9,33 @@ from la import larry        # Labeled arrays
 def DisplaySkillScores(skillScores, skillScoreName) :
 
     print skillScoreName
-    print "      " + '  '.join(["%7s" % tracker for tracker in skillScores])
-    for (index, vals) in enumerate(zip(*skillScores.values())) :
-        print ("%3d.  " % index) + \
-              '  '.join(['%7.4f' % aVal for aVal in vals])
 
-    print "-" * (6 + 7*(len(skillScores) - 1) + 7)
-    print "AVG   " + '  '.join(['%7.4f' % (sum(skillScores[scores])/len(skillScores[scores]))
-                                for scores in skillScores])
+    print "      " + '  '.join(["%7s" % tracker for tracker in skillScores.label[-1]])
+    #for (index, vals) in enumerate(zip(*skillScores.x)) :
+    #    print ("%3d.  " % index) + \
+    #          '  '.join(['%7.4f' % aVal for aVal in vals])
+    print skillScores.x
+
+
+    print "-" * (6 + 7*(skillScores.shape[0] - 1) + 7)
+    #print "AVG   " + '  '.join(['%7.4f' % sum(scores)/len(scores)
+    #                            for scores in skillScores.x])
+    print skillScores.mean(axis=0).x
 
 def AnalyzeTrackings(simName, simParams, skillCalcs) :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
-    analysis = {}
+    # Initializing the analysis data, which will hold a table of analysis results for
+    # this simulation
+    analysis = numpy.empty((len(skillCalcs),
+                            len(simParams['trackers'])))
+    labels = [[skill[1] for skill in skillCalcs],
+              simParams['trackers']]
+    
 
-    for tracker in simParams['trackers'] :
+    for trackerIndex, tracker in enumerate(simParams['trackers']) :
         (finalTracks, finalFAlarms) = FilterMHTTracks(*ReadTracks(simParams['result_file'] + '_' + tracker))
         trackerAssocSegs = CreateSegments(finalTracks)
         trackerFAlarmSegs = CreateSegments(finalFAlarms)
@@ -33,28 +43,27 @@ def AnalyzeTrackings(simName, simParams, skillCalcs) :
         truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackerAssocSegs, trackerFAlarmSegs)
 
-        for skillCalc, skill in skillCalcs :
-            if skill not in analysis :
-                analysis[skill] = {}
+        for skillIndex, (skillCalc, skill) in enumerate(skillCalcs) :
+            analysis[skillIndex, trackerIndex] = skillCalc(**dict(tracks=finalTracks, falarms=finalFAlarms,
+                                                                  truthTable=truthTable))
 
-            analysis[skill][tracker] = [skillCalc(**dict(tracks=finalTracks, falarms=finalFAlarms,
-                                              truthTable=truthTable))]
-        
-    return analysis
+    return larry(analysis, labels)
 
 def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, compareTo=None) :
     DisplaySkillScores(analysis, skillName)
 
     if doFindBest or doFindWorst :
         if compareTo is None :
-            compareTo, skillscores = analysis.popitem()
-        else :
-            skillscores = analysis.pop(compareTo)
+            compareTo = analysis.label[1][0]
 
-        scoreDiffs = numpy.array(skillscores) - numpy.array(analysis.values())
+        skillscores = analysis.lix[:, [compareTo]]
+        theOthers = analysis.keep_label('!=', compareTo, axis=1)
+
+        # Do a numpy-style subtraction
+        scoreDiffs = skillscores.x - theOthers.x
         indices = numpy.argsort(scoreDiffs, axis=1)
 
-        print "\n Against: ", '  '.join(["%7s" % tracker for tracker in analysis])
+        print "\n Against: ", '  '.join(["%7s" % tracker for tracker in theOthers.label[1]])
         if doFindBest :
             print "Best Run: ", '  '.join(["%7d" % index for index in indices[:, -1]])
 
@@ -82,6 +91,6 @@ if __name__ == '__main__' :
                   (Analyzers.Skill_TrackLen, 'Dur')]
     analysis = AnalyzeTrackings(args.simName, simParams, skillcalcs)
     for skillCalc, skill in skillcalcs :
-        DisplaySkillScores(analysis[skill], skill)
+        DisplaySkillScores(analysis.lix[[skill]], skill)
         print '\n\n'
 
