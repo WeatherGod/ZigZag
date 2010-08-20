@@ -2,11 +2,10 @@
 
 from AnalyzeTracking import *
 import ParamUtils
-import Analyzers
 import la
 
 def MultiAnalyze(multiSimParams, skillcalcs) :
-    completeAnalysis = {}
+    completeAnalysis = None
 
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%s%s%.3d" % (multiSimParams['simName'],
@@ -16,9 +15,14 @@ def MultiAnalyze(multiSimParams, skillcalcs) :
 
 
 
-        completeAnalysis[simName] = AnalyzeTrackings(simName, simParams, skillcalcs)
+        analysis = AnalyzeTrackings(simName, simParams, skillNames)
+        analysis = analysis.insertaxis(axis=1, label=simName)
+        if completeAnalysis is None :
+            completeAnalysis = analysis
+        else :
+            completeAnalysis = completeAnalysis.merge(analysis)
 
-    return la.stack('intersection', **completeAnalysis)
+    return completeAnalysis
  
 
 
@@ -39,16 +43,16 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
+    skillNames = ['HSS', 'TSS', 'Dur']
+    compareTo = 'MHT'
+
     paramFile = args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    completeAnalysis = MultiAnalyze(multiSimParams,
-                                    [(Analyzers.CalcHeidkeSkillScore, 'HSS'),
-                                     (Analyzers.CalcTrueSkillStatistic, 'TSS'),
-                                     (Analyzers.Skill_TrackLen, 'Dur')])
+    completeAnalysis = MultiAnalyze(multiSimParams, skillNames)
 
-    for skillname in completeAnalysis :
-        DisplayAnalysis(completeAnalysis.lix[:, [skillname]], skillname,
+    for skillname in skillNames :
+        DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
-                        compareTo='MHT')
+                        compareTo=compareTo)
         print "\n\n"
        
