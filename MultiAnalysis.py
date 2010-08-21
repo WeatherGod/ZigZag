@@ -4,7 +4,7 @@ from AnalyzeTracking import *
 import ParamUtils
 import la
 
-def MultiAnalyze(multiSimParams, skillcalcs) :
+def MultiAnalyze(multiSimParams, skillNames) :
     completeAnalysis = None
 
     for index in range(int(multiSimParams['simCnt'])) :
@@ -36,6 +36,12 @@ if __name__ == "__main__" :
     parser.add_argument("simName",
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
+    parser.add_argument("skillNames", nargs="+",
+                        help="The skill measures to use",
+                        metavar="SKILL")
+    parser.add_argument("--compare", dest="compareTo", type=str,
+                        help="Compare other trackers to TRACKER",
+                        metavar="TRACKER", default="MHT")
     parser.add_argument("--find_best", dest="doFindBest", action="store_true",
               help="Find the best comparisons.", default=False)
     parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
@@ -43,16 +49,13 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    skillNames = ['HSS', 'TSS', 'Dur']
-    compareTo = 'MHT'
-
     paramFile = args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    completeAnalysis = MultiAnalyze(multiSimParams, skillNames)
+    completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames)
 
-    for skillname in skillNames :
+    for skillname in args.skillNames :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
-                        compareTo=compareTo)
+                        compareTo=args.compareTo)
         print "\n\n"
        

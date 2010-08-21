@@ -85,16 +85,19 @@ if __name__ == '__main__' :
     parser.add_argument("simName", type=str,
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
+    parser.add_argument("skillNames", nargs="+",
+                        help="The skill measures to use",
+                        metavar="SKILL")
 
     args = parser.parse_args()
 
-    skillNames = ['HSS', 'TSS', 'Dur']
+    #skillNames = ['HSS', 'TSS', 'Dur']
 
     simParams = ParamUtils.ReadSimulationParams(args.simName + os.sep + "simParams.conf")
 
-    analysis = AnalyzeTrackings(args.simName, simParams, skillNames)
+    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames)
     analysis = analysis.insertaxis(axis=1, label=args.simName)
-    for skill in skillNames :
+    for skill in args.skillNames :
         DisplaySkillScores(analysis.lix[[skill]], skill)
         print '\n\n'
 
