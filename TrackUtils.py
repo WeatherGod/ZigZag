@@ -28,7 +28,10 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
                                      usemask=False)
                       for trackIndex, aTrack in enumerate(falarms)]
 
-    allCells = numpy.hstack(tmpTracks + tmpFalarms)
+    if len(tmpTracks) != 0 or len(tmpFalarms) != 0 :
+        allCells = numpy.hstack(tmpTracks + tmpFalarms)
+    else :
+        allCells = numpy.array([], dtype=track_dtype)
 
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
