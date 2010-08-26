@@ -1,9 +1,10 @@
 #------------------------
 # for the animation code
-import gtk, gobject
+#import gtk, gobject
 
-import matplotlib
-matplotlib.use('GTKAgg')
+#import matplotlib
+#matplotlib.use('GTKAgg')
+from matplotlib.animation import FuncAnimation
 #------------------------
 
 import numpy
@@ -76,7 +77,7 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, **kwargs) :
         theLines += tableLines[keyname]
         theSegs += truthTable[keyname]
 
-    AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, **kwargs)
+    return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, **kwargs)
 
 #############################################
 #           Corner Plotting                 #
@@ -106,40 +107,15 @@ def Animate_Corners(volData, tLims, axis=None, figure=None,
     startFrame = min(tLims)
     endFrame = max(tLims)
 
-    canvas = figure.canvas
-    canvas.draw()
+    def update_corners(idx, corners) :
+        for index, scatterCol in enumerate(corners) :
+            scatterCol.set_visible(index == idx)
+            
+        return corners
 
-    def update_corners(*args) :
-        if update_corners.background is None :
-            update_corners.background = canvas.copy_from_bbox(axis.bbox)
-
-        if (int(update_corners.cnt) > update_corners.currFrame) :
-            update_corners.currFrame = int(update_corners.cnt)
-            canvas.restore_region(update_corners.background)
-
-            for index, scatterCol in enumerate(corners) :
-                scatterCol.set_visible(index == update_corners.currFrame)
-                axis.draw_artist(scatterCol)
-
-            canvas.blit(axis.bbox)
-
-        if update_corners.cnt >= (endFrame + (loop_hold - speed)):
-            update_corners.cnt = startFrame
-            update_corners.currFrame = startFrame - 1.
-
-        update_corners.cnt += speed
-        return(True)
-
-    update_corners.cnt = endFrame
-    update_corners.currFrame = startFrame - 1.
-    update_corners.background = None
-
-
-    def start_anim(event):
-        gobject.idle_add(update_corners)
-        canvas.mpl_disconnect(start_anim.cid)
-
-    start_anim.cid = canvas.mpl_connect('draw_event', start_anim)
+    return FuncAnimation(figure, update_corners, endFrame - startFrame + 1,
+                         fargs=(corners,),
+                         interval=500, blit=True)
 
 #############################################
 #           Animation Code                  #
@@ -157,50 +133,21 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
     if tail is None :
         tail = endFrame - startFrame
 
-    canvas = figure.canvas
-    canvas.draw()
-
-    def update_line(*args) :
-        if update_line.background is None:
-            update_line.background = canvas.copy_from_bbox(axis.bbox)
-
-        
-        if (int(update_line.cnt) > update_line.currFrame) : 
-            update_line.currFrame = int(update_line.cnt)
-            canvas.restore_region(update_line.background)
-
-            theHead = min(max(update_line.currFrame, startFrame), endFrame)
-            startTail = max(theHead - tail, startFrame)
+    def update_lines(idx, lineData, lines, firstFrame, lastFrame, tail) :
+        theHead = min(max(idx, firstFrame), lastFrame)
+        startTail = max(theHead - tail, firstFrame)
             
-
-            for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
-                mask = numpy.logical_and(aSeg['frameNums'] <= theHead,
-                                         aSeg['frameNums'] >= startTail)
+        for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
+            mask = numpy.logical_and(aSeg['frameNums'] <= theHead,
+                                     aSeg['frameNums'] >= startTail)
 		
-                line.set_xdata(aSeg['xLocs'][mask])
-                line.set_ydata(aSeg['yLocs'][mask])
+            line.set_xdata(aSeg['xLocs'][mask])
+            line.set_ydata(aSeg['yLocs'][mask])
+        return lines
 
-                axis.draw_artist(line)
-		
-        canvas.blit(axis.bbox)
-
-        if update_line.cnt >= (endFrame + (loop_hold - speed)):
-            update_line.cnt = startFrame
-            update_line.currFrame = startFrame - 1.
-
-        update_line.cnt += speed
-        return(True)
-
-    update_line.cnt = endFrame
-    update_line.currFrame = startFrame - 1.
-    update_line.background = None
-    
- 
-    def start_anim(event):
-        gobject.idle_add(update_line)
-        canvas.mpl_disconnect(start_anim.cid)
-
-    start_anim.cid = canvas.mpl_connect('draw_event', start_anim)
+    return FuncAnimation(figure, update_lines, endFrame - startFrame + 1,
+                         fargs=(lineData, lines, startFrame, endFrame, tail),
+                         interval=500, blit=True)
 
 
 ###################################################
@@ -273,9 +220,9 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
     theLines = PlotTracks(true_tracks, model_tracks, tLims, 
                           startFrame, endFrame, axis=axis, animated=True)
 
-    AnimateLines(theLines['trueLines'] + theLines['modelLines'],
-                 true_tracks + model_tracks, startFrame, endFrame,
-                 axis=axis, figure=figure, **kwargs)
+    return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
+                        true_tracks + model_tracks, startFrame, endFrame,
+                        axis=axis, figure=figure, **kwargs)
 
 
 def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
@@ -293,7 +240,7 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
     theLines = PlotPlainTracks(tracks, falarms, tLims,
                                startFrame, endFrame, axis=axis, animated=True)
 
-    AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-                 tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, **kwargs)
+    return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
+                        tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, **kwargs)
 
 

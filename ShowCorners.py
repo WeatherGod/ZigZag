@@ -49,6 +49,9 @@ cornerVolumes = [ReadCorners(inFileName, args.directory)['volume_data'] for inFi
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pyplot.figure(figsize = (11, 5))
 
+# A list to hold the animation objects so they don't go out of scope and get GC'ed
+anims = []
+
 if args.trackFile is not None :
     (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
 
@@ -58,9 +61,7 @@ if args.trackFile is not None :
         curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
 
-        Animate_Corners(volData, tLims, axis=curAxis, speed=0.1, loop_hold=0.0,)
-#                            tracks=(tracks, falarms))
-        #PlotPlainTracks(tracks, falarms, tLims, axis=curAxis, animated=True)
+        anims.append(Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0))
 
         curAxis.set_xlim(xLims)
         curAxis.set_ylim(yLims)
@@ -75,7 +76,7 @@ else :
 
         volTimes = [aVol['volTime'] for aVol in volData]
 
-        Animate_Corners(volData, (min(volTimes), max(volTimes)), axis=curAxis, speed=0.1, loop_hold=0.0)
+        anims.append(Animate_Corners(volData, (min(volTimes), max(volTimes)), axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0))
 
         curAxis.set_aspect("equal", 'datalim')
         curAxis.set_title(titles[index])

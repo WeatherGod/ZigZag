@@ -71,7 +71,7 @@ if args.truthTrackFile is not None :
         # We can only animate one set of axes using the current code,
         # so animate the first axes.
         if index == 0 :
-            Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
+            l = Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
         else :
             PlotSegments(truthtable, tLims, axis=curAxis)
 
@@ -94,7 +94,7 @@ else :
         # We can only animate one set of axes using the current code,
         # so animate the first axes.
         if index == 0 :
-            Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
+            l = Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
         else :
             PlotPlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis)
 	    
