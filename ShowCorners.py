@@ -56,43 +56,30 @@ theTimer = None
 
 if args.trackFile is not None :
     (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
-
     (xLims, yLims, tLims) = DomainFromTracks(tracks + falarms)
-
-    for (index, volData) in enumerate(cornerVolumes) :
-        curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
-
-
-        l = Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
-
-        if theTimer is None :
-            theTimer = l.event_source
-
-        anims.append(l)
-
-        curAxis.set_xlim(xLims)
-        curAxis.set_ylim(yLims)
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(titles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
-
 else :
-    for (index, volData) in enumerate(cornerVolumes) :
-        curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
+    volumes = []
+    for aVol in cornerVolumes :
+        volumes.extend(aVol)
+    (xLims, yLims, tLims) = DomainFromVolumes(volumes)
 
-        volTimes = [aVol['volTime'] for aVol in volData]
 
-        l = Animate_Corners(volData, (min(volTimes), max(volTimes)), axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
+for (index, volData) in enumerate(cornerVolumes) :
+    curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
-        if theTimer is None :
-            theTimer = l.event_source
+    l = Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
 
-        anims.append(l)
+    if theTimer is None :
+        theTimer = l.event_source
 
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(titles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
+    anims.append(l)
+
+    curAxis.set_xlim(xLims)
+    curAxis.set_ylim(yLims)
+    curAxis.set_aspect("equal", 'datalim')
+    curAxis.set_title(titles[index])
+    curAxis.set_xlabel("X")
+    curAxis.set_ylabel("Y")
+
 
 pyplot.show()

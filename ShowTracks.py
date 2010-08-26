@@ -64,45 +64,36 @@ theFig = pyplot.figure(figsize = (11, 5))
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
-    (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
-
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
-    for (index, aTracker) in enumerate(trackerData) :
+    (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
+else :
+    true_AssocSegs = None
+    true_FAlarmSegs = None
+
+    stackedTracks = []
+    for aTracker in trackerData :
+        stackedTracks += aTracker[0] + aTracker[1]
+    (xLims, yLims, tLims) = DomainFromTracks(stackedTracks)
+
+for (index, aTracker) in enumerate(trackerData) :
+    curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
+
+    if true_AssocSegs is not None and true_FAlarmSegs is not None :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
-
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-
-        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
         PlotSegments(truthtable, tLims, axis = curAxis)
-
-
-        curAxis.set_xlim(xLims)
-        curAxis.set_ylim(yLims)
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X [km]")
-        curAxis.set_ylabel("Y [km]")
-
-
-else :
-    for (index, aTracker) in enumerate(trackerData) :
-        # TODO: Need to have consistent domains, maybe?
-        (xLims, yLims, tLims) = DomainFromTracks(aTracker[0] + aTracker[1])
-
-        curAxis = theFig.add_subplot(1, len(trackerData), index + 1)
-        curAxis.hold(True)
+    else :
         PlotPlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis)
 
-        curAxis.set_xlim(xLims)
-        curAxis.set_ylim(yLims)
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X [km]")
-        curAxis.set_ylabel("Y [km]")
-
+    curAxis.set_xlim(xLims)
+    curAxis.set_ylim(yLims)
+    curAxis.set_aspect("equal", 'datalim')
+    curAxis.set_title(trackTitles[index])
+    curAxis.set_xlabel("X")
+    curAxis.set_ylabel("Y")
 
 
 if args.saveImgFile is not None :

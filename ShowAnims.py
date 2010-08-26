@@ -62,54 +62,40 @@ theTimer = None
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
-    (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
-
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
-    for (index, aTracker) in enumerate(trackerData) :
+    (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
+else :
+    true_AssocSegs = None
+    true_FAlarmSegs = None
+
+    stackedTracks = []
+    for aTracker in trackerData :
+        stackedTracks += aTracker[0] + aTracker[1]
+    (xLims, yLims, tLims) = DomainFromTracks(stackedTracks)
+
+for (index, aTracker) in enumerate(trackerData) :
+    curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
+
+    if true_AssocSegs is not None and true_FAlarmSegs is not None :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-
-        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
-
         l = Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
-
-        if theTimer is None :
-            theTimer = l.event_source
-
-        anims.append(l)
-
-        curAxis.set_xlim(xLims)
-        curAxis.set_ylim(yLims)
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
-
-
-else :
-    for (index, aTracker) in enumerate(trackerData) :
-        # TODO: Need to have consistent domains, maybe?
-        (xLims, yLims, tLims) = DomainFromTracks(aTracker[0] + aTracker[1])
-	
-        curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
-        curAxis.hold(True)
-
+    else :
         l = Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
         
-        if theTimer is None :
-            theTimer = l.event_source
+    if theTimer is None :
+        theTimer = l.event_source
 
-        anims.append(l)
-	    
+    anims.append(l)
 
-        curAxis.set_xlim(xLims)
-        curAxis.set_ylim(yLims)
-        curAxis.set_aspect("equal", 'datalim')
-        curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
+    curAxis.set_xlim(xLims)
+    curAxis.set_ylim(yLims)
+    curAxis.set_aspect("equal", 'datalim')
+    curAxis.set_title(trackTitles[index])
+    curAxis.set_xlabel("X")
+    curAxis.set_ylabel("Y")
 
 pyplot.show()

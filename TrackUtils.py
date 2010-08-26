@@ -240,6 +240,18 @@ def DomainFromTracks(tracks, falarms = []) :
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
             (allPoints['frameNums'].min(), allPoints['frameNums'].max()))
 
+def DomainFromVolumes(volumes) :
+    """
+    Calculate the spatial and temporal domain of the volume data.
+    Assumes that bad points are non-existant or has been masked out.
+    """
+    allPoints = numpy.hstack([volData['stormCells'] for volData in volumes])
+    allTimes = [volData['volTime'] for volData in volumes]
+
+    return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
+            (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
+            (min(allTimes), max(allTimes)))
+
 
 def is_eq(seg1, seg2) :
     """
