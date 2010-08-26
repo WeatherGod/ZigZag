@@ -24,7 +24,7 @@ parser.add_argument("-d", "--dir", dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")
 parser.add_argument("-s", "--simName", dest="simName",
-          help="Use data from the simulation SIMNAME",
+          help="Use data from the simulation SIMNAME for domain limits",
           metavar="SIMNAME", default=None)
 
 args = parser.parse_args()
@@ -49,10 +49,9 @@ cornerVolumes = [ReadCorners(inFileName, args.directory)['volume_data'] for inFi
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pyplot.figure(figsize = (11, 5))
 
-# A list to hold the animation objects so they don't go out of scope and get GC'ed
-anims = []
-# The animation timer so we can sync the animations.
-theTimer = None
+# A list to hold the CircleCollection arrays, it will have length 
+# of max(tLims) - min(tLims) + 1
+allCorners = None
 
 if args.trackFile is not None :
     (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
@@ -63,16 +62,13 @@ else :
         volumes.extend(aVol)
     (xLims, yLims, tLims) = DomainFromVolumes(volumes)
 
+theAnim = CornerAnimation(theFig, tLims[1] - tLims[0] + 1,
+                          interval=250, blit=True)
 
 for (index, volData) in enumerate(cornerVolumes) :
     curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
-    l = Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
-
-    if theTimer is None :
-        theTimer = l.event_source
-
-    anims.append(l)
+    corners = PlotCorners(volData, tLims, axis=curAxis)
 
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)
@@ -80,6 +76,8 @@ for (index, volData) in enumerate(cornerVolumes) :
     curAxis.set_title(titles[index])
     curAxis.set_xlabel("X")
     curAxis.set_ylabel("Y")
+
+    theAnim.AddCornerVolume(corners)
 
 
 pyplot.show()

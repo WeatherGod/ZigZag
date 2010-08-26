@@ -9,6 +9,7 @@ from matplotlib.animation import FuncAnimation
 
 import numpy
 import matplotlib.pyplot as pyplot
+import matplotlib.collections as mcoll
 
 #################################
 #		Segment Plotting        #
@@ -91,31 +92,35 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
         if aVol['volTime'] >= min(tLims) and aVol['volTime'] <= max(tLims) :
             corners.append(axis.scatter(aVol['stormCells']['xLocs'],
                                         aVol['stormCells']['yLocs'], s=1, **kwargs))
+        else :
+            # an empty circle collection
+            corners.append(mcoll.CircleCollection([], offsets=zip([], [])))
 
     return corners
 
-def Animate_Corners(volData, tLims, axis=None, figure=None,
-                    speed=1.0, loop_hold=2.0, event_source=None, **kwargs) :
-    if figure is None :
-        figure = pyplot.gcf()
+class CornerAnimation(FuncAnimation) :
+    def __init__(self, figure, frameCnt, **kwargs) :
+        self._allcorners = []
+        self._flatcorners = []
 
-    if axis is None :
-        axis = figure.gca()
+        FuncAnimation.__init__(self, figure, self.update_corners,
+                                     frameCnt, fargs=(self._allcorners,),
+                                     **kwargs)
 
-    corners = PlotCorners(volData, tLims, axis=axis, animated=True)
-
-    startFrame = min(tLims)
-    endFrame = max(tLims)
-
-    def update_corners(idx, corners) :
-        for index, scatterCol in enumerate(corners) :
-            scatterCol.set_visible(index == idx)
+    def update_corners(self, idx, corners) :
+        for index, scatterCol in enumerate(zip(*corners)) :
+            for aCollection in scatterCol :
+                aCollection.set_visible(index == idx)
             
-        return corners
+        return self._flatcorners
 
-    return FuncAnimation(figure, update_corners, endFrame - startFrame + 1,
-                         fargs=(corners,), event_source=event_source,
-                         interval=500, blit=True)
+    def AddCornerVolume(self, corners) :
+        self._allcorners.append(corners)
+        self._flatcorners.extend(corners)
+
+    def _init_draw(self) :
+        for aColl in self._flatcorners :
+            aColl.set_visible(False)
 
 #############################################
 #           Animation Code                  #
