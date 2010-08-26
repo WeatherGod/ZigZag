@@ -100,7 +100,7 @@ def Animate_Corners(volData, tLims, axis=None, figure=None,
         figure = pyplot.gcf()
 
     if axis is None :
-        axis = pyplot.gca()
+        axis = figure.gca()
 
     corners = PlotCorners(volData, tLims, axis=axis, animated=True)
 
