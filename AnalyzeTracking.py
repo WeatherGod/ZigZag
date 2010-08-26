@@ -81,7 +81,7 @@ if __name__ == '__main__' :
     import ParamUtils
 
 
-    parser = argparse.ArgumentParser("Analyze the tracking results of a storm-track simulation")
+    parser = argparse.ArgumentParser(description="Analyze the tracking results of a storm-track simulation")
     parser.add_argument("simName", type=str,
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")

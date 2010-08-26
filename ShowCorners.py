@@ -11,7 +11,7 @@ import glob				# for globbing
 import matplotlib.pyplot as pyplot
 
 
-parser = argparse.ArgumentParser("Produce an animation of the tracks")
+parser = argparse.ArgumentParser(description="Produce an animation of the centroids")
 parser.add_argument("inputDataFiles", nargs='*',
                     help="Use INDATAFILE for finding corner data files",
                     metavar="INDATAFILE")

@@ -9,7 +9,7 @@ import os			# for os.sep, os.system()
 if __name__ == "__main__" :
     import argparse	     # Command-line parsing
     
-    parser = argparse.ArgumentParser("The Test Track...")
+    parser = argparse.ArgumentParser(description="The Test Track...")
     parser.add_argument("inputFileName", nargs=1,
                         help="Input data file")
     parser.add_argument("paramFileName", nargs=1,

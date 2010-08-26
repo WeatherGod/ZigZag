@@ -10,7 +10,7 @@ import os				# for os.sep.join()
 import glob				# for globbing
 import matplotlib.pyplot as pyplot
 
-parser = argparse.ArgumentParser("Produce a display of the tracks")
+parser = argparse.ArgumentParser(description="Produce a display of the tracks")
 parser.add_argument("trackFiles", nargs='*',
                     help="TRACKFILEs to use for display",
                     metavar="TRACKFILE", default=[])

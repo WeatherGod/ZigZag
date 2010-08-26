@@ -11,7 +11,7 @@ import glob				# for globbing
 import matplotlib.pyplot as pyplot
 
 
-parser = argparse.ArgumentParser("Produce an animation of the tracks")
+parser = argparse.ArgumentParser(description="Produce an animation of the tracks")
 parser.add_argument("trackFiles", nargs='*',
                     help="Use TRACKFILE for track data",
                     metavar="TRACKFILE")

@@ -44,7 +44,7 @@ if __name__ == '__main__' :
     import Sim
 
 
-    parser = argparse.ArgumentParser("Run and track several storm-track simulations")
+    parser = argparse.ArgumentParser(description="Run and track several storm-track simulations")
     parser.add_argument("simName", type=str,
                       help="Generate Tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
