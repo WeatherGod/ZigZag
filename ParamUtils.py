@@ -69,7 +69,7 @@ def ReadSimulationParams(simParamName) :
     simParams['tLims'] = (1, frameCnt)
     return simParams
 
-def _loadTrackerParams(filenames, simParams, trackers=None) :
+def LoadTrackerParams(filenames, simParams, trackers=None) :
     trackConfs = ConfigObj(interpolation=False)
     for name in filenames :
         partConf = ConfigObj(name, interpolation=False)
@@ -87,36 +87,36 @@ def _loadTrackerParams(filenames, simParams, trackers=None) :
 
     return trackConfs
 
-def _loadSimParams(filename, headerName) :
-    config = ConfigObj(filename)
-    configSpec = {headerName : {'__many__' : dict(prob_track_ends="float(0, 1)",
-                                                  maxTrackLen="integer(min=0)",
-                                                  cnt="integer(min=0)",
-                                                  noises="force_list")}}
 
+def LoadSimulatorConf(filenames) :
+    simConfs = ConfigObj()
+    for name in filenames :
+        partConf = ConfigObj(name)
+        simConfs.merge(partConf)
+
+    headerList = [('InitModels', init_modelList),
+                  ('MotionModels', motion_modelList),
+                  ('TrackGens', gen_modelList),
+                  ('NoiseModels', noise_modelList)]
+
+    configSpec = {}
+    for name, modelList in headerList :
+        configSpec[name] = {}
+        for key in simConfs[name] :
+            theType = simConfs[name][key].get('type')
+            configSpec[name][key] = modelList[theType][1]
+
+    configSpec['SimModels'] = {'__many__' : dict(prob_track_ends="float(0, 1)",
+                                                 maxTrackLen="integer(min=0)",
+                                                 cnt="integer(min=0)",
+                                                 noises="force_list")}
     vdtor = Validator()
-    config.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+    simConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
 
-    config.validate(vdtor)
+    # TODO: Error routines...
+    simConfs.validate(vdtor)
 
-    return config[headerName]
-
-def _loadModelParams(filename, headerName, modelList) :
-    config = ConfigObj(filename)
-
-    configSpec = {headerName : {}}
-    subhead = config[headerName]
-
-    for key in subhead :
-        theType = subhead[key].get("type")
-        configSpec[headerName][key] = modelList[theType][1]
-
-    vdtor = Validator()
-    config.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
-
-    config.validate(vdtor)
-
-    return config[headerName]
+    return simConfs
 
 
 def SetupParser(parser) :

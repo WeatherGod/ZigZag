@@ -32,6 +32,10 @@ def MultiSimulation(multiParams, globalSimParams, initParams, motionParams,
             
         simParams['seed'] = seed
 
+        # The dict() calls are to force a deep copy of the information
+        # as a dictionary.  Therefore, the funcs inside SingleSimulation
+        # can do whatever they please to the information without
+        # impacting the next iteration of the loop.
         SingleSimulation(simParams, initParams.dict(), motionParams.dict(),
                                   genParams.dict(), noiseParams.dict(), tracksimParams.dict())
 
@@ -59,18 +63,17 @@ if __name__ == '__main__' :
 
     globalSeed = int(simParams['seed'])
 
-    # TODO: temporary...
-    initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels", Sim.init_modelList)
-    motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels", Sim.motion_modelList)
-    genParams = ParamUtils._loadModelParams("GenModels.conf", "TrackGens", Sim.gen_modelList)
-    noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels", Sim.noise_modelList)
+    simConfFiles = ["InitModels.conf", "MotionModels.conf",
+                    "GenModels.conf", "NoiseModels.conf",
+                    "SimModels.conf"]
 
-    tracksimParams = ParamUtils._loadSimParams("SimModels.conf", "SimModels")
+    simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
 
     multiParams = dict(simCnt=args.simCnt,
                        globalSeed=simParams['seed'],
                        simName=args.simName)
 
-    MultiSimulation(multiParams, simParams, initParams, motionParams,
-                                 genParams, noiseParams, tracksimParams)
+    MultiSimulation(multiParams, simParams, simConfs['InitModels'], 
+                                 simConfs['MotionModels'], simConfs['TrackGens'],
+                                 simConfs['NoiseModels'], simConfs['SimModels'])
 

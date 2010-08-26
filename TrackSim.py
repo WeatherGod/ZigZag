@@ -3,7 +3,7 @@
 
 import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import numpy				# for Numpy
-import os				# for os.system(), os.sep, os.makedirs(), os.path.exists()
+import os				# for os.sep, os.makedirs(), os.path.exists()
 
 import Sim
 import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
@@ -196,18 +196,19 @@ if __name__ == '__main__' :
 
     simParams = ParamUtils.ParamsFromOptions(args)
 
-    # TODO: temporary...
-    initParams = ParamUtils._loadModelParams("InitModels.conf", "InitModels", Sim.init_modelList)
-    motionParams = ParamUtils._loadModelParams("MotionModels.conf", "MotionModels", Sim.motion_modelList)
-    genParams = ParamUtils._loadModelParams("GenModels.conf", "TrackGens", Sim.gen_modelList)
-    noiseParams = ParamUtils._loadModelParams("NoiseModels.conf", "NoiseModels", Sim.noise_modelList)
+    simConfFiles = ["InitModels.conf", "MotionModels.conf",
+                    "GenModels.conf", "NoiseModels.conf",
+                    "SimModels.conf"]
 
-    tracksimParams = ParamUtils._loadSimParams("SimModels.conf", "SimModels")
+    simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
+
 
 
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
 
-    SingleSimulation(simParams, initParams, motionParams,
-                                   genParams, noiseParams, tracksimParams)
+    SingleSimulation(simParams, simConfs['InitModels'], simConfs['MotionModels'],
+                                simConfs['TrackGens'], simConfs['NoiseModels'],
+                                simConfs['SimModels'])
+
 

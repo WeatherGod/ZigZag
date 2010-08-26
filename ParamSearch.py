@@ -19,7 +19,7 @@ if __name__ == '__main__' :
     args = parser.parse_args()
     paramFile = args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    trackConfs = ParamUtils._loadTrackerParams(args.trackConfs.keys(), multiSimParams)
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackConfs.keys(), multiSimParams)
 
     # Get only the one tracker I want
     trackConfs = {args.tracker: trackConfs.pop(args.tracker)}

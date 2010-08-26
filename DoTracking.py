@@ -31,7 +31,7 @@ if __name__ == "__main__" :
 
     simFile = args.simName + os.sep + "simParams.conf"
     simParams = ParamUtils.ReadSimulationParams(simFile)
-    trackConfs = ParamUtils._loadTrackerParams(args.trackconfs, simParams)
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, simParams)
 
     SingleTracking(simFile, simParams, trackConfs.dict())
 

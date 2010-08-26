@@ -33,7 +33,7 @@ if __name__ == '__main__' :
 
     paramFile = args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    trackConfs = ParamUtils._loadTrackerParams(args.trackconfs, multiSimParams)
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, multiSimParams)
 
     MultiTrack(multiSimParams, trackConfs.dict())
 
