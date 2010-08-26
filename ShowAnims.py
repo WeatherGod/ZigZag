@@ -53,6 +53,12 @@ trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFil
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pyplot.figure(figsize = (11, 5))
 
+# store the animations in this list to prevent them from going out of scope and GC'ed
+anims = []
+
+# A common timer for all animations for syncing purposes.
+theTimer = None
+
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
@@ -68,12 +74,12 @@ if args.truthTrackFile is not None :
 
         curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
 
-        # We can only animate one set of axes using the current code,
-        # so animate the first axes.
-        if index == 0 :
-            l = Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
-        else :
-            PlotSegments(truthtable, tLims, axis=curAxis)
+        l = Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+
+        if theTimer is None :
+            theTimer = l.event_source
+
+        anims.append(l)
 
         curAxis.set_xlim(xLims)
         curAxis.set_ylim(yLims)
@@ -91,12 +97,12 @@ else :
         curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
         curAxis.hold(True)
 
-        # We can only animate one set of axes using the current code,
-        # so animate the first axes.
-        if index == 0 :
-            l = Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0)
-        else :
-            PlotPlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis)
+        l = Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+        
+        if theTimer is None :
+            theTimer = l.event_source
+
+        anims.append(l)
 	    
 
         curAxis.set_xlim(xLims)

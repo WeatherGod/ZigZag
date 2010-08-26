@@ -51,6 +51,8 @@ theFig = pyplot.figure(figsize = (11, 5))
 
 # A list to hold the animation objects so they don't go out of scope and get GC'ed
 anims = []
+# The animation timer so we can sync the animations.
+theTimer = None
 
 if args.trackFile is not None :
     (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
@@ -61,7 +63,12 @@ if args.trackFile is not None :
         curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
 
-        anims.append(Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0))
+        l = Animate_Corners(volData, tLims, axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
+
+        if theTimer is None :
+            theTimer = l.event_source
+
+        anims.append(l)
 
         curAxis.set_xlim(xLims)
         curAxis.set_ylim(yLims)
@@ -76,7 +83,12 @@ else :
 
         volTimes = [aVol['volTime'] for aVol in volData]
 
-        anims.append(Animate_Corners(volData, (min(volTimes), max(volTimes)), axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0))
+        l = Animate_Corners(volData, (min(volTimes), max(volTimes)), axis=curAxis, figure=theFig, speed=0.1, loop_hold=0.0, event_source=theTimer)
+
+        if theTimer is None :
+            theTimer = l.event_source
+
+        anims.append(l)
 
         curAxis.set_aspect("equal", 'datalim')
         curAxis.set_title(titles[index])

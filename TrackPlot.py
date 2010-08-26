@@ -61,7 +61,7 @@ def PlotSegments(truthTable, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, tLims, axis=None, figure=None, **kwargs) :
+def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=None, **kwargs) :
     if figure is None :
         figure = pyplot.gcf()
 
@@ -77,7 +77,7 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, **kwargs) :
         theLines += tableLines[keyname]
         theSegs += truthTable[keyname]
 
-    return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, **kwargs)
+    return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
 
 #############################################
 #           Corner Plotting                 #
@@ -95,7 +95,7 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
     return corners
 
 def Animate_Corners(volData, tLims, axis=None, figure=None,
-                    speed=1.0, loop_hold=2.0, **kwargs) :
+                    speed=1.0, loop_hold=2.0, event_source=None, **kwargs) :
     if figure is None :
         figure = pyplot.gcf()
 
@@ -114,7 +114,7 @@ def Animate_Corners(volData, tLims, axis=None, figure=None,
         return corners
 
     return FuncAnimation(figure, update_corners, endFrame - startFrame + 1,
-                         fargs=(corners,),
+                         fargs=(corners,), event_source=event_source,
                          interval=500, blit=True)
 
 #############################################
@@ -122,7 +122,7 @@ def Animate_Corners(volData, tLims, axis=None, figure=None,
 #############################################
 def AnimateLines(lines, lineData, startFrame, endFrame, 
                  figure=None, axis=None,
-                 speed=1.0, loop_hold=2.0, tail=None) :
+                 speed=1.0, loop_hold=2.0, tail=None, event_source=None) :
 
     if figure is None :
         figure = pyplot.gcf()
@@ -147,7 +147,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 
     return FuncAnimation(figure, update_lines, endFrame - startFrame + 1,
                          fargs=(lineData, lines, startFrame, endFrame, tail),
-                         interval=500, blit=True)
+                         interval=500, blit=True, event_source=event_source)
 
 
 ###################################################
@@ -206,7 +206,7 @@ def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis
 
 
 def Animate_Tracks(true_tracks, model_tracks, tLims, 
-                   axis=None, figure=None, **kwargs) :
+                   axis=None, figure=None, event_source=None, **kwargs) :
     if figure is None :
         figure = pyplot.gcf()
 
@@ -222,11 +222,11 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
 
     return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
                         true_tracks + model_tracks, startFrame, endFrame,
-                        axis=axis, figure=figure, **kwargs)
+                        axis=axis, figure=figure, event_source=event_source, **kwargs)
 
 
 def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
-                        axis=None, **kwargs) :
+                        axis=None, event_source=None, **kwargs) :
     if figure is None :
         figure = pyplot.gcf()
 
@@ -241,6 +241,6 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
                                startFrame, endFrame, axis=axis, animated=True)
 
     return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-                        tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, **kwargs)
+                        tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, event_source=event_source, **kwargs)
 
 
