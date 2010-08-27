@@ -70,9 +70,11 @@ for (index, volData) in enumerate(cornerVolumes) :
 
     corners = PlotCorners(volData, tLims, axis=curAxis)
 
+
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)
-    curAxis.set_aspect("equal", 'datalim')
+    #curAxis.set_aspect("equal", 'datalim')
+    curAxis.set_aspect("equal")
     curAxis.set_title(titles[index])
     curAxis.set_xlabel("X")
     curAxis.set_ylabel("Y")

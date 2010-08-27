@@ -90,7 +90,8 @@ for (index, aTracker) in enumerate(trackerData) :
 
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)
-    curAxis.set_aspect("equal", 'datalim')
+    #curAxis.set_aspect("equal", 'datalim')
+    curAxis.set_aspect("equal")
     curAxis.set_title(trackTitles[index])
     curAxis.set_xlabel("X")
     curAxis.set_ylabel("Y")
