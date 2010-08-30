@@ -102,6 +102,7 @@ class CornerAnimation(FuncAnimation) :
     def __init__(self, figure, frameCnt, **kwargs) :
         self._allcorners = []
         self._flatcorners = []
+        self._myframeCnt = frameCnt
 
         FuncAnimation.__init__(self, figure, self.update_corners,
                                      frameCnt, fargs=(self._allcorners,),
@@ -115,6 +116,8 @@ class CornerAnimation(FuncAnimation) :
         return self._flatcorners
 
     def AddCornerVolume(self, corners) :
+        if len(corners) > self._myframeCnt :
+            self._myframeCnt = len(corners)
         self._allcorners.append(corners)
         self._flatcorners.extend(corners)
 
@@ -243,7 +246,7 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
 
     # Create the initial lines
     theLines = PlotPlainTracks(tracks, falarms, tLims,
-                               startFrame, endFrame, axis=axis, animated=True)
+                               startFrame, endFrame, axis=axis, animated=False)
 
     return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
                         tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, event_source=event_source, **kwargs)
