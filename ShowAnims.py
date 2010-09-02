@@ -35,11 +35,12 @@ trackTitles = []
 
 if args.simName is not None :
     simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
-    trackFiles = [args.directory + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
+    dirName = args.directory + os.sep + os.path.dirname(args.simName + os.sep)
+    trackFiles = [dirName + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
     trackTitles = simParams['trackers']
 
     if args.truthTrackFile is None :
-        args.truthTrackFile = args.directory + os.sep + simParams['noisyTrackFile']
+        args.truthTrackFile = dirName + os.sep + simParams['noisyTrackFile']
 
 trackFiles += args.trackFiles
 trackTitles += args.trackFiles
@@ -99,4 +100,6 @@ for (index, aTracker) in enumerate(trackerData) :
     curAxis.set_xlabel("X")
     curAxis.set_ylabel("Y")
 
+
+#anims[0].save("test.mp4")
 pyplot.show()

@@ -34,7 +34,8 @@ titles = []
 
 if args.simName is not None :
     simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
-    inputDataFiles.append(args.directory + os.sep + simParams['inputDataFile'])
+    dirName = args.directory + os.sep + os.path.dirname(args.simName + os.sep)
+    inputDataFiles.append(dirName + os.sep + simParams['inputDataFile'])
     titles.append(args.simName)
 
 inputDataFiles += args.inputDataFiles
@@ -81,5 +82,6 @@ for (index, volData) in enumerate(cornerVolumes) :
 
     theAnim.AddCornerVolume(corners)
 
+theAnim.save("test.mp4")
 
 pyplot.show()

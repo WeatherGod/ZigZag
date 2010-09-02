@@ -23,38 +23,41 @@ trackMakers['MakeTrack'] = MakeTrack
 
 
 def MakeTracks(trackGens, noiseModels,
-               procParams,
-               currGen,
+               procParams, currGen,
                trackCnt, prob_track_ends, maxTrackLen,
                tLims, cornerID=0, simState=None) :
     theTracks = []
     theFAlarms = []
 
-    noisesToApply = procParams.pop('noises', [])
-    trackCnt = int(procParams.pop('cnt', trackCnt))
-    prob_track_ends = float(procParams.pop('prob_track_ends', prob_track_ends))
-    maxTrackLen = int(procParams.pop('maxTrackLen', maxTrackLen))
+    noisesToApply = procParams.get('noises', [])
+    trackCnt = int(procParams.get('cnt', trackCnt))
+    prob_track_ends = float(procParams.get('prob_track_ends', prob_track_ends))
+    maxTrackLen = int(procParams.get('maxTrackLen', maxTrackLen))
 
     if simState is None :
         simState = {'theTracks': [],
                     'theFAlarms': [],
                     'theTrackLens': []}
 
+    # Generate this model's set of tracks
     tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
     TrackUtils.CleanupTracks(tracks, falarms)
     trackLens = [len(aTrack) for aTrack in tracks]
 
-
-
+    # Add them to this node's set of tracks
     theTracks.extend(tracks)
     theFAlarms.extend(falarms)
 
+    # Add them to this branch's set tracks
+    # currState collects the tracks in a way that
+    # any subnodes are aware of those tracks.
+    # This "memory" does not carry across parallel branches.
     currState = {'theTracks': simState['theTracks'] + tracks,
                  'theFAlarms': simState['theFAlarms'] + falarms,
                  'theTrackLens': simState['theTrackLens'] + trackLens}
     
-    # Loop over various track generators
-    for aGen in procParams :
+    # Loop over the node's sub-branch generators
+    for aGen in procParams.sections :
         # Recursively perform track simulations using this loop's simulation
         #   This is typically done to restrict splits/merges on only the
         #   storm tracks and allow for clutter tracks to be made without
@@ -67,10 +70,12 @@ def MakeTracks(trackGens, noiseModels,
                                                      trackCnt, prob_track_ends, maxTrackLen,
                                                      tLims, cornerID, currState)
 
+        # Add this branch's tracks to this node's set of tracks
         theTracks.extend(subTracks)
         theFAlarms.extend(subFAlarms)
 
-    # Noisify the generated tracks.
+
+    # Noisify the all the tracks of this node
     for aNoise in noisesToApply :
         noiseModels[aNoise](theTracks, theFAlarms, tLims)
         TrackUtils.CleanupTracks(theTracks, theFAlarms)
@@ -82,39 +87,54 @@ def MakeTracks(trackGens, noiseModels,
 
 def MakeModels(modParams, modelList) :
     models = {}
-    defType = modParams.pop("type", None)
+    defType = modParams.get("type", None)
 
-    for modname in modParams :
+    for modname in modParams.sections :
+        # We need to pop off the 'type' so that it won't be
+        # sent to the constructor of the model.
         typename = modParams[modname].pop('type', defType)
         models[modname] = modelList[typename][0](**modParams[modname])
+        # Restore the value after creating the model
+        modParams[modname]['type'] = typename
 
     return models
 
 def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMakers) :
     models = {}
-    defMotion = modParams.pop("motion", None)
-    defInit = modParams.pop("init", None)
-    defType = modParams.pop("type", None)
-    defMaker = modParams.pop("trackmaker", None)
+    defMotion = modParams.get("motion", None)
+    defInit = modParams.get("init", None)
+    defType = modParams.get("type", None)
+    defMaker = modParams.get("trackmaker", None)
 
-    for modname in modParams :
+    for modname in modParams.sections :
         params = modParams[modname]
-        genType = gen_modelList[params.pop('type', defType)][0]
-        models[modname] = genType(initModels[params.pop('init', defInit)],
-                                  motionModels[params.pop('motion', defMotion)],
-                                  trackMakers[params.pop('trackmaker', defMaker)],
+        # We need to pop off these off so that it won't be
+        # sent to the constructor of the model.
+        typename = params.pop('type', defType)
+        initName = params.pop('init', defInit)
+        motName = params.pop('motion', defMotion)
+        makeName = params.pop('trackmaker', defMaker)
+
+        genType = gen_modelList[typename][0]
+
+        models[modname] = genType(initModels[initName],
+                                  motionModels[motName],
+                                  trackMakers[makeName],
                                   **params)
+
+        # Restore those values after creating the model
+        params['type'] = typename
+        params['init'] = initName
+        params['motion'] = motName
+        params['trackmaker'] = makeName
 
     return models
 
 #############################
 #   Track Simulator
 #############################
-def TrackSim(initParams, motionParams,
-             genParams, noiseParams, tracksimParams,
-             tLims, xLims, yLims,
-             totalTracks, endTrackProb,
-             simName,
+def TrackSim(simConfs,
+             tLims, totalTracks, endTrackProb,
              **simParams) :
     """
     totalTracks acts as the top-most default value to use for the sim generators.
@@ -122,24 +142,36 @@ def TrackSim(initParams, motionParams,
     The difference between the elements of tLims also acts as the top-most
         default value for the maxTrackLen parameter.
     """
-    initModels = MakeModels(initParams, Sim.init_modelList)
-    motionModels = MakeModels(motionParams, Sim.motion_modelList)
-    noiseModels = MakeModels(noiseParams, Sim.noise_modelList)
+    initModels = MakeModels(simConfs['InitModels'], Sim.init_modelList)
+    motionModels = MakeModels(simConfs['MotionModels'], Sim.motion_modelList)
+    noiseModels = MakeModels(simConfs['NoiseModels'], Sim.noise_modelList)
 
-    simGens = MakeGenModels(genParams, initModels, motionModels,
+    simGens = MakeGenModels(simConfs['TrackGens'], initModels, motionModels,
                             Sim.gen_modelList, trackMakers)
 
     rootGenerator = Sim.NullGenerator()
-    trackCnt = int(tracksimParams['Processing'].pop("cnt", totalTracks))
-    endTrackProb = float(tracksimParams['Processing'].pop("prob_track_ends", endTrackProb))
-    maxTrackLen = int(tracksimParams['Processing'].pop("maxTrackLen", max(tLims) - min(tLims)))
+    rootNode = simConfs['SimModels']['Processing']
+
+    # These are global defaults
+    trackCnt = int(rootNode.get("cnt", totalTracks))
+    endTrackProb = float(rootNode.get("prob_track_ends", endTrackProb))
+    maxTrackLen = int(rootNode.get("maxTrackLen", max(tLims) - min(tLims)))
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
-                                                     tracksimParams['Processing'],
-                                                     rootGenerator,
+                                                     rootNode, rootGenerator,
 					                                 trackCnt, endTrackProb, maxTrackLen,
                                                      tLims)
+
+    return true_tracks, true_falarms
+
+def SingleSimulation(simConfs,
+                     xLims, yLims, tLims,
+                     seed, **simParams) :
+    # Seed the PRNG
+    numpy.random.seed(seed)
+
+    true_tracks, true_falarms = TrackSim(simConfs, tLims=tLims, **simParams)
 
     # Clip tracks to the domain
     clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
@@ -158,23 +190,27 @@ def TrackSim(initParams, motionParams,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
             'true_volumes': volume_data, 'noisy_volumes': noise_volData}
 
-def SingleSimulation(simParams, initParams, motionParams,
-                              genParams, noiseParams, tracksimParams) :
-    # Seed the PRNG
-    numpy.random.seed(simParams['seed'])
 
+
+def SaveSimulation(theSimulation, simParams, simConfs,
+                   automake=True, autoreplace=True, path='.') :
+
+    simDir = path + os.sep + simParams['simName'] + os.sep
     # Create the simulation directory.
-    if (not os.path.exists(simParams['simName'])) :
-        os.makedirs(simParams['simName'])
-
-    theSimulation = TrackSim(initParams, motionParams,
-                             genParams, noiseParams, tracksimParams, **simParams)
-
-
-    ParamUtils.SaveSimulationParams(simParams['simName'] + os.sep + "simParams.conf", simParams)
-    SaveTracks(simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
-    SaveTracks(simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'])
+    if (not os.path.exists(simDir)) :
+        if automake :
+            os.makedirs(simDir)
+        else :
+            raise ValueError("%s does not exist and automake==False in SaveSimulation()" % simDir)
+    else :
+        if not autoreplace :
+            raise ValueError("%s already exists and autoreplace==False in SaveSimulation()" % simDir)
+    
+    ParamUtils.SaveSimulationParams(simDir + "simParams.conf", simParams)
+    SaveTracks(simDir + simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
+    SaveTracks(simDir + simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+    SaveCorners(simDir + simParams['inputDataFile'], simDir + simParams['corner_file'], theSimulation['noisy_volumes'])
+    ParamUtils.SaveConfigFile(simDir + simParams['simConfFile'], simConfs)
 
 
 
@@ -182,8 +218,6 @@ def SingleSimulation(simParams, initParams, motionParams,
 if __name__ == '__main__' :
 
     import argparse	                    # Command-line parsing
-
-
 
     parser = argparse.ArgumentParser(description="Produce a track simulation")
     parser.add_argument("simName",
@@ -202,13 +236,10 @@ if __name__ == '__main__' :
 
     simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
 
-
-
     print "Sim Name:", args.simName
     print "The Seed:", simParams['seed']
 
-    SingleSimulation(simParams, simConfs['InitModels'], simConfs['MotionModels'],
-                                simConfs['TrackGens'], simConfs['NoiseModels'],
-                                simConfs['SimModels'])
+    theSimulation = SingleSimulation(simConfs, **simParams)
 
+    SaveSimulation(theSimulation, simParams, simConfs)
 

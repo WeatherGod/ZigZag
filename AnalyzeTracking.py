@@ -23,8 +23,9 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     #                            for scores in skillScores.x])
     print skillScores.mean(axis=0).x
 
-def AnalyzeTrackings(simName, simParams, skillNames) :
-    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
+def AnalyzeTrackings(simName, simParams, skillNames, path='.') :
+    dirName = path + os.sep + os.path.dirname(simName + os.sep)
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
@@ -36,7 +37,7 @@ def AnalyzeTrackings(simName, simParams, skillNames) :
     
 
     for trackerIndex, tracker in enumerate(simParams['trackers']) :
-        (finalTracks, finalFAlarms) = FilterMHTTracks(*ReadTracks(simParams['result_file'] + '_' + tracker))
+        (finalTracks, finalFAlarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['result_file'] + '_' + tracker))
         trackerAssocSegs = CreateSegments(finalTracks)
         trackerFAlarmSegs = CreateSegments(finalFAlarms)
 

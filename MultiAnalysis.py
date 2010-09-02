@@ -4,14 +4,14 @@ from AnalyzeTracking import *
 import ParamUtils
 import la
 
-def MultiAnalyze(multiSimParams, skillNames) :
+def MultiAnalyze(multiSimParams, skillNames, path='.') :
     completeAnalysis = None
 
     for index in range(int(multiSimParams['simCnt'])) :
-        simName = "%s%s%.3d" % (multiSimParams['simName'],
-                                os.sep, index)
+        simName = "%.3d" % index
+        dirName = path + os.sep + multiSimParams['simName'] + os.sep + simName
         print "Sim:", simName
-        simParams = ParamUtils.ReadSimulationParams(simName + os.sep + "simParams.conf")
+        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
 
 

@@ -7,19 +7,22 @@ from validate import Validator
 simDefaults = dict( frameCnt = 12,
 	            totalTracks = 30,
 		    seed = 42,
-		    simTrackFile = "%(simName)s" + os.sep + "true_tracks",
-		    noisyTrackFile = "%(simName)s" + os.sep + "noise_tracks",
+		    simTrackFile = "true_tracks",
+		    noisyTrackFile = "noise_tracks",
+            simConfFile = "simulation.ini",
 		    endTrackProb = 0.1,
 		    xLims = [0.0, 255.0],
-		    yLims = [0.0, 255.0],
-            simName = 'NewSim')
+		    yLims = [0.0, 255.0])
 
 trackerDefaults = dict(trackers = ['SCIT'],
-		       corner_file = "%(simName)s" + os.sep + "corners",
-		       inputDataFile = "%(simName)s" + os.sep + "InputDataFile",
-		       result_file = "%(simName)s" + os.sep + "testResults")
+		       corner_file = "corners",
+		       inputDataFile = "InputDataFile",
+		       result_file = "testResults")
 
 def Save_MultiSim_Params(filename, params) :
+    SaveConfigFile(filename, params)
+
+def SaveConfigFile(filename, params) :
     config = ConfigObj(params, interpolation=False)
     config.filename = filename
     config.write()
@@ -75,12 +78,12 @@ def LoadTrackerParams(filenames, simParams, trackers=None) :
         partConf = ConfigObj(name, interpolation=False)
         trackConfs.merge(partConf)
 
-    def fakeinterp(section, key, **simParams) :
-        val = section[key]
-        if isinstance(val, str) :
-            section[key] = val % simParams
-
-    trackConfs.walk(fakeinterp,  call_on_sections=False, **simParams)
+    #def fakeinterp(section, key, **simParams) :
+    #    val = section[key]
+    #    if isinstance(val, str) :
+    #        section[key] = val % simParams
+    #
+    #trackConfs.walk(fakeinterp,  call_on_sections=False, **simParams)
 
     if trackers is not None :
         raise NotImplementedError("Selecting trackers have not been implemented yet...")
@@ -118,7 +121,6 @@ def LoadSimulatorConf(filenames) :
 
     return simConfs
 
-
 def SetupParser(parser) :
     SimGroup(parser)
     TrackerGroup(parser)
@@ -140,6 +142,13 @@ def SimGroup(parser) :
     group.add_argument("--seed", dest="seed", type=int,
 		     help="Initialize RNG with SEED. (default: %(default)s)",
 		     metavar="SEED", default = simDefaults['seed'])
+
+    
+    group.add_argument("--simconffile", dest="simConfFile", type=str,
+		     help="Save simulation conf to FILE. (default: %(default)s)", 
+		     metavar="FILE",
+		     default=simDefaults['simConfFile'])
+
 
     group.add_argument("--cleanfile", dest="simTrackFile", type=str,
 		     help="Output clean set of tracks to FILE. (default: %(default)s)", 
@@ -212,16 +221,12 @@ def ParamsFromOptions(options, simName = None) :
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
-    # NOTE: The filename strings can have '%(simName)s' in them to
-    #       dynamically indicate the filename/path that uses
-    #       the simulations' name.
-    #       The user, of course, can choose not to use it.
-    simNameDict = {'simName': simName}
-    return dict(corner_file = options.corner_file % simNameDict,
-		inputDataFile = options.inputDataFile % simNameDict,
-		result_file = options.result_file % simNameDict,
-        simTrackFile = options.simTrackFile % simNameDict,
-		noisyTrackFile = options.noisyTrackFile % simNameDict,
+    return dict(corner_file = options.corner_file,
+		inputDataFile = options.inputDataFile,
+		result_file = options.result_file,
+        simTrackFile = options.simTrackFile,
+		noisyTrackFile = options.noisyTrackFile,
+        simConfFile = options.simConfFile,
         simName = simName,
 		trackers = options.trackers,
         totalTracks = options.totalTracks,

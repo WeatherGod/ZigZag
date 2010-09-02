@@ -78,7 +78,7 @@ def ReadTracks(fileName) :
     return tracks, falseAlarms
 
 
-def SaveCorners(inputDataFile, corner_filestem, volume_data) :
+def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     """
     Save to corner files.
     Corner files comprise of a set of data files, and one control file.
@@ -90,7 +90,7 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data) :
     dataFile.write("%s %d %d\n" % (corner_filestem, len(volume_data), startFrame))
 
     for (frameNo, aVol) in enumerate(volume_data) :
-        outFile = open("%s.%d" % (corner_filestem, frameNo + startFrame), 'w')
+        outFile = open("%s.%d" % (path+os.sep+corner_filestem, frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
             outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
                           + ' '.join(['0'] * 25) + ' '
@@ -100,7 +100,7 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data) :
 
     dataFile.close()
 
-def ReadCorners(inputDataFile, dir='.') :
+def ReadCorners(inputDataFile, path='.') :
     """
     Read corner files.
 
@@ -123,7 +123,7 @@ def ReadCorners(inputDataFile, dir='.') :
                     # HOWEVER!  This still does not address the issue with empty files!
                     # That situation will cause loadtxt() (and just about all other readers)
                     # to raise an exception.
-                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s%s%s.%d" % (dir, os.sep, corner_filestem, frameNum),
+                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s.%d" % (path+os.sep+corner_filestem, frameNum),
 					           dtype=TrackUtils.corner_dtype,
                                                    usecols=(0, 1, 27)))}
                     for frameNum in range(startFrame, frameCnt + startFrame)]

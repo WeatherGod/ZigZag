@@ -1,43 +1,43 @@
 #!/usr/bin/env python
 
 import os				    # for os.sep
-from TrackSim import SingleSimulation
+from TrackSim import SingleSimulation, SaveSimulation
 import numpy
 import ParamUtils
 
-def MultiSimulation(multiParams, globalSimParams, initParams, motionParams,
-                                 genParams, noiseParams, tracksimParams) :
+def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
     # Seed the PRNG
     numpy.random.seed(multiParams['globalSeed'])
 
-    # Create the multi-sim directory
-    if (not os.path.exists(multiParams['simName'])) :
-        os.makedirs(multiParams['simName'])
+    dirName = path + os.sep + multiParams['simName']
 
-    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (multiParams['simName'], os.sep),
+    # Create the multi-sim directory
+    if (not os.path.exists(dirName)) :
+        os.makedirs(dirName)
+
+    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (dirName, os.sep),
                                     multiParams)
 
     # Get the seeds that will be used for each sub-simulation
     theSimSeeds = numpy.random.random_integers(9999999, size=multiParams['simCnt'])
 
     for index, seed in enumerate(theSimSeeds) :
-        simName = multiParams['simName'] + ("%s%.3d" % (os.sep, index))
+        subSim = "%.3d" % index
 
         simParams = globalSimParams.copy()
-        simParams['simName'] = simName
-        for keyname in ('simTrackFile', 'noisyTrackFile', 'inputDataFile',
-                        'corner_file', 'result_file') :
-            simParams[keyname] = simParams[keyname].replace(multiParams['simName'], simName, 1)
+        simParams['simName'] = subSim
+        #for keyname in ('simTrackFile', 'noisyTrackFile', 'inputDataFile',
+        #                'corner_file', 'result_file', 'simConfFile') :
+            #simParams[keyname] = subSim + os.sep + simParams[keyname]
+            #simParams[keyname] = simParams[keyname].replace(multiParams['simName'], simName, 1)
             
         simParams['seed'] = seed
 
-        # The dict() calls are to force a deep copy of the information
-        # as a dictionary.  Therefore, the funcs inside SingleSimulation
-        # can do whatever they please to the information without
-        # impacting the next iteration of the loop.
-        SingleSimulation(simParams, initParams.dict(), motionParams.dict(),
-                                  genParams.dict(), noiseParams.dict(), tracksimParams.dict())
+        theSim = SingleSimulation(simConfs, **simParams)
+        SaveSimulation(theSim, simParams, simConfs,
+                       path=dirName)
+
 
 if __name__ == '__main__' :
     import argparse
@@ -73,7 +73,5 @@ if __name__ == '__main__' :
                        globalSeed=simParams['seed'],
                        simName=args.simName)
 
-    MultiSimulation(multiParams, simParams, simConfs['InitModels'], 
-                                 simConfs['MotionModels'], simConfs['TrackGens'],
-                                 simConfs['NoiseModels'], simConfs['SimModels'])
+    MultiSimulation(multiParams, simConfs, simParams)
 
