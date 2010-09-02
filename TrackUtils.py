@@ -75,6 +75,9 @@ def ClipTrack(track, xLims, yLims, tLims) :
 
     return track[domainMask]
 
+def FilterTrack(track, frames) :
+    mask = numpy.array([(aFrame['frameNums'] in frames) for aFrame in track], dtype=bool)
+    return track[mask]
 
 def CleanupTracks(tracks, falarms) :
     """
