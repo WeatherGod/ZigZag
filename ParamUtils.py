@@ -30,7 +30,7 @@ def SaveConfigFile(filename, params) :
 def SaveSimulationParams(simParamName, simParams) :
     config = ConfigObj(simParams, interpolation=False)
     tLims = config.pop('tLims')
-    config['frameCnt'] = max(tLims) - min(tLims)
+    config['frameCnt'] = max(tLims) - min(tLims) + 1
     config.filename = simParamName
     config.write()
 
