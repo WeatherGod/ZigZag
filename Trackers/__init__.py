@@ -14,7 +14,7 @@ def _register_tracker(tracker, name) :
 
 
 def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
-    dirName = path + os.sep + os.path.dirname(simParams['simName'] + os.sep)
+    dirName = path + os.sep + simParams['simName']
     cornerInfo = TrackFileUtils.ReadCorners(dirName + os.sep + simParams['inputDataFile'], path=path)
     strmAdap = {'distThresh': float(trackParams['distThresh'])}
     stateHist = []
@@ -38,18 +38,20 @@ _register_tracker(SCIT_Track, "SCIT")
 def MHT_Track(simParams, trackParams, returnResults=True, path='.') :
     progDir = "~/Programs/mht_tracking/tracking/"
     paramFile = trackParams.pop("ParamFile")
-    dirName = path + os.sep + os.path.dirname(simParams['simName'] + os.sep)
+    dirName = path + os.sep + simParams['simName']
 
-    paramArgs = "python %smakeparams.py %s" % (progDir, paramFile)
+    paramArgs = "python %smakeparams.py %s" % (progDir, path + os.sep + paramFile)
     for key, val in trackParams.items() :
         paramArgs += " --%s %s" % (key, val)
 
+    print paramArgs
     os.system(paramArgs)
 
-    theCommand = "%strackCorners -o %s -p %s -i %s > /dev/null" % (progDir,
+    theCommand = "%strackCorners -o %s -p %s -i %s -d %s > /dev/null" % (progDir,
                                             dirName + os.sep + simParams['result_file'] + "_MHT",
-                                            paramFile,
-                                            dirName + os.sep + simParams['inputDataFile'])
+                                            path + os.sep + paramFile,
+                                            dirName + os.sep + simParams['inputDataFile'],
+                                            path)
     
     print theCommand
     os.system(theCommand)

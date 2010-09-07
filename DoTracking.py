@@ -4,7 +4,7 @@ import Trackers
 import ParamUtils	  # for reading simParams files
 
 
-def SingleTracking(simFile, simParams, trackConfs) :
+def SingleTracking(simFile, simParams, trackConfs, path='.') :
 
     simParams['trackers'] = trackConfs.keys()
     # We want this simulation to know which trackers they used.
@@ -12,7 +12,7 @@ def SingleTracking(simFile, simParams, trackConfs) :
 
     for tracker in trackConfs :
         Trackers.trackerList[tracker](simParams.copy(), trackConfs[tracker].copy(),
-                                      returnResults=False)
+                                      returnResults=False, path=path)
 
 
 if __name__ == "__main__" :
@@ -26,12 +26,18 @@ if __name__ == "__main__" :
     parser.add_argument("trackconfs", nargs='+',
                       help="Config files for the parameters for the trackers",
                       metavar="CONF")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find SIMNAME",
+                        metavar="DIRNAME", default='.')
 
     args = parser.parse_args()
 
-    simFile = args.simName + os.sep + "simParams.conf"
+
+    simFile = args.directory + os.sep + args.simName + os.sep + "simParams.conf"
     simParams = ParamUtils.ReadSimulationParams(simFile)
+    
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, simParams)
 
-    SingleTracking(simFile, simParams, trackConfs.dict())
+    SingleTracking(simFile, simParams, trackConfs.dict(), path=args.directory)
+
 
