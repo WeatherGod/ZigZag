@@ -33,19 +33,21 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
     simParams['tLims'] = tLims
     simParams['simName'] = newName
 
-    simParams['corner_file'] = simParams['corner_file'].replace(simName, newName, 1)
-    simParams['inputDataFile'] = simParams['inputDataFile'].replace(simName, newName, 1)
-    simParams['result_file'] = simParams['result_file'].replace(simName, newName, 1)
     
-    simParams['simTrackFile'] = simParams['simTrackFile'].replace(simName, newName, 1)
-    simParams['noisyTrackFile'] = simParams['noisyTrackFile'].replace(simName, newName, 1)
+    #simParams['corner_file'] = simParams['corner_file'].replace(simName, newName, 1)
+    #simParams['inputDataFile'] = simParams['inputDataFile'].replace(simName, newName, 1)
+    #simParams['result_file'] = simParams['result_file'].replace(simName, newName, 1)
+    
+    #simParams['simTrackFile'] = simParams['simTrackFile'].replace(simName, newName, 1)
+    #simParams['noisyTrackFile'] = simParams['noisyTrackFile'].replace(simName, newName, 1)
     
 
 
     ParamUtils.SaveSimulationParams(simParams['simName'] + os.sep + "simParams.conf", simParams)
-    SaveTracks(simParams['simTrackFile'], *origTracks)
-    SaveTracks(simParams['noisyTrackFile'], newTracks, newFAlarms)
-    SaveCorners(simParams['inputDataFile'], simParams['corner_file'], volData)    
+    SaveTracks(simParams['simName'] + os.sep + simParams['simTrackFile'], *origTracks)
+    SaveTracks(simParams['simName'] + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)
+    SaveCorners(simParams['simName'] + os.sep + simParams['inputDataFile'],
+                simParams['simName'] + os.sep + simParams['corner_file'], volData)    
 
 
 
@@ -66,9 +68,13 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    simParams = ParamUtils.ReadSimulationParams(args.simName + os.sep + 'simParams.conf')
-    origTrackData = FilterMHTTracks(*ReadTracks(simParams['simTrackFile']))
-    noisyTrackData = FilterMHTTracks(*ReadTracks(simParams['noisyTrackFile']))
+    # Probably will have this be settable at the command-line
+    path = '.'
+
+    simParams = ParamUtils.ReadSimulationParams(path + os.sep + args.simName + os.sep + 'simParams.conf')
+    dirName = path + os.sep + args.simName
+    origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
+    noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
 
     DownsampleTracks(args.skipCnt, args.simName, args.newName, simParams,
                      origTrackData, noisyTrackData)
