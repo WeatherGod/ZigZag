@@ -1,23 +1,24 @@
 import os
 import argparse
-from configobj import ConfigObj
+from configobj import ConfigObj, flatten_errors
 from Sim import gen_modelList, noise_modelList, motion_modelList, init_modelList
 from validate import Validator
 
 simDefaults = dict( frameCnt = 12,
-	            totalTracks = 30,
-		    seed = 42,
-		    simTrackFile = "true_tracks",
-		    noisyTrackFile = "noise_tracks",
-            simConfFile = "simulation.ini",
-		    endTrackProb = 0.1,
-		    xLims = [0.0, 255.0],
-		    yLims = [0.0, 255.0])
+	                totalTracks = 30,
+		            seed = 42,
+        		    simTrackFile = "true_tracks",
+		            noisyTrackFile = "noise_tracks",
+                    simConfFile = "simulation.ini",
+		            endTrackProb = 0.1,
+                    tLims = [1, 12],
+        		    xLims = [0.0, 255.0],
+		            yLims = [0.0, 255.0])
 
-trackerDefaults = dict(trackers = ['SCIT'],
-		       corner_file = "corners",
-		       inputDataFile = "InputDataFile",
-		       result_file = "testResults")
+trackerDefaults = dict( trackers = ['SCIT'],
+                        corner_file = "corners",
+		                inputDataFile = "InputDataFile",
+		                result_file = "testResults")
 
 def Save_MultiSim_Params(filename, params) :
     SaveConfigFile(filename, params)
@@ -29,8 +30,8 @@ def SaveConfigFile(filename, params) :
 
 def SaveSimulationParams(simParamName, simParams) :
     config = ConfigObj(simParams, interpolation=False)
-    tLims = config.pop('tLims')
-    config['frameCnt'] = max(tLims) - min(tLims) + 1
+    #tLims = config.pop('tLims')
+    #config['frameCnt'] = max(tLims) - min(tLims) + 1
     config.filename = simParamName
     config.write()
 
@@ -42,7 +43,7 @@ def ArgValidator(config) :
         elif keyName in ['endTrackProb'] :
             # Grab single float
 	        config[keyName] = float(config[keyName])
-        elif keyName in ['xLims', 'yLims'] :
+        elif keyName in ['xLims', 'yLims', 'tLims'] :
             # Grab array of floats, from a spliting by whitespace
             config[keyName] = map(float, config[keyName])
 
@@ -55,22 +56,64 @@ def Read_MultiSim_Params(filename) :
                                        simName="str"),
                                   list_values=False,
                                   _inspec=True)
-    config.validate(vdtor)
+    res = config.validate(vdtor)
+    flatErrs = flatten_errors(config, res)
+    _ShowErrors(flatErrs)
 
     return config
 
 def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName, interpolation=False)
+
+    vdtor = Validator()
+    config.configspec = ConfigObj(dict(frameCnt="int(min=1, default=%d)" % simDefaults['frameCnt'],
+                                       totalTracks="int(min=0, default=%d)" % simDefaults['totalTracks'],
+                                       seed="integer(default=%d)" % simDefaults['seed'],
+                                       simTrackFile="string(default=%s)" % simDefaults['simTrackFile'],
+                                       noisyTrackFile="string(default=%s)" % simDefaults['noisyTrackFile'],
+                                       simConfFile="string(default=%s)" % simDefaults['simConfFile'],
+                                       endTrackProb="float(min=0.0, max=1.0, default=%f)" % simDefaults['endTrackProb'],
+                                       tLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['tLims'],
+                                       xLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['xLims'],
+                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['yLims']),
+                                 list_values=False,
+                                 _inspec=True)
     
-    ArgValidator(config)
+    #ArgValidator(config)
 
-    simParams = simDefaults.copy()
-    simParams.update(trackerDefaults)
-    simParams.update(config)
+    #simParams = simDefaults.copy()
+    #simParams.update(trackerDefaults)
+    #simParams.update(config)
 
-    frameCnt = simParams.pop('frameCnt')
-    simParams['tLims'] = (1, frameCnt)
-    return simParams
+    #frameCnt = simParams.pop('frameCnt')
+    #simParams['tLims'] = (1, frameCnt)
+    res = config.validate(vdtor, preserve_errors=True)
+    flatErrs = flatten_errors(config, res)
+    _ShowErrors(flatErrs)
+
+    return config
+
+def _ShowErrors(flatErrs, skipMissing=False) :
+    hasErrs = False
+    for (section_list, key, error) in flatErrs :
+        isErr = False
+        if key is not None :
+            isErr = True
+            section_list.append(key)
+        elif skipMissing is False :
+            isErr = True
+            section_list.append('[missing key/section]')
+        section_string = ', '.join(section_list)
+        if error == False :
+            error = 'Missing value or section.'
+
+        if isErr :
+            hasErrs = True
+            print section_string, ' = ', error
+        
+    if hasErrs :
+        # TODO: Make an exception class for errors in reading param files
+        raise Exception("Invalid data in configuration")
 
 def LoadTrackerParams(filenames, simParams, trackers=None) :
     trackConfs = ConfigObj(interpolation=False)
@@ -103,21 +146,27 @@ def LoadSimulatorConf(filenames) :
                   ('NoiseModels', noise_modelList)]
 
     configSpec = {}
+    # Building the config spec for the InitModels, MotionModels, TrackGens
+    # and NoiseModels sections.  This data comes from the registration info
+    # that each class provides.
     for name, modelList in headerList :
         configSpec[name] = {}
+        # TODO: turn this into a dict comprehension
         for key in simConfs[name] :
             theType = simConfs[name][key].get('type')
             configSpec[name][key] = modelList[theType][1]
 
-    configSpec['SimModels'] = {'__many__' : dict(prob_track_ends="float(0, 1)",
+    # Lastly, adding the config spec for the SimModels section.
+    configSpec['SimModels'] = {'__many__' : dict(prob_track_ends="float(min=0, max=1)",
                                                  maxTrackLen="integer(min=0)",
                                                  cnt="integer(min=0)",
-                                                 noises="force_list")}
+                                                 noises="force_list()")}
     vdtor = Validator()
     simConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
 
-    # TODO: Error routines...
-    simConfs.validate(vdtor)
+    res = simConfs.validate(vdtor)
+    flatErrs = flatten_errors(simConfs, res)
+    _ShowErrors(flatErrs, skipMissing=True)
 
     return simConfs
 
@@ -174,6 +223,11 @@ def SimGroup(parser) :
 		     help="Domain limits in y-axis. (default: %(default)s)", 
 		     metavar="Y", default=simDefaults['yLims'])
 
+    group.add_argument("--tlims", dest="tLims", type=float,
+             nargs = 2,
+             help="Domain limits in t-axis. (default: %(default)s)",
+             metavar="T", default=simDefaults['tLims'])
+
     return group
 
 
@@ -205,6 +259,7 @@ def TrackerGroup(parser) :
 
 
 def ParamsFromOptions(options, simName = None) :
+    # NOTE: Couldn't I now use the ConfigObj loader to do this validation?
     # NOTE: I do NOT modify the contents of the
     #       options object! This is important for
     #       reusability within a multi-simulation program.
@@ -215,7 +270,7 @@ def ParamsFromOptions(options, simName = None) :
     if options.frameCnt <= 0 :
         parser.error("ERROR: Invalid FrameCnt value: %d" % (options.frameCnt))
 
-    if options.totalTracks <= 0 :
+    if options.totalTracks < 0 :
         parser.error("ERROR: Invalid TrackCnt value: %d" % (options.totalTracks))
 
     if options.endTrackProb < 0. :
@@ -233,7 +288,7 @@ def ParamsFromOptions(options, simName = None) :
         endTrackProb = options.endTrackProb,
         xLims = options.xLims,
         yLims = options.yLims,
-		tLims = (1, options.frameCnt),
+		tLims = options.tLims,
         seed = options.seed
         ) 
 
