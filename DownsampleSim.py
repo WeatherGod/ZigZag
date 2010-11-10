@@ -4,6 +4,7 @@ import os
 from TrackUtils import *
 from TrackFileUtils import *
 import ParamUtils
+import numpy as np
 
 
 def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
@@ -16,7 +17,8 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
 
     xLims, yLims, tLims = DomainFromTracks(*tracks)
 
-    newTimes = range(tLims[0], tLims[1] + 1, skipCnt + 1)
+    oldTimes = np.linspace(*simParams['tLims'], num=simParams['frameCnt'], endpoint=True)
+    newTimes = oldTimes[::skipCnt+1]
 
     newTracks = [FilterTrack(aTrack, newTimes) for aTrack in tracks[0]]
     newFAlarms = [FilterTrack(aTrack, newTimes) for aTrack in tracks[1]]
@@ -34,15 +36,6 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
     simParams['simName'] = newName
 
     
-    #simParams['corner_file'] = simParams['corner_file'].replace(simName, newName, 1)
-    #simParams['inputDataFile'] = simParams['inputDataFile'].replace(simName, newName, 1)
-    #simParams['result_file'] = simParams['result_file'].replace(simName, newName, 1)
-    
-    #simParams['simTrackFile'] = simParams['simTrackFile'].replace(simName, newName, 1)
-    #simParams['noisyTrackFile'] = simParams['noisyTrackFile'].replace(simName, newName, 1)
-    
-
-
     ParamUtils.SaveSimulationParams(simParams['simName'] + os.sep + "simParams.conf", simParams)
     SaveTracks(simParams['simName'] + os.sep + simParams['simTrackFile'], *origTracks)
     SaveTracks(simParams['simName'] + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)

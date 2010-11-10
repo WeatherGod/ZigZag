@@ -73,7 +73,7 @@ def Skill_TrackLen(tracks, **kwargs) :
     """
     Using one of Lak's measures for goodness of tracking  -- median length/duration of tracks
     """
-    return numpy.median([aTrack['frameNums'].ptp() for aTrack in tracks])
+    return numpy.median([aTrack['t'].ptp() for aTrack in tracks])
 
 _register_trackskill(Skill_TrackLen, "Dur")
 

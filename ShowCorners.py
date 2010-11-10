@@ -33,8 +33,8 @@ inputDataFiles = []
 titles = []
 
 if args.simName is not None :
-    simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
     dirName = args.directory + os.sep + os.path.dirname(args.simName + os.sep)
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
     inputDataFiles.append(dirName + os.sep + simParams['inputDataFile'])
     titles.append(args.simName)
 
@@ -50,8 +50,7 @@ cornerVolumes = [ReadCorners(inFileName, args.directory)['volume_data'] for inFi
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pyplot.figure(figsize = (11, 5))
 
-# A list to hold the CircleCollection arrays, it will have length 
-# of max(tLims) - min(tLims) + 1
+# A list to hold the CircleCollection arrays
 allCorners = None
 
 if args.trackFile is not None :
@@ -63,14 +62,16 @@ else :
         volumes.extend(aVol)
     (xLims, yLims, tLims) = DomainFromVolumes(volumes)
 
-theAnim = CornerAnimation(theFig, tLims[1] - tLims[0] + 1,
+# TODO: Do a proper determination of the frame count... using tLims is bad
+frameCnt = tLims[1] - tLims[0] + 1
+
+theAnim = CornerAnimation(theFig, frameCnt,
                           interval=250, blit=True)
 
 for (index, volData) in enumerate(cornerVolumes) :
     curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
     corners = PlotCorners(volData, tLims, axis=curAxis)
-
 
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)

@@ -289,6 +289,7 @@ def ParamsFromOptions(options, simName = None) :
         xLims = options.xLims,
         yLims = options.yLims,
 		tLims = options.tLims,
-        seed = options.seed
+        seed = options.seed,
+        frameCnt = options.frameCnt
         ) 
 

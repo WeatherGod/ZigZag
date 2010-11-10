@@ -4,11 +4,12 @@ import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 from scipy.spatial import KDTree
 
 corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4'), ('cornerIDs', 'i4')]
-track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
+track_dtype = corner_dtype + [('t', 'f4'), ('types', 'a1')]
 volume_dtype = track_dtype + [('trackID', 'i4')]
-#storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
+#storm_dtype = track_dtype + [('types', 'a1'), ('t', 'f4'), ('trackID', 'i4')]
 
-def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
+# TODO: Maybe use a combination of frameCnt and tLims?
+def CreateVolData(tracks, falarms, frameCnt, times, xLims, yLims) :
     """
     Essentially, go from lagrangian (following a particle)
     to eulerian (at fixed points on a grid).
@@ -23,6 +24,7 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
                                     usemask=False)
                       for trackIndex, aTrack in enumerate(tracks)]
 
+    # Mark these track indexes as negative (minus one)
     tmpFalarms = [nprf.append_fields(aTrack, 'trackID',
                                      [-trackIndex - 1] * len(aTrack),
                                      usemask=False)
@@ -40,9 +42,13 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
                  numpy.logical_and(allCells['yLocs'] >= min(yLims),
                                    allCells['yLocs'] <= max(yLims))))
 
-    for volTime in xrange(min(tLims), max(tLims) + 1) :
+    # Find out which frame each storm cell belongs to.
+    # Doing a minus one here because of how digitize works
+    tIndicies = numpy.digitize(allCells['t'], times) - 1
+
+    for index, volTime in enumerate(times) :
         # Again, this mask is opposite from numpy masked array.
-        tMask = (allCells['frameNums'] == volTime)
+        tMask = (tIndicies == index)
         volData.append({'volTime': volTime,
                         'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
 
@@ -70,13 +76,13 @@ def ClipTrack(track, xLims, yLims, tLims) :
                  numpy.logical_and(track['xLocs'] <= max(xLims),
                  numpy.logical_and(track['yLocs'] >= min(yLims),
                  numpy.logical_and(track['yLocs'] <= max(yLims),
-                 numpy.logical_and(track['frameNums'] >= min(tLims),
-                                   track['frameNums'] <= max(tLims))))))
+                 numpy.logical_and(track['t'] >= min(tLims),
+                                   track['t'] <= max(tLims))))))
 
     return track[domainMask]
 
 def FilterTrack(track, frames) :
-    mask = numpy.array([(aFrame['frameNums'] in frames) for aFrame in track], dtype=bool)
+    mask = numpy.array([(aFrame['t'] in frames) for aFrame in track], dtype=bool)
     return track[mask]
 
 def CleanupTracks(tracks, falarms) :
@@ -241,12 +247,15 @@ def DomainFromTracks(tracks, falarms = []) :
     
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
-            (allPoints['frameNums'].min(), allPoints['frameNums'].max()))
+            (allPoints['t'].min(), allPoints['t'].max()))
 
 def DomainFromVolumes(volumes) :
     """
     Calculate the spatial and temporal domain of the volume data.
     Assumes that bad points are non-existant or has been masked out.
+
+    Note that this is slightly different from DomainFromTracks because
+    stormcells in a volume array do not have time info.
     """
     allPoints = numpy.hstack([volData['stormCells'] for volData in volumes])
     allTimes = [volData['volTime'] for volData in volumes]
@@ -258,19 +267,6 @@ def DomainFromVolumes(volumes) :
 
 def is_eq(seg1, seg2) :
     """
-    Yeah, I know this isn't the smartest thing I have done, but
-    most of my code only needs float type math, and it would be
-    far to difficult to convert all of the models and such over
-    to the "new" decimal type.
-    Instead, I just worry about equality with respect to about
-    6 decimal places, which is how I am dealing with it for now.
-
-    TODO: Come up with a better way!
-
-    Maybe tag storm cells with id numbers and get the trackers to carry those tags through?
+    Use the cornerIDs of the segments to evaluate equality.
     """
-#    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
-#    return numpy.all(numpy.hstack((numpy.abs(seg1['xLocs'] - seg2['xLocs']) < 0.00000001,
-#                                   numpy.abs(seg1['yLocs'] - seg2['yLocs']) < 0.00000001,
-#                                   seg1['frameNums'] == seg2['frameNums'])))
     return numpy.all(seg1['cornerIDs'] == seg2['cornerIDs'])
