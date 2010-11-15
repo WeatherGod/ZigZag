@@ -97,6 +97,7 @@ def ClipTrack(track, xLims, yLims, tLims) :
     return track[domainMask]
 
 def FilterTrack(track, frames) :
+    # TODO: Test this function now that this is floating-point comparison
     mask = numpy.array([(aFrame['t'] in frames) for aFrame in track], dtype=bool)
     return track[mask]
 
@@ -258,18 +259,30 @@ def FilterMHTTracks(origTracks, origFalarms) :
     return tracks, falarms
 
 
-def DomainFromTracks(tracks, falarms = []) :
+def DomainFromTracks(tracks, falarms=None) :
     """
     Calculate the spatial and temporal domain of the tracks and false alarms.
     Note that this assumes that bad points are non-existant or has been
     masked out.
     """
+    if falarms is None : falarms = []
 
     allPoints = numpy.hstack(tracks + falarms)
     
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
             (allPoints['t'].min(), allPoints['t'].max()))
+
+def TimesFromTracks(tracks, falarms=None) :
+    """
+    Determine the times the track data probably represents.
+    This is a bit tricky, but it should work properly.
+    This should also work properly with bad points masked out.
+    """
+    if falarms is None : falarms = []
+
+    allPoints = numpy.hstack(tracks + falarms)
+    return numpy.unique(allPoints['t'])
 
 def DomainFromVolumes(volumes) :
     """

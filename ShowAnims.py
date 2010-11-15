@@ -2,7 +2,7 @@
 
 from TrackPlot import *			# for plotting tracks
 from TrackFileUtils import *		# for reading track files
-from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
+from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks(), TimeFromTracks()
 import ParamUtils           # for ReadSimulationParams()
 
 import argparse                         # Command-line parsing
@@ -67,6 +67,7 @@ if args.truthTrackFile is not None :
     true_FAlarmSegs = CreateSegments(true_falarms)
 
     (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
+    times = TimesFromTracks(true_tracks + true_falarms)
 else :
     true_AssocSegs = None
     true_FAlarmSegs = None
@@ -75,6 +76,10 @@ else :
     for aTracker in trackerData :
         stackedTracks += aTracker[0] + aTracker[1]
     (xLims, yLims, tLims) = DomainFromTracks(stackedTracks)
+    times = TimesFromTracks(stackedTracks)
+
+
+
 
 for (index, aTracker) in enumerate(trackerData) :
     curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
@@ -83,9 +88,9 @@ for (index, aTracker) in enumerate(trackerData) :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-        l = Animate_Segments(truthtable, tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+        l = Animate_Segments(truthtable, len(times), tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
     else :
-        l = Animate_PlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+        l = Animate_PlainTracks(aTracker[0], aTracker[1], len(times), tLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
         
     if theTimer is None :
         theTimer = l.event_source

@@ -62,7 +62,7 @@ def PlotSegments(truthTable, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=None, **kwargs) :
+def Animate_Segments(truthTable, frameCnt, tLims, axis=None, figure=None, event_source=None, **kwargs) :
     if figure is None :
         figure = pyplot.gcf()
 
@@ -78,7 +78,7 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=Non
         theLines += tableLines[keyname]
         theSegs += truthTable[keyname]
 
-    return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
+    return AnimateLines(theLines, theSegs, frameCnt, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
 
 #############################################
 #           Corner Plotting                 #
@@ -142,10 +142,10 @@ def AnimateLines(lines, lineData, frameCnt, startT, endT,
     if tail is None :
         tail = endT - startT
 
-    times = np.linspace(startT, endT, frameCnt, endpoint=True) 
+    times = numpy.linspace(startT, endT, frameCnt, endpoint=True) 
 
     def update_lines(idx, lineData, lines, times, startT, endT, tail) :
-        theHead = times[np.clip(idx, 0, len(times) - 1)]
+        theHead = times[numpy.clip(idx, 0, len(times) - 1)]
         startTail = max(theHead - tail, startT)
             
         for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
