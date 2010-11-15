@@ -20,9 +20,11 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
     # to the data without modifying the input data.
     currStrms = nprf.append_fields(volume_Data['stormCells'],
                                    ('t', 'types', 'trackID'),
-                                   ([volume_Data['volTime']] * strmCnt,
-                                    ['F'] * strmCnt,
-                                    [-1] * strmCnt),
+                                   data=([volume_Data['volTime']] * strmCnt,
+                                         ['F'] * strmCnt,
+                                         [-1] * strmCnt),
+                                   # FIXME: Need a better way to obtain these...
+                                   dtypes=('f4', 'a1', 'i4'),
                                    usemask=False)
  
     BestLocs(stateHist, infoTracks, volume_Data['volTime'])
