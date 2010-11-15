@@ -155,7 +155,7 @@ def TrackSim(simConfs,
     # These are global defaults
     trackCnt = int(rootNode.get("cnt", totalTracks))
     endTrackProb = float(rootNode.get("prob_track_ends", endTrackProb))
-    maxTrackLen = int(rootNode.get("maxTrackLen", max(tLims) - min(tLims)))
+    maxTrackLen = int(rootNode.get("maxTrackLen", simParams['frameCnt']))
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
@@ -168,23 +168,28 @@ def TrackSim(simConfs,
 def SingleSimulation(simConfs,
                      xLims, yLims, tLims,
                      seed, **simParams) :
+    times = numpy.linspace(*tLims, num=simParams['frameCnt'], endpoint=True)
     # Seed the PRNG
     numpy.random.seed(seed)
 
     true_tracks, true_falarms = TrackSim(simConfs, tLims=tLims, **simParams)
 
     # Clip tracks to the domain
+    #print "Clipping Tracks..."
+    #print len(true_tracks), len(true_falarms)
     clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
                                                           true_falarms,
                                                           xLims, yLims, tLims)
+    #print len(clippedTracks), len(clippedFAlarms)
+    #print "Done!"
 
 
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
-                                           tLims, xLims, yLims)
+                                           simParams['frameCnt'], times, xLims, yLims)
 
 
     noise_volData = TrackUtils.CreateVolData(clippedTracks, clippedFAlarms,
-                                             tLims, xLims, yLims)
+                                             simParams['frameCnt'], times, xLims, yLims)
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,

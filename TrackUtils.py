@@ -18,6 +18,9 @@ def CreateVolData(tracks, falarms, frameCnt, times, xLims, yLims) :
     so it is possible to reconstruct the (clipped) track data using
     this output.
     """
+    # TODO: Major bug!  This code will not properly handle situations
+    #       where the times available in the tracks are outside the
+    #       domain covered by 'times'.
     volData = []
     tmpTracks = [nprf.append_fields(aTrack, 'trackID',
                                     [trackIndex] * len(aTrack),
@@ -32,25 +35,30 @@ def CreateVolData(tracks, falarms, frameCnt, times, xLims, yLims) :
 
     if len(tmpTracks) != 0 or len(tmpFalarms) != 0 :
         allCells = numpy.hstack(tmpTracks + tmpFalarms)
+
+
+        # Note, this is a mask in the opposite sense from a numpy masked array.
+        #       True means that this is a value to keep.
+        domainMask = numpy.logical_and(allCells['xLocs'] >= min(xLims),
+                     numpy.logical_and(allCells['xLocs'] <= max(xLims),
+                     numpy.logical_and(allCells['yLocs'] >= min(yLims),
+                                       allCells['yLocs'] <= max(yLims))))
+
+        #print len(allCells['t']), len(times)
+        # Find out which frame each storm cell belongs to.
+        # Doing a minus one here because of how digitize works
+        tIndicies = numpy.digitize(allCells['t'], times) - 1
+
+        for index, volTime in enumerate(times) :
+            # Again, this mask is opposite from numpy masked array.
+            tMask = (tIndicies == index)
+            volData.append({'volTime': volTime,
+                            'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
     else :
-        allCells = numpy.array([], dtype=track_dtype)
-
-    # Note, this is a mask in the opposite sense from a numpy masked array.
-    #       True means that this is a value to keep.
-    domainMask = numpy.logical_and(allCells['xLocs'] >= min(xLims),
-                 numpy.logical_and(allCells['xLocs'] <= max(xLims),
-                 numpy.logical_and(allCells['yLocs'] >= min(yLims),
-                                   allCells['yLocs'] <= max(yLims))))
-
-    # Find out which frame each storm cell belongs to.
-    # Doing a minus one here because of how digitize works
-    tIndicies = numpy.digitize(allCells['t'], times) - 1
-
-    for index, volTime in enumerate(times) :
-        # Again, this mask is opposite from numpy masked array.
-        tMask = (tIndicies == index)
-        volData.append({'volTime': volTime,
-                        'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
+        # If both are zero-length, the hstack, and digitize won't properly work...
+        for index, volTime in enumerate(times) :
+            volData.append({'volTime': volTime,
+                            'stormCells': []})
 
     return(volData)
 
@@ -67,11 +75,16 @@ def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
     clippedTracks = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in tracks]
     clippedFAlarms = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in falarms]
 
+
+    #print "Length of tracks outside before: ", len(clippedTracks), len(clippedFAlarms)
     CleanupTracks(clippedTracks, clippedFAlarms)
-#    print "Length of tracks outside: ", len(clippedTracks)
+    #print "Length of tracks outside after: ", len(clippedTracks), len(clippedFAlarms)
+
+
     return clippedTracks, clippedFAlarms
 
 def ClipTrack(track, xLims, yLims, tLims) :
+    #print "Time Lims:", track['xLocs'].min(), track['xLocs'].max(), "   xLims:", xLims
     domainMask = numpy.logical_and(track['xLocs'] >= min(xLims),
                  numpy.logical_and(track['xLocs'] <= max(xLims),
                  numpy.logical_and(track['yLocs'] >= min(yLims),
@@ -79,6 +92,8 @@ def ClipTrack(track, xLims, yLims, tLims) :
                  numpy.logical_and(track['t'] >= min(tLims),
                                    track['t'] <= max(tLims))))))
 
+    #print domainMask.shape, track.shape
+    #print "Cliplen:", len(track[domainMask])
     return track[domainMask]
 
 def FilterTrack(track, frames) :
@@ -90,7 +105,9 @@ def CleanupTracks(tracks, falarms) :
     Moves tracks that were shortened to single length to the
     falarms list, and eliminate the empty tracks.
     """
-
+    #print "In cleanup tracks..."
+    #print len(tracks), len(falarms)
+    #print tracks
     for trackIndex in range(len(tracks))[::-1] :
         if len(tracks[trackIndex]) == 1 :
             #print "Cleanup:", tracks[trackIndex]
@@ -102,9 +119,14 @@ def CleanupTracks(tracks, falarms) :
         if len(tracks[trackIndex]) == 0 :
             del tracks[trackIndex]
 
+    #print len(tracks), len(falarms)
     for trackIndex in range(len(falarms))[::-1] :
         if len(falarms[trackIndex]) == 0 :
+            #print "Removing: ", falarms[trackIndex]
             del falarms[trackIndex]
+
+    #print len(tracks), len(falarms)
+    #print "Out of cleanup tracks..."
 
 
 

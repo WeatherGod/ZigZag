@@ -13,16 +13,16 @@ def _init_register(modelclass, name, argValidator) :
 #############################
 class InitModel(object) :
     def __init__(self) :
-        self._initFrame = None
+        self._initT = None
         self._initXPos = None
         self._initYPos = None
         self._initSpeed = None
         self._initHeading = None
 
     def __call__(self) :
-        return (self._initFrame, self._initXPos, self._initYPos,
-                                 self._initSpeed * numpy.cos(self._initHeading),
-                                 self._initSpeed * numpy.sin(self._initHeading))
+        return (self._initT, self._initXPos, self._initYPos,
+                             self._initSpeed * numpy.cos(self._initHeading),
+                             self._initSpeed * numpy.sin(self._initHeading))
 
 
 class SplitInit(InitModel) :
@@ -37,21 +37,21 @@ class SplitInit(InitModel) :
         self._speedOff = speedOff
         self._headOff = headOff
 
-    def setsplit(self, parentTrack, frameNums, xLocs, yLocs) :
+    def setsplit(self, parentTrack, t, xLocs, yLocs) :
         """
-        frameNum, xPos, yPos specifies the initial position of the
+        t, xPos, yPos specifies the initial position of the
         track that splits off.  Note that this position will not be
         reported however because it already exists in the parent track.
 
         parentTrack is the track data that can be used to analyze and
         help initialize the characteristics of the new storm.
         """
-        self._initFrame = frameNums
+        self._initT = t
         self._initXPos = xLocs
         self._initYPos = yLocs
         xDiffs = numpy.diff(parentTrack['xLocs'])
         yDiffs = numpy.diff(parentTrack['yLocs'])
-        tDiffs = numpy.diff(parentTrack['frameNums'])
+        tDiffs = numpy.diff(parentTrack['t'])
         angles = numpy.arctan2(yDiffs, xDiffs)
         self._initSpeed = numpy.mean(numpy.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + self._speedOff
         self._initHeading = numpy.arctan2(numpy.sum(numpy.sin(angles)),
@@ -68,8 +68,8 @@ class NormalInit(InitModel) :
 
     def __init__(self, tLims, xPos, yPos, xScale, yScale, speedLims, headingLims) :
         """
-        tLims : tuple of ints
-            Start and end frames  E.g., (5, 12)
+        tLims : tuple of floats
+            Start and end times  E.g., (5, 12)
 
         xPos, yPos : floats
             Mean location for the center of the initial positions.
@@ -102,7 +102,8 @@ class NormalInit(InitModel) :
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
+        # TODO: Need to fix this
+        self._initT = numpy.random.randint(*self.tLims)
         self._initXPos = self.xScale * numpy.random.randn(1) + self.xPos
         self._initYPos = self.yScale * numpy.random.randn(1) + self.yPos
         self._initSpeed = numpy.random.uniform(*self.speedLims)
@@ -122,8 +123,8 @@ class UniformInit(InitModel) :
 
     def __init__(self, tLims, xLims, yLims, speedLims, headingLims) :
         """
-        tLims : tuple of ints
-            Start and end frames  E.g., (5, 12)
+        tLims : tuple of floats
+            Start and end times  E.g., (5, 12)
 
         xLims, yLims : tuple of floats
             The spatial domain for track initialization
@@ -156,7 +157,7 @@ class UniformInit(InitModel) :
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
+        self._initT = numpy.random.randint(*self.tLims)
         self._initXPos = numpy.random.uniform(*self.xPosLims)
         self._initYPos = numpy.random.uniform(*self.yPosLims)
         self._initSpeed = numpy.random.uniform(*self.speedLims)
@@ -176,8 +177,8 @@ class UniformEllipse(InitModel) :
 
     def __init__(self, tLims, a, b, orient, speedLims, headingLims, xOffset, yOffset, offsetHeading, offsetSpeed) :
         """
-        tLims : tuple of ints
-            Start and end frames  E.g., (5, 12)
+        tLims : tuple of floats
+            Start and end times  E.g., (5, 12)
 
         a, b : floats
             Parameters that correspond to the half-length
@@ -187,7 +188,7 @@ class UniformEllipse(InitModel) :
             The orientation of the ellipse in degrees
             relative to the x-axis.
 
-         headingLims : tuple of floats
+        headingLims : tuple of floats
             The limits of the initial angle that a track may move.
             The units is in degrees and is using math coordinates.
             I.E., 0.0 degrees is East, 90.0 degrees is North.
@@ -232,7 +233,8 @@ class UniformEllipse(InitModel) :
         self.offsetSpeed = offsetSpeed
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
+        # TODO: Need to fix this
+        self._initT = numpy.random.randint(*self.tLims)
         self._initSpeed = numpy.random.uniform(*self.speedLims)
         self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
         r = numpy.random.uniform(0.0, 1.0)
@@ -245,7 +247,6 @@ class UniformEllipse(InitModel) :
                                               numpy.sin(phi)])
 
         # Scale the unit circle to be like an ellipse
-        # NOTE: I know this is incorrect, but it is good enough!
         coords *= numpy.array([self.a, self.b])
 
         # Rotate the ellipse
@@ -253,7 +254,7 @@ class UniformEllipse(InitModel) :
 
         # Translate the ellipse a distance depending on the time
         coords += (numpy.array([self.xOffset, self.yOffset])
-                   + (self.offsetSpeed * (self._initFrame - self.tLims[0])
+                   + (self.offsetSpeed * (self._initT - self.tLims[0])
                       * numpy.array([numpy.cos(self.offsetHeading),
                                      numpy.sin(self.offsetHeading)])))
 

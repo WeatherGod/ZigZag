@@ -27,9 +27,10 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
 
     xLims, yLims, tLims = DomainFromTracks(newTracks, newFAlarms)
 
-    volData = CreateVolData(newTracks, newFAlarms,
-                            tLims, xLims, yLims)
+    volData = CreateVolData(newTracks, newFAlarms, len(newTimes),
+                            newTimes, xLims, yLims)
 
+    simParams['frameCnt'] = len(newTimes)
     simParams['xLims'] = xLims
     simParams['yLims'] = yLims
     simParams['tLims'] = tLims

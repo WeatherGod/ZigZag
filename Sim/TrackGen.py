@@ -24,7 +24,7 @@ class TrackGenerator(object) :
                                         self._motionModel, *makerParams)
 
             cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
+            theTracks.append(numpy.sort(newTrack, 0, order=['t']))
 
         return theTracks, theFAlarms, cornerID
 
@@ -72,12 +72,12 @@ class SplitGenerator(TrackGenerator) :
             # Note, I want a frame like how I want my sliced bread,
             #       no end-pieces!
             frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
-            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
+            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['t'],
                                                    choosenTrack[frameIndex]['xLocs'],
                                                    choosenTrack[frameIndex]['yLocs'])
             newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
             cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
+            theTracks.append(numpy.sort(newTrack, 0, order=['t']))
 
         return theTracks, theFAlarms, cornerID
 

@@ -53,8 +53,9 @@ class FalseMerge(NoiseModel) :
                                    for trackIndex, aTrack in enumerate(tracks)])
 
         # Go frame by frame to see which storms could be occluded.
-        for volTime in xrange(min(tLims), max(tLims) + 1) :
-            strmCells = trackStrms[trackStrms['frameNums'] == volTime]
+        for volTime in range(min(tLims), max(tLims) + 1) :
+            # TODO: Need to fix this because this is incorrect!
+            strmCells = trackStrms[trackStrms['t'] == volTime]
 
             # Don't bother if there are only one or no strmCells for this moment in time
             if len(strmCells) <= 1 :
