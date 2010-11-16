@@ -114,7 +114,7 @@ def CreateSegments(tracks) :
         if trackLen > 1 :
             segs.extend([numpy.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
                                                             aTrack[1:trackLen])])
-	elif trackLen == 1 :
+        elif trackLen == 1 :
             segs.append(aTrack)
 
     return segs
@@ -197,8 +197,8 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
         # This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
         # Well... technically, it just means that the tracking algorithm did not declare it
         #         as a false alarm.  Maybe it did not declare it as anything?
-	# TODO: Not sure if there is anything I want to do about these for now...
-	#       They might already have been accounted for earlier.
+        # TODO: Not sure if there is anything I want to do about these for now...
+        #       They might already have been accounted for earlier.
 #        if not foundMatch :
 #            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
 
@@ -206,11 +206,11 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     # therefore, these segments belong in the "falarms_Wrong" array.
     # NOTE: however, these might have already been accounted for...
 #    for index in unmatchedPredFAlarms :
-#	print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
+#   print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
 #    print "assocs_Wrong: ", assocs_Wrong
 #    print "falarms_Wrong: ", falarms_Wrong
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-	    'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
 
 
 def FilterMHTTracks(origTracks, origFalarms) :
@@ -225,7 +225,7 @@ def FilterMHTTracks(origTracks, origFalarms) :
 
     for trackIndex, aTrack in enumerate(tracks) :
         tracks[trackIndex] = aTrack[aTrack['types'] == 'M']
-		
+
     CleanupTracks(tracks, falarms)
     return tracks, falarms
 
