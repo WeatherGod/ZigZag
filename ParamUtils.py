@@ -51,9 +51,9 @@ def Read_MultiSim_Params(filename) :
     config = ConfigObj(filename, interpolation=False)
 
     vdtor = Validator()
-    config.configspec = ConfigObj(dict(globalSeed="int",
-                                       simCnt="int(min=0)",
-                                       simName="str"),
+    config.configspec = ConfigObj(dict(globalSeed="integer",
+                                       simCnt="integer(min=0)",
+                                       simName="string"),
                                   list_values=False,
                                   _inspec=True)
     res = config.validate(vdtor)
@@ -66,16 +66,16 @@ def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName, interpolation=False)
 
     vdtor = Validator()
-    config.configspec = ConfigObj(dict(frameCnt="int(min=1, default=%d)" % simDefaults['frameCnt'],
-                                       totalTracks="int(min=0, default=%d)" % simDefaults['totalTracks'],
+    config.configspec = ConfigObj(dict(frameCnt="integer(min=1, default=%d)" % simDefaults['frameCnt'],
+                                       totalTracks="integer(min=0, default=%d)" % simDefaults['totalTracks'],
                                        seed="integer(default=%d)" % simDefaults['seed'],
                                        simTrackFile="string(default=%s)" % simDefaults['simTrackFile'],
                                        noisyTrackFile="string(default=%s)" % simDefaults['noisyTrackFile'],
                                        simConfFile="string(default=%s)" % simDefaults['simConfFile'],
                                        endTrackProb="float(min=0.0, max=1.0, default=%f)" % simDefaults['endTrackProb'],
-                                       tLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['tLims'],
-                                       xLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['xLims'],
-                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % simDefaults['yLims']),
+                                       tLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['tLims']),
+                                       xLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['xLims']),
+                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['yLims'])),
                                  list_values=False,
                                  _inspec=True)
     
