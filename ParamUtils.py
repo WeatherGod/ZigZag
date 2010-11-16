@@ -286,6 +286,7 @@ def ParamsFromOptions(options, simName = None) :
 		trackers = options.trackers,
         totalTracks = options.totalTracks,
         endTrackProb = options.endTrackProb,
+        frameCnt = options.frameCnt,
         xLims = options.xLims,
         yLims = options.yLims,
 		tLims = options.tLims,
