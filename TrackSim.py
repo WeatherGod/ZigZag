@@ -14,8 +14,9 @@ from TrackFileUtils import *		# for writing the track data
 #  Track Maker Functions
 trackMakers = {}
 
-def MakeTrack(cornerID, initModel, motionModel, probTrackEnds, maxLen) :
-    aPoint = Sim.TrackPoint(cornerID, probTrackEnds, initModel, motionModel, maxLen)
+def MakeTrack(cornerID, initModel, motionModel, deltaT, probTrackEnds, maxLen) :
+    aPoint = Sim.TrackPoint(cornerID, probTrackEnds, deltaT,
+                            initModel, motionModel, maxLen)
     return numpy.fromiter(aPoint, TrackUtils.track_dtype)
 
 trackMakers['MakeTrack'] = MakeTrack
@@ -23,9 +24,9 @@ trackMakers['MakeTrack'] = MakeTrack
 
 
 def MakeTracks(trackGens, noiseModels,
-               procParams, currGen,
-               trackCnt, prob_track_ends, maxTrackLen,
-               tLims, cornerID=0, simState=None) :
+               procParams, currGen, trackCnt,
+               deltaT, prob_track_ends, maxTrackLen,
+               cornerID=0, simState=None) :
     theTracks = []
     theFAlarms = []
 
@@ -40,7 +41,8 @@ def MakeTracks(trackGens, noiseModels,
                     'theTrackLens': []}
 
     # Generate this model's set of tracks
-    tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState, prob_track_ends, maxTrackLen)
+    tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState,
+                                        deltaT, prob_track_ends, maxTrackLen)
     TrackUtils.CleanupTracks(tracks, falarms)
     trackLens = [len(aTrack) for aTrack in tracks]
 
@@ -66,9 +68,9 @@ def MakeTracks(trackGens, noiseModels,
         #   subsets of the tracks.
         subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
                                                      procParams[aGen],
-                                                     trackGens[aGen],
-                                                     trackCnt, prob_track_ends, maxTrackLen,
-                                                     tLims, cornerID, currState)
+                                                     trackGens[aGen], trackCnt,
+                                                     deltaT, prob_track_ends, maxTrackLen,
+                                                     cornerID, currState)
 
         # Add this branch's tracks to this node's set of tracks
         theTracks.extend(subTracks)
@@ -77,7 +79,7 @@ def MakeTracks(trackGens, noiseModels,
 
     # Noisify the all the tracks of this node
     for aNoise in noisesToApply :
-        noiseModels[aNoise](theTracks, theFAlarms, tLims)
+        noiseModels[aNoise](theTracks, theFAlarms)
         TrackUtils.CleanupTracks(theTracks, theFAlarms)
 
     return theTracks, theFAlarms, cornerID
@@ -133,14 +135,12 @@ def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMaker
 #############################
 #   Track Simulator
 #############################
-def TrackSim(simConfs,
-             tLims, totalTracks, endTrackProb,
+def TrackSim(simConfs, frameCnt, tLims,
+             totalTracks, endTrackProb,
              **simParams) :
     """
     totalTracks acts as the top-most default value to use for the sim generators.
     prob_track_ends also acts as the top-most default value.
-    The difference between the elements of tLims also acts as the top-most
-        default value for the maxTrackLen parameter.
     """
     initModels = MakeModels(simConfs['InitModels'], Sim.init_modelList)
     motionModels = MakeModels(simConfs['MotionModels'], Sim.motion_modelList)
@@ -155,30 +155,35 @@ def TrackSim(simConfs,
     # These are global defaults
     trackCnt = int(rootNode.get("cnt", totalTracks))
     endTrackProb = float(rootNode.get("prob_track_ends", endTrackProb))
-    maxTrackLen = int(rootNode.get("maxTrackLen", max(tLims) - min(tLims)))
+    maxTrackLen = int(rootNode.get("maxTrackLen", frameCnt))
+
+    if frameCnt == 1 :
+        deltaT = 0.0
+    else :
+        deltaT = (tLims[1] - tLims[0]) / (frameCnt - 1)
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
                                                      rootNode, rootGenerator,
-					                                 trackCnt, endTrackProb, maxTrackLen,
-                                                     tLims)
+					                                 trackCnt,
+                                                     deltaT, endTrackProb, maxTrackLen)
 
     return true_tracks, true_falarms
 
-def SingleSimulation(simConfs,
+def SingleSimulation(simConfs, frameCnt,
                      xLims, yLims, tLims,
                      seed, **simParams) :
-    frames = numpy.arange(simParams['frameCnt']) + 1
+    frames = numpy.arange(frameCnt) + 1
     # Seed the PRNG
     numpy.random.seed(seed)
 
-    true_tracks, true_falarms = TrackSim(simConfs, tLims=tLims, **simParams)
+    true_tracks, true_falarms = TrackSim(simConfs, frameCnt, tLims, **simParams)
 
     # Clip tracks to the domain
     clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
                                                           true_falarms,
                                                           xLims, yLims,
-                                                          frameLims=(1, simParams['frameCnt']))
+                                                          frameLims=(1, frameCnt))
 
     
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,

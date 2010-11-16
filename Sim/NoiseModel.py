@@ -1,6 +1,7 @@
 import numpy
-import numpy.lib.recfunctions as nprf   # for .append_fields()
+#import numpy.lib.recfunctions as nprf   # for .append_fields()
 from scipy.spatial import KDTree
+from TrackUtils import Tracks2Cells
 
 
 noise_modelList = {}
@@ -24,7 +25,7 @@ class TrackNoise(NoiseModel) :
     def __init__(self, loc_variance) :
         self._loc_variance = loc_variance
 
-    def __call__(self, tracks, falarms, tLims) :
+    def __call__(self, tracks, falarms) :
         for aTrack in tracks :
             aTrack['xLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
             aTrack['yLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
@@ -41,20 +42,21 @@ class FalseMerge(NoiseModel) :
         self._false_merge_prob = false_merge_prob
         self._false_merge_dist = false_merge_dist
 
-    def __call__(self, tracks, falarms, tLims) :
+    def __call__(self, tracks, falarms) :
+        # Skip if there are one or no tracks. (one because you can't occlude yourself).
+        if len(tracks) <= 1 :
+            return
+
         # False mergers in this algorithm is only done
         # between tracks.  False Alarms are not included.
-        # This hstack call is merging all the tracks together into one massive array.
-        #   Plus, for each track, a trackID is appended on for each point in the track
-        #   to help identify the track a point came from.
-        trackStrms = numpy.hstack([nprf.append_fields(aTrack, 'trackID',
-                                                      [trackIndex] * len(aTrack),
-                                                      usemask=False)
-                                   for trackIndex, aTrack in enumerate(tracks)])
+        trackStrms = Tracks2Cells(tracks)
+
+        frames = numpy.arange(trackStrms['frameNums'].min(),
+                              trackStrms['frameNums'].max() + 1)
 
         # Go frame by frame to see which storms could be occluded.
-        for volTime in xrange(min(tLims), max(tLims) + 1) :
-            strmCells = trackStrms[trackStrms['frameNums'] == volTime]
+        for frameIndex in frames :
+            strmCells = trackStrms[trackStrms['frameNums'] == frameIndex]
 
             # Don't bother if there are only one or no strmCells for this moment in time
             if len(strmCells) <= 1 :
@@ -95,7 +97,7 @@ class DropOut(NoiseModel) :
     def __init__(self, dropout_prob) :
        self._dropout_prob = dropout_prob
 
-    def __call__(self, tracks, falarms, tLims) :
+    def __call__(self, tracks, falarms) :
         for trackIndex in range(len(tracks)) :
             trackLen = len(tracks[trackIndex])
             stormsToKeep = numpy.random.random_sample(trackLen) >= self._dropout_prob

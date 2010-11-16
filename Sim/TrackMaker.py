@@ -20,7 +20,7 @@ class TrackPoint(object) :
 
     """
 
-    def __init__(self, cornerID, trackDeathProb,
+    def __init__(self, cornerID, trackDeathProb, deltaT,
                        initModel, motionModel, maxLen = 50) :
         """
         Create a point that will be used to create a track.
@@ -34,6 +34,9 @@ class TrackPoint(object) :
             The probability that a track will die at some particular iteration.
             0.0 for eternal tracks, 1.0 for single points.
 
+        deltaT : float
+            The time step for each frame in the track.
+
         maxLen : int
             Maximum length of the track
         """
@@ -42,10 +45,12 @@ class TrackPoint(object) :
         self.cornerID = cornerID
         self._motionModel = motionModel
         self._framesRemain = maxLen
+        self.deltaT = deltaT
 
         # These are the internal state variables that will change
         # subsequent calls will update the state.
         self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = initModel()
+        #print self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed
 
         # Determine if this initial state is to be reported
         self._useInitState = initModel.useInitState
@@ -69,8 +74,9 @@ class TrackPoint(object) :
                  or self._framesRemain <= 0)) :
                 raise StopIteration
 
-            dt, dx, dy, dVelx, dVely = self._motionModel(self.xSpeed, self.ySpeed)
-            self.frameNum += dt
+            dFrame, dx, dy, dVelx, dVely = self._motionModel(self.deltaT, self.xSpeed, self.ySpeed)
+#            print type(self.frameNum), type(dFrame), dx, dy, dVelx, dVely
+            self.frameNum += dFrame
             self.xLoc += dx
             self.yLoc += dy
             self.xSpeed += dVelx

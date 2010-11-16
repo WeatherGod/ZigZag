@@ -8,16 +8,13 @@ track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
 volume_dtype = track_dtype + [('trackID', 'i4')]
 #storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
 
-def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
+def Tracks2Cells(tracks, falarms = []) :
     """
-    Essentially, go from lagrangian (following a particle)
-    to eulerian (at fixed points on a grid).
+    Convert lists of tracks (and falarms) into a single recarray of storm cells
+    with track IDs.
 
-    Note that this method will retain the 'trackID' number,
-    so it is possible to reconstruct the (clipped) track data using
-    this output.
+    This can be reversed with Cells2Tracks().
     """
-    volData = []
     tmpTracks = [nprf.append_fields(aTrack, 'trackID',
                                     [trackIndex] * len(aTrack),
                                     usemask=False)
@@ -32,6 +29,39 @@ def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
         allCells = numpy.hstack(tmpTracks + tmpFalarms)
     else :
         allCells = numpy.array([], dtype=track_dtype)
+
+    return allCells
+
+
+def Cells2Tracks(strmCells) :
+    """
+    Convert a numpy recarray of dtype track_dtype into two lists
+    of tracks and falarms.
+
+    This can be reversed with Tracks2Cells().
+    """
+    trackIDs = numpy.unique(strmCells['trackID'][strmCells['trackID'] >= 0])
+    tracks = [numpy.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
+                for id in trackIDs]
+
+    falarmIDs = numpy.unique(strmCells['trackID'][strmCells['trackID'] < 0])    
+    falarms = [numpy.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
+                for id in trackIDs]
+
+    return tracks, falarms
+    
+
+def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
+    """
+    Essentially, go from lagrangian (following a particle)
+    to eulerian (at fixed points on a grid).
+
+    Note that this method will retain the 'trackID' number,
+    so it is possible to reconstruct the (clipped) track data using
+    this output.
+    """
+    volData = []
+    allCells = Tracks2Cells(tracks, falarms)
 
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
@@ -239,6 +269,8 @@ def DomainFromTracks(tracks, falarms = []) :
     masked out.
     """
 
+    # FIXME: This will fail if both arrays are empty, but in which case,
+    #        what should the return values be anyway?
     allPoints = numpy.hstack(tracks + falarms)
     
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
@@ -250,6 +282,8 @@ def DomainFromVolumes(volumes) :
     Calculate the spatial and temporal domain of the volume data.
     Assumes that bad points are non-existant or has been masked out.
     """
+    # FIXME: This will fail if volumes is empty, but in which case,
+    #        what should the return values be anyway?
     allPoints = numpy.hstack([volData['stormCells'] for volData in volumes])
     allTimes = [volData['volTime'] for volData in volumes]
 
