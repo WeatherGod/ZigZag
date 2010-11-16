@@ -4,6 +4,7 @@ import os
 from TrackUtils import *
 from TrackFileUtils import *
 import ParamUtils
+import numpy as np
 
 
 def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
@@ -14,22 +15,39 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
     else :
         raise ValueError("%s is an existing simulation!" % newName)
 
-    xLims, yLims, tLims = DomainFromTracks(*tracks)
+    # FIXME: This isn't quite right, but it might be easily fixed.
+    #        Heck, it might actually already be right.
+    #        The question is that do we assume that we always know
+    #        what the range of frame numbers are from knowing the
+    #        frameCnt, or do we always derive it from the tracks?
+    #        It might be better to assume it from the frameCnt
+    #        and grab it from the frameCnt...
+    xLims, yLims, frameLims = DomainFromTracks(*tracks)
+    newFrames = np.arange(min(frameLims), max(frameLims) + 1, skipCnt + 1)
+    if simParams['frameCnt'] < 2 :
+        timeStep = 0.0
+    else :
+        timeStep = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
 
-    newTimes = range(tLims[0], tLims[1] + 1, skipCnt + 1)
+    newTimes = simParams['tLims'][0] + timeStep * (newFrames - 1)
+    tLims = (newTimes.min(), newTimes.max())
+                           
 
-    newTracks = [FilterTrack(aTrack, newTimes) for aTrack in tracks[0]]
-    newFAlarms = [FilterTrack(aTrack, newTimes) for aTrack in tracks[1]]
+    newTracks = [FilterTrack(aTrack, newFrames) for aTrack in tracks[0]]
+    newFAlarms = [FilterTrack(aTrack, newFrames) for aTrack in tracks[1]]
 
     CleanupTracks(newTracks, newFAlarms)
 
-    xLims, yLims, tLims = DomainFromTracks(newTracks, newFAlarms)
+    # Maybe set if a new bbox is requested?
+    #xLims, yLims, tLims = DomainFromTracks(newTracks, newFAlarms)
 
     volData = CreateVolData(newTracks, newFAlarms,
-                            tLims, xLims, yLims)
+                            newFrames, tLims, xLims, yLims)
 
-    simParams['xLims'] = xLims
-    simParams['yLims'] = yLims
+    simParams['frameCnt'] = len(newFrames)
+    # Maybe set if a new bbox is requested?
+    #simParams['xLims'] = xLims
+    #simParams['yLims'] = yLims
     simParams['tLims'] = tLims
     simParams['simName'] = newName
 

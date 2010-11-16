@@ -8,7 +8,7 @@ track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
 volume_dtype = track_dtype + [('trackID', 'i4')]
 #storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
 
-def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
+def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
     """
     Essentially, go from lagrangian (following a particle)
     to eulerian (at fixed points on a grid).
@@ -40,16 +40,18 @@ def CreateVolData(tracks, falarms, tLims, xLims, yLims) :
                  numpy.logical_and(allCells['yLocs'] >= min(yLims),
                                    allCells['yLocs'] <= max(yLims))))
 
-    for volTime in xrange(min(tLims), max(tLims) + 1) :
+    times = numpy.linspace(min(tLims), max(tLims), len(frames))
+
+    for volTime, frameIndex in zip(times, frames) :
         # Again, this mask is opposite from numpy masked array.
-        tMask = (allCells['frameNums'] == volTime)
+        tMask = (allCells['frameNums'] == frameIndex)
         volData.append({'volTime': volTime,
                         'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
 
     return(volData)
 
 
-def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
+def ClipTracks(tracks, falarms, xLims, yLims, frameLims) :
     """
     Return a copy of the tracks and falarms, clipped to within
     the given domain.
@@ -58,20 +60,20 @@ def ClipTracks(tracks, falarms, xLims, yLims, tLims) :
     """
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       Here, True means that this is a value to keep.
-    clippedTracks = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in tracks]
-    clippedFAlarms = [ClipTrack(aTrack, xLims, yLims, tLims) for aTrack in falarms]
+    clippedTracks = [ClipTrack(aTrack, xLims, yLims, frameLims) for aTrack in tracks]
+    clippedFAlarms = [ClipTrack(aTrack, xLims, yLims, frameLims) for aTrack in falarms]
 
     CleanupTracks(clippedTracks, clippedFAlarms)
 #    print "Length of tracks outside: ", len(clippedTracks)
     return clippedTracks, clippedFAlarms
 
-def ClipTrack(track, xLims, yLims, tLims) :
+def ClipTrack(track, xLims, yLims, frameLims) :
     domainMask = numpy.logical_and(track['xLocs'] >= min(xLims),
                  numpy.logical_and(track['xLocs'] <= max(xLims),
                  numpy.logical_and(track['yLocs'] >= min(yLims),
                  numpy.logical_and(track['yLocs'] <= max(yLims),
-                 numpy.logical_and(track['frameNums'] >= min(tLims),
-                                   track['frameNums'] <= max(tLims))))))
+                 numpy.logical_and(track['frameNums'] >= min(frameLims),
+                                   track['frameNums'] <= max(frameLims))))))
 
     return track[domainMask]
 

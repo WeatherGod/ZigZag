@@ -56,20 +56,20 @@ allCorners = None
 
 if args.trackFile is not None :
     (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
-    (xLims, yLims, tLims) = DomainFromTracks(tracks + falarms)
+    (xLims, yLims, frameLims) = DomainFromTracks(tracks + falarms)
 else :
     volumes = []
     for aVol in cornerVolumes :
         volumes.extend(aVol)
-    (xLims, yLims, tLims) = DomainFromVolumes(volumes)
+    (xLims, yLims, frameLims) = DomainFromVolumes(volumes)
 
-theAnim = CornerAnimation(theFig, tLims[1] - tLims[0] + 1,
+theAnim = CornerAnimation(theFig, frameLims[1] - frameLims[0] + 1,
                           interval=250, blit=True)
 
 for (index, volData) in enumerate(cornerVolumes) :
     curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
 
-    corners = PlotCorners(volData, tLims, axis=curAxis)
+    corners = PlotCorners(volData, frameLims, axis=curAxis)
 
 
     curAxis.set_xlim(xLims)

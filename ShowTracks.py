@@ -68,7 +68,7 @@ if args.truthTrackFile is not None :
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
-    (xLims, yLims, tLims) = DomainFromTracks(true_tracks + true_falarms)
+    (xLims, yLims, frameLims) = DomainFromTracks(true_tracks + true_falarms)
 else :
     true_AssocSegs = None
     true_FAlarmSegs = None
@@ -76,7 +76,7 @@ else :
     stackedTracks = []
     for aTracker in trackerData :
         stackedTracks += aTracker[0] + aTracker[1]
-    (xLims, yLims, tLims) = DomainFromTracks(stackedTracks)
+    (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
 for (index, aTracker) in enumerate(trackerData) :
     curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
@@ -85,9 +85,9 @@ for (index, aTracker) in enumerate(trackerData) :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-        PlotSegments(truthtable, tLims, axis = curAxis)
+        PlotSegments(truthtable, frameLims, axis = curAxis)
     else :
-        PlotPlainTracks(aTracker[0], aTracker[1], tLims, axis=curAxis)
+        PlotPlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis)
 
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)

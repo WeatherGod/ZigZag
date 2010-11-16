@@ -23,7 +23,7 @@ noiseTrackFile = os.sep.join([args.simName, "noise_tracks"])
 
 (true_tracks, true_falarms) = ReadTracks(simTrackFile)
 (noise_tracks, noise_falarms) = ReadTracks(noiseTrackFile)
-(xLims, yLims, tLims) = DomainFromTracks(noise_tracks)
+(xLims, yLims, frameLims) = DomainFromTracks(noise_tracks)
 
 
 
@@ -31,8 +31,8 @@ theFig = pyplot.figure()
 
 curAxis = theFig.gca()
 curAxis.hold(True)
-PlotTrack(true_tracks, tLims, color='r', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
-PlotTrack(noise_tracks, tLims, color='k', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
+PlotTrack(true_tracks, frameLims, color='r', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
+PlotTrack(noise_tracks, frameLims, color='k', linewidth=1.5, marker='.', markersize=6.0, axis = curAxis)
 curAxis.set_xlim(xLims)
 curAxis.set_ylim(yLims)
 pyplot.show()

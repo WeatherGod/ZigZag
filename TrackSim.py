@@ -168,6 +168,7 @@ def TrackSim(simConfs,
 def SingleSimulation(simConfs,
                      xLims, yLims, tLims,
                      seed, **simParams) :
+    frames = numpy.arange(simParams['frameCnt']) + 1
     # Seed the PRNG
     numpy.random.seed(seed)
 
@@ -176,15 +177,16 @@ def SingleSimulation(simConfs,
     # Clip tracks to the domain
     clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
                                                           true_falarms,
-                                                          xLims, yLims, tLims)
+                                                          xLims, yLims,
+                                                          frameLims=(1, simParams['frameCnt']))
 
-
+    
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
-                                           tLims, xLims, yLims)
+                                           frames, tLims, xLims, yLims)
 
 
     noise_volData = TrackUtils.CreateVolData(clippedTracks, clippedFAlarms,
-                                             tLims, xLims, yLims)
+                                             frames, tLims, xLims, yLims)
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
