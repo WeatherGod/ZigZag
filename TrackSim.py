@@ -160,7 +160,7 @@ def TrackSim(simConfs, frameCnt, tLims,
     if frameCnt == 1 :
         deltaT = 0.0
     else :
-        deltaT = (tLims[1] - tLims[0]) / (frameCnt - 1)
+        deltaT = (tLims[1] - tLims[0]) / float(frameCnt - 1)
 
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
