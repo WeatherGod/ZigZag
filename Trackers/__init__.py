@@ -28,7 +28,8 @@ def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
 
     falarms = []
     TrackUtils.CleanupTracks(strmTracks, falarms)
-    TrackFileUtils.SaveTracks(simParams['result_file'] + "_SCIT", strmTracks, falarms)
+    TrackFileUtils.SaveTracks(dirName + os.sep + simParams['result_file'] + "_SCIT",
+                              strmTracks, falarms)
 
     if returnResults :
         return strmTracks, falarms
