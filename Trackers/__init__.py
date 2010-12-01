@@ -16,7 +16,13 @@ def _register_tracker(tracker, name) :
 def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
     dirName = path + os.sep + simParams['simName']
     cornerInfo = TrackFileUtils.ReadCorners(dirName + os.sep + simParams['inputDataFile'], path=dirName)
-    strmAdap = {'distThresh': float(trackParams['distThresh'])}
+    speedThresh = float(trackParams['speedThresh'])
+
+    if simParams['frameCnt'] <= 1 :
+        raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
+
+    tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
+    strmAdap = {'distThresh': speedThresh * tDelta}
     stateHist = []
     strmTracks = []
     infoTracks = []
