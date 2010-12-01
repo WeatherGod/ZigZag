@@ -5,13 +5,13 @@ import ParamUtils	  # for reading simParams files
 
 
 def SingleTracking(simFile, simParams, trackConfs, path='.') :
-
     simParams['trackers'] = trackConfs.keys()
     # We want this simulation to know which trackers they used.
     ParamUtils.SaveSimulationParams(simFile, simParams.copy())
 
-    for tracker in trackConfs :
-        Trackers.trackerList[tracker](simParams.copy(), trackConfs[tracker].copy(),
+    for trackRun in trackConfs :
+        tracker = trackConfs[trackRun]['algorithm']
+        Trackers.trackerList[tracker](trackRun, simParams.copy(), trackConfs[trackRun].copy(),
                                       returnResults=False, path=path)
 
 

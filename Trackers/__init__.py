@@ -13,7 +13,7 @@ def _register_tracker(tracker, name) :
 
 
 
-def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
+def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     dirName = path + os.sep + simParams['simName']
     cornerInfo = TrackFileUtils.ReadCorners(dirName + os.sep + simParams['inputDataFile'], path=dirName)
     speedThresh = float(trackParams['speedThresh'])
@@ -34,7 +34,7 @@ def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
 
     falarms = []
     TrackUtils.CleanupTracks(strmTracks, falarms)
-    TrackFileUtils.SaveTracks(dirName + os.sep + simParams['result_file'] + "_SCIT",
+    TrackFileUtils.SaveTracks(dirName + os.sep + simParams['result_file'] + "_" + trackRun,
                               strmTracks, falarms)
 
     if returnResults :
@@ -42,11 +42,13 @@ def SCIT_Track(simParams, trackParams, returnResults=True, path='.') :
 
 _register_tracker(SCIT_Track, "SCIT")
 
-def MHT_Track(simParams, trackParams, returnResults=True, path='.') :
+def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     progDir = "~/Programs/mht_tracking/tracking/"
     # Popping off the ParamFile key so that the rest of the available
     # configs can be used for making the MHT parameter file.
     paramFile = trackParams.pop("ParamFile")
+    # Temporary popping...
+    trackParams.pop("algorithm")
     dirName = path + os.sep + simParams['simName']
 
     paramArgs = "python %smakeparams.py %s" % (progDir, dirName + os.sep + paramFile)
@@ -60,7 +62,7 @@ def MHT_Track(simParams, trackParams, returnResults=True, path='.') :
         
 
     theCommand = "%strackCorners -o %s -p %s -i %s -d %s > /dev/null" % (progDir,
-                                            dirName + os.sep + simParams['result_file'] + "_MHT",
+                                            dirName + os.sep + simParams['result_file'] + "_" + trackRun,
                                             dirName + os.sep + paramFile,
                                             dirName + os.sep + simParams['inputDataFile'],
                                             dirName)
@@ -71,7 +73,7 @@ def MHT_Track(simParams, trackParams, returnResults=True, path='.') :
         raise Exception("MHT tracker failed!")
 
     if returnResults :
-        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(dirName + os.sep + trackParams['result_file'] + "_MHT"))
+        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(dirName + os.sep + trackParams['result_file'] + "_" + trackRun))
 
 _register_tracker(MHT_Track, "MHT")
 
