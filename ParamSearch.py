@@ -8,15 +8,15 @@ if __name__ == '__main__' :
     import os           # for os.sep
 
     parser = argparse.ArgumentParser(description='Search for optimal parameters for a tracker for a given multi-sim')
-    parser.add_argument("simName",
-                      help="Analyze tracks for SIMNAME",
-                      metavar="SIMNAME")
+    parser.add_argument("multiSim",
+                      help="Use the multi-sim MULTISIM",
+                      metavar="MULTISIM", default='NewMulti')
     parser.add_argument("tracker", help="The tracker to use", metavar="TRACKER")
     parser.add_argument("confFiles", nargs='+',
                       help="Config files for the parameters for the trackers",
                       metavar="CONF")
     parser.add_argument("-d", "--dir", dest="directory",
-                        help="Base directory to find SIMNAME",
+                        help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
 
 
@@ -27,14 +27,18 @@ if __name__ == '__main__' :
     # different tracking done to it.
     # This makes it very easy for MultiAnalysis and other programs to pick up and use,
     # but it makes a *huge* bloat in files.
-
+    # The problem gets worse when considering a param search of a MultiSim as
+    # each subsimulation of the MultiSim needs to be worked upon as a simulation.
+    #
     # 2.
     # Take a single simulation, but produce a different track result file for
-    # each tracker.  Less redundancy in files, but makes it hard to analyze results.
-
+    # each tracker.  Less redundancy in files, but makes it hard to analyze and display results.
+    #
+    # NOTE: Going with approach 2.
 
     args = parser.parse_args()
-    paramFile = args.directory + os.sep + args.simName + os.sep + "MultiSim.ini"
+    multiDir = args.directory + os.sep + args.multiSim
+    paramFile = multiDir + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     trackConfs = ParamUtils.LoadTrackerParams(args.confFiles, multiSimParams)
 
