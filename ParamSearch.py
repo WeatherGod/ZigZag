@@ -12,14 +12,16 @@ if __name__ == '__main__' :
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME")
     parser.add_argument("tracker", help="The tracker to use", metavar="TRACKER")
-    parser.add_argument("trackconfs", nargs='+',
+    parser.add_argument("confFiles", nargs='+',
                       help="Config files for the parameters for the trackers",
                       metavar="CONF")
 
+    pathStr = '.'
+
     args = parser.parse_args()
-    paramFile = args.simName + os.sep + "MultiSim.ini"
+    paramFile = pathStr + os.sep + args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    trackConfs = ParamUtils.LoadTrackerParams(args.trackConfs.keys(), multiSimParams)
+    trackConfs = ParamUtils.LoadTrackerParams(args.confFiles, multiSimParams)
 
     # Get only the one tracker I want
     trackConfs = {args.tracker: trackConfs.pop(args.tracker)}

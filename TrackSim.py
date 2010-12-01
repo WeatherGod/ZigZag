@@ -216,7 +216,7 @@ def SaveSimulation(theSimulation, simParams, simConfs,
     ParamUtils.SaveSimulationParams(simDir + "simParams.conf", simParams)
     SaveTracks(simDir + simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
     SaveTracks(simDir + simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simDir + simParams['inputDataFile'], simDir + simParams['corner_file'], theSimulation['noisy_volumes'])
+    SaveCorners(simDir + simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'], path=simDir)
     ParamUtils.SaveConfigFile(simDir + simParams['simConfFile'], simConfs)
 
 

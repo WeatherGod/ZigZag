@@ -121,12 +121,12 @@ def LoadTrackerParams(filenames, simParams, trackers=None) :
         partConf = ConfigObj(name, interpolation=False)
         trackConfs.merge(partConf)
 
-    def fakeinterp(section, key, **simParams) :
-        val = section[key]
-        if isinstance(val, str) :
-            section[key] = val % simParams
+    #def fakeinterp(section, key, **simParams) :
+    #    val = section[key]
+    #    if isinstance(val, str) :
+    #        section[key] = val % simParams
     
-    trackConfs.walk(fakeinterp,  call_on_sections=False, **simParams)
+    #trackConfs.walk(fakeinterp,  call_on_sections=False, **simParams)
 
     if trackers is not None :
         raise NotImplementedError("Selecting trackers have not been implemented yet...")
