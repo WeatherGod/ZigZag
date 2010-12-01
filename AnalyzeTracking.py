@@ -24,7 +24,7 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     print skillScores.mean(axis=0).x
 
 def AnalyzeTrackings(simName, simParams, skillNames, path='.') :
-    dirName = path + os.sep + os.path.dirname(simName + os.sep)
+    dirName = path + os.sep + simName
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
@@ -87,16 +87,20 @@ if __name__ == '__main__' :
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
     parser.add_argument("skillNames", nargs="+",
-                        help="The skill measures to use",
+                        help="The skill measures to use (e.g., HSS)",
                         metavar="SKILL")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find SIMNAME",
+                        metavar="DIRNAME", default='.')
 
     args = parser.parse_args()
 
     #skillNames = ['HSS', 'TSS', 'Dur']
 
-    simParams = ParamUtils.ReadSimulationParams(args.simName + os.sep + "simParams.conf")
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
-    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames)
+    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames, path=args.directory)
     analysis = analysis.insertaxis(axis=1, label=args.simName)
     for skill in args.skillNames :
         DisplaySkillScores(analysis.lix[[skill]], skill)

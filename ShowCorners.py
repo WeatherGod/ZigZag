@@ -6,7 +6,7 @@ from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromT
 import ParamUtils           # for ReadSimulationParams()
 
 import argparse                         # Command-line parsing
-import os				# for os.sep.join()
+import os				# for os.sep, os.path
 import glob				# for globbing
 import matplotlib.pyplot as pyplot
 
@@ -17,7 +17,7 @@ parser.add_argument("inputDataFiles", nargs='*',
                     metavar="INDATAFILE")
 
 parser.add_argument("-t", "--track", dest="trackFile",
-                  help="Use TRACKFILE for track data",
+                  help="Use TRACKFILE for determining domain limits.",
                   metavar="TRACKFILE", default=None)
 
 parser.add_argument("-d", "--dir", dest="directory",
@@ -33,18 +33,19 @@ inputDataFiles = []
 titles = []
 
 if args.simName is not None :
-    simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
-    dirName = args.directory + os.sep + os.path.dirname(args.simName + os.sep)
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
     inputDataFiles.append(dirName + os.sep + simParams['inputDataFile'])
     titles.append(args.simName)
 
+# Add on any files specified at the command-line
 inputDataFiles += args.inputDataFiles
 titles += args.inputDataFiles
 
 
 if len(inputDataFiles) == 0 : print "WARNING: No inputDataFiles given or found!"
 
-cornerVolumes = [ReadCorners(inFileName, args.directory)['volume_data'] for inFileName in inputDataFiles]
+cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data'] for inFileName in inputDataFiles]
 
 
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
@@ -82,6 +83,6 @@ for (index, volData) in enumerate(cornerVolumes) :
 
     theAnim.AddCornerVolume(corners)
 
-theAnim.save("test.mp4")
+#theAnim.save("test.mp4")
 
 pyplot.show()

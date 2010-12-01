@@ -34,8 +34,8 @@ trackFiles = []
 trackTitles = []
 
 if args.simName is not None :
-    simParams = ParamUtils.ReadSimulationParams(os.sep.join([args.directory + os.sep + args.simName, "simParams.conf"]))
-    dirName = args.directory + os.sep + os.path.dirname(args.simName + os.sep)
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
     trackFiles = [dirName + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
     trackTitles = simParams['trackers']
 

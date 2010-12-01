@@ -15,11 +15,26 @@ if __name__ == '__main__' :
     parser.add_argument("confFiles", nargs='+',
                       help="Config files for the parameters for the trackers",
                       metavar="CONF")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find SIMNAME",
+                        metavar="DIRNAME", default='.')
 
-    pathStr = '.'
+
+    # Food for thought... two approaches
+    # 1.
+    # Take a single simulation, and makes it into a 'multi-sim' of sorts
+    # Each sub simulation of the multi-sim has the same simulation, but has a
+    # different tracking done to it.
+    # This makes it very easy for MultiAnalysis and other programs to pick up and use,
+    # but it makes a *huge* bloat in files.
+
+    # 2.
+    # Take a single simulation, but produce a different track result file for
+    # each tracker.  Less redundancy in files, but makes it hard to analyze results.
+
 
     args = parser.parse_args()
-    paramFile = pathStr + os.sep + args.simName + os.sep + "MultiSim.ini"
+    paramFile = args.directory + os.sep + args.simName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     trackConfs = ParamUtils.LoadTrackerParams(args.confFiles, multiSimParams)
 
@@ -29,6 +44,7 @@ if __name__ == '__main__' :
     paramVals = [0.9999, 0.999, 0.99, 0.9]
     for val in paramVals :
         trackConfs[args.tracker]['pod'] = val
+
         # TODO: still need to modify the destination of the result files
-        MultiTrack(multiSimParams, trackConfs.dict())
+        MultiTrack(multiSimParams, trackConfs.dict(), path=args.directory)
 

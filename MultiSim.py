@@ -45,12 +45,15 @@ if __name__ == '__main__' :
 
 
     parser = argparse.ArgumentParser(description="Run and track several storm-track simulations")
-    parser.add_argument("simName", type=str,
-                      help="Generate Tracks for SIMNAME",
-                      metavar="SIMNAME", default="NewSim")
+    parser.add_argument("multiSim", type=str,
+                      help="Generate Tracks for MULTISIM",
+                      metavar="MULTISIM", default="NewMulti")
     parser.add_argument("simCnt", type=int,
               help="Repeat Simulation N times.",
               metavar="N", default=1)
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to place MULTISIM",
+                        metavar="DIRNAME", default='.')
 
     ParamUtils.SetupParser(parser)
 
@@ -71,7 +74,7 @@ if __name__ == '__main__' :
 
     multiParams = dict(simCnt=args.simCnt,
                        globalSeed=simParams['seed'],
-                       simName=args.simName)
+                       simName=args.multiSim)
 
-    MultiSimulation(multiParams, simConfs, simParams)
+    MultiSimulation(multiParams, simConfs, simParams, path=args.directory)
 

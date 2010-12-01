@@ -6,16 +6,17 @@ import la
 
 def MultiAnalyze(multiSimParams, skillNames, path='.') :
     completeAnalysis = None
+    multiDir = path + os.sep + multiSimParams['simName']
 
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%.3d" % index
-        dirName = path + os.sep + multiSimParams['simName'] + os.sep + simName
+        dirName = multiDir + os.sep + simName
         print "Sim:", simName
         simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
 
 
-        analysis = AnalyzeTrackings(simName, simParams, skillNames)
+        analysis = AnalyzeTrackings(simName, simParams, skillNames, path=multiDir)
         analysis = analysis.insertaxis(axis=1, label=simName)
         if completeAnalysis is None :
             completeAnalysis = analysis
@@ -33,9 +34,12 @@ if __name__ == "__main__" :
 
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
-    parser.add_argument("simName",
-                      help="Analyze tracks for SIMNAME",
-                      metavar="SIMNAME", default="NewSim")
+    parser.add_argument("multiSim",
+                      help="Analyze tracks for MULTISIM",
+                      metavar="MULTISIM", default="NewMulti")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find MULTISIM",
+                        metavar="DIRNAME", default='.')
     parser.add_argument("skillNames", nargs="+",
                         help="The skill measures to use",
                         metavar="SKILL")
@@ -49,9 +53,10 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    paramFile = args.simName + os.sep + "MultiSim.ini"
+    dirName = args.directory + os.sep + args.multiSim
+    paramFile = dirName + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-    completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames)
+    completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames, path=args.directory)
 
     for skillname in args.skillNames :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,

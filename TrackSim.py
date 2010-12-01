@@ -230,10 +230,12 @@ if __name__ == '__main__' :
     parser.add_argument("simName",
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to place SIMNAME",
+                        metavar="DIRNAME", default='.')
     ParamUtils.SetupParser(parser)
 
     args = parser.parse_args()
-
 
     simParams = ParamUtils.ParamsFromOptions(args)
 
@@ -248,5 +250,5 @@ if __name__ == '__main__' :
 
     theSimulation = SingleSimulation(simConfs, **simParams)
 
-    SaveSimulation(theSimulation, simParams, simConfs)
+    SaveSimulation(theSimulation, simParams, simConfs, path=args.directory)
 

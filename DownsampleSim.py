@@ -7,13 +7,13 @@ import ParamUtils
 import numpy as np
 
 
-def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
+def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, path='.') :
 
     # Create the simulation directory.
-    if (not os.path.exists(newName)) :
-        os.makedirs(newName)
+    if (not os.path.exists(path + os.sep + newName)) :
+        os.makedirs(path + os.sep + newName)
     else :
-        raise ValueError("%s is an existing simulation!" % newName)
+        raise ValueError("%s is an existing simulation!" % path + os.sep + newName)
 
     # FIXME: This isn't quite right, but it might be easily fixed.
     #        Heck, it might actually already be right.
@@ -60,12 +60,12 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks) :
     #simParams['noisyTrackFile'] = simParams['noisyTrackFile'].replace(simName, newName, 1)
     
 
-
-    ParamUtils.SaveSimulationParams(simParams['simName'] + os.sep + "simParams.conf", simParams)
-    SaveTracks(simParams['simName'] + os.sep + simParams['simTrackFile'], *origTracks)
-    SaveTracks(simParams['simName'] + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)
-    SaveCorners(simParams['simName'] + os.sep + simParams['inputDataFile'],
-                simParams['simName'] + os.sep + simParams['corner_file'], volData)    
+    dirName = path + os.sep + simParams['simName']
+    ParamUtils.SaveSimulationParams(dirName + os.sep + "simParams.conf", simParams)
+    SaveTracks(dirName + os.sep + simParams['simTrackFile'], *origTracks)
+    SaveTracks(dirName + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)
+    SaveCorners(dirName + os.sep + simParams['inputDataFile'],
+                dirName + os.sep + simParams['corner_file'], volData)    
 
 
 
@@ -79,20 +79,21 @@ if __name__ == "__main__" :
               metavar="SIMNAME")
     parser.add_argument("newName",
               help="Name of the new simulation",
-              metavar="SIMNAME")
+              metavar="NEWNAME")
     parser.add_argument("skipCnt", type=int,
               help="Skip CNT frames for downsampling",
               metavar="CNT")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find SIMNAME and NEWNAME",
+                        metavar="DIRNAME", default='.')
 
     args = parser.parse_args()
 
-    # Probably will have this be settable at the command-line
-    path = '.'
-
-    simParams = ParamUtils.ReadSimulationParams(path + os.sep + args.simName + os.sep + 'simParams.conf')
-    dirName = path + os.sep + args.simName
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
     origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
     noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
 
     DownsampleTracks(args.skipCnt, args.simName, args.newName, simParams,
-                     origTrackData, noisyTrackData)
+                     origTrackData, noisyTrackData, path=args.directory)
+

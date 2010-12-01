@@ -6,20 +6,20 @@ from DoTracking import SingleTracking
 import ParamUtils     # for reading simParams files
 
 def MultiTrack(multiSimParams, trackConfs, path='.') :
-    dirName = path + os.sep + multiSimParams['simName']
+    multiDir = path + os.sep + multiSimParams['simName']
 
     simCnt = int(multiSimParams['simCnt'])
 
     for index in range(simCnt) :
         simName = "%.3d" % index
         print "Sim:", simName
-        paramFile = dirName + os.sep + simName + os.sep + "simParams.conf"
+        paramFile = multiDir + os.sep + simName + os.sep + "simParams.conf"
         simParams = ParamUtils.ReadSimulationParams(paramFile)
 
         # A copy of trackConfs is used here because the tracker calls could
         # modify the contents of trackConfs, and we don't want those changes
         # to propagate to subsequent calls to SingleTracking()
-        SingleTracking(paramFile, simParams, trackConfs.copy(), path=dirName)
+        SingleTracking(paramFile, simParams, trackConfs.copy(), path=multiDir)
 
 
 if __name__ == '__main__' :
