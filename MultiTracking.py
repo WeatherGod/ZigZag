@@ -39,7 +39,8 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    paramFile = args.directory + os.sep + args.multiSim + os.sep + "MultiSim.ini"
+    multiDir = args.directory + os.sep + args.multiSim
+    paramFile = multiDir + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
 
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, multiSimParams)

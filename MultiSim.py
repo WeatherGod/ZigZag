@@ -10,13 +10,13 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
     # Seed the PRNG
     numpy.random.seed(multiParams['globalSeed'])
 
-    dirName = path + os.sep + multiParams['simName']
+    multiDir = path + os.sep + multiParams['simName']
 
     # Create the multi-sim directory
-    if (not os.path.exists(dirName)) :
-        os.makedirs(dirName)
+    if (not os.path.exists(multiDir)) :
+        os.makedirs(multiDir)
 
-    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (dirName, os.sep),
+    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (multiDir, os.sep),
                                     multiParams)
 
     # Get the seeds that will be used for each sub-simulation
@@ -36,7 +36,7 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
         theSim = SingleSimulation(simConfs, **simParams)
         SaveSimulation(theSim, simParams, simConfs,
-                       path=dirName)
+                       path=multiDir)
 
 
 if __name__ == '__main__' :

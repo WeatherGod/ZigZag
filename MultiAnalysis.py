@@ -53,8 +53,8 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    dirName = args.directory + os.sep + args.multiSim
-    paramFile = dirName + os.sep + "MultiSim.ini"
+    multiDir = args.directory + os.sep + args.multiSim
+    paramFile = multiDir + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames, path=args.directory)
 

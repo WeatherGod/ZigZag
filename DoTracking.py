@@ -32,8 +32,8 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-
-    simFile = args.directory + os.sep + args.simName + os.sep + "simParams.conf"
+    dirName = args.directory + os.sep + args.simName
+    simFile = dirName + os.sep + "simParams.conf"
     simParams = ParamUtils.ReadSimulationParams(simFile)
     
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, simParams)
