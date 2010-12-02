@@ -125,6 +125,27 @@ class CornerAnimation(FuncAnimation) :
 #############################################
 #           Animation Code                  #
 #############################################
+def AnimateTracks(figure, tracks, trackData, frameCnt,
+                  tail=None, **kwargs) :
+    if tail is None :
+        tail = frameCnt
+
+    def update_tracks(idx, trackData, tracks, tail) :
+        startTail = idx - tail
+
+        for (index, (line, aSeg)) in enumerate(zip(tracks, trackData)) :
+            mask = numpy.logical_and(aSeg['frameNums'] <= idx,
+                                     aSeg['frameNums'] >= startTail)
+
+            line.set_xdata(aSeg['xLocs'][mask])
+            line.set_ydata(aSeg['yLocs'][mask])
+        return tracks
+
+    return FuncAnimation(figure, update_tracks,
+                      frameCnt, fargs=(trackData, tracks, tail),
+                      **kwargs)
+
+
 def AnimateLines(lines, lineData, startFrame, endFrame, 
                  figure=None, axis=None,
                  speed=1.0, loop_hold=2.0, tail=None, event_source=None) :
