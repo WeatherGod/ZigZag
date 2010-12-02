@@ -59,7 +59,7 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    simParams = ParamUtils.ParamsFromOptions(args)
+    simParams = ParamUtils.ParamsFromOptions(args, args.multiSim)
 
     if args.simCnt <= 0 :
         parser.error("ERROR: Invalid N value: %d" % (args.simCnt))
