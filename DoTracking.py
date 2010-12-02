@@ -5,14 +5,22 @@ import ParamUtils	  # for reading simParams files
 
 
 def SingleTracking(simFile, simParams, trackConfs, path='.') :
-    simParams['trackers'] = trackConfs.keys()
-    # We want this simulation to know which trackers they used.
-    ParamUtils.SaveSimulationParams(simFile, simParams.copy())
+    #simParams['trackers'] = trackConfs.keys()
 
     for trackRun in trackConfs :
         tracker = trackConfs[trackRun]['algorithm']
         Trackers.trackerList[tracker](trackRun, simParams.copy(), trackConfs[trackRun].copy(),
                                       returnResults=False, path=path)
+
+        # We want this simulation to know which trackers they used,
+        # so we will update the file after each successful tracking operation.
+        # Note that we still want an ordered, unique list, henced the use of
+        # set() and .sort()
+        simParams['trackers'].append(trackRun)
+        tempHold = list(set(simParams['trackers']))
+        tempHold.sort()
+        simParams['trackers'] = tempHold
+        ParamUtils.SaveSimulationParams(simFile, simParams)
 
 
 if __name__ == "__main__" :

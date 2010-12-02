@@ -15,7 +15,7 @@ simDefaults = dict( frameCnt = 12,
         		    xLims = [0.0, 255.0],
 		            yLims = [0.0, 255.0])
 
-trackerDefaults = dict( trackers = ['SCIT'],
+trackerDefaults = dict( trackers = [],
                         corner_file = "corners",
 		                inputDataFile = "InputDataFile",
 		                result_file = "testResults")
@@ -233,14 +233,16 @@ def SimGroup(parser) :
 
 
 def TrackerGroup(parser) :
-    # TODO: Likely will end up in a separate module, or portion
     group = parser.add_argument_group("Tracker Options",
-                        "Options for controlling the trackers.")
+                        "Options for controlling the input and output of the trackers.")
 
-    group.add_argument("-t", "--tracker", dest="trackers", type=str,
-		     action="append",
-                     help="Tracking algorithms to use, in addition to SCIT.  (Ex: MHT)",
-                     metavar="TRACKER", default = trackerDefaults['trackers'])
+    # Commenting this out for now because I think I want this to be
+    # controled by the Tracking programs to update the parameters on
+    # which trackers were used.
+#    group.add_argument("-t", "--tracker", dest="trackers", type=str,
+#		     action="append",
+#                     help="Tracking models to use. (Ex: MHT, SCIT)",
+#                     metavar="TRACKER", default = trackerDefaults['trackers'])
 
     group.add_argument("--corner", dest="corner_file", type=str,
 		     help="Corner filename stem. (default = %(default)s)",
@@ -252,7 +254,7 @@ def TrackerGroup(parser) :
 
     group.add_argument("--result", dest="result_file", type=str,
 		     help="Tracker filename stem for results. (default = %(default)s)",
-		     metavar="FILE", default=trackerDefaults['result_file'])
+		     metavar="RESULT", default=trackerDefaults['result_file'])
 
     return group
 
@@ -276,6 +278,7 @@ def ParamsFromOptions(options, simName = None) :
     if options.endTrackProb < 0. :
         parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
 
+    # TODO: Maybe this can be turned into a dict comprehension?
     return dict(corner_file = options.corner_file,
 		inputDataFile = options.inputDataFile,
 		result_file = options.result_file,
@@ -283,7 +286,11 @@ def ParamsFromOptions(options, simName = None) :
 		noisyTrackFile = options.noisyTrackFile,
         simConfFile = options.simConfFile,
         simName = simName,
-		trackers = options.trackers,
+        # Commenting this out for now to examine the possibility
+        # of internally handling this value, so we will set
+        # it to an empty list for now.
+		#trackers = options.trackers,
+        trackers = [],
         totalTracks = options.totalTracks,
         endTrackProb = options.endTrackProb,
         frameCnt = options.frameCnt,
