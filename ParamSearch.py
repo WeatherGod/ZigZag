@@ -11,6 +11,7 @@ import numpy as np
 if __name__ == '__main__' :
     import argparse
     import os           # for os.sep
+    from configobj import ConfigObj
 
     # --------------------------------------------
     #  Functions and Argument Action classes for advanced handling
@@ -148,7 +149,9 @@ if __name__ == '__main__' :
         trackConfs[args.tracker + '_' + trackrun] = aConf
 
 
-    
+    config = ConfigObj(trackConfs, interpolation=False)
+    config.filename = args.paramFile
+    config.write()
 
 
         # TODO: still need to modify the destination of the result files
