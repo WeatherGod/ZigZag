@@ -5,25 +5,65 @@ from TrackFileUtils import *
 import numpy
 import Analyzers
 from la import larry        # Labeled arrays
+import fnmatch              # for glob-like pattern-matching (but without real files)
+
+def ExpandTrackRuns(allTrackRuns, requestedRuns) :
+    """
+    Some requested runs may have glob-like search expressions.
+    This resolves those expressions and returns a list of requested
+    runs fully qualified.
+    """
+    expandedAll = []
+    for aRun in requestedRuns :
+        matches = fnmatch.filter(allTrackRuns, aRun)
+        if len(matches) == 0 :
+            raise ValueError("Could not find a track to match: " + aRun)
+        expandedAll.extend(matches)
+
+    return expandedAll
+
 
 def DisplaySkillScores(skillScores, skillScoreName) :
-#    print skillScores
+    """
+    Display the skill score results in a neat manner.
 
-    print skillScoreName
+    Note, this function messes around with the formatting options
+    of printing numpy arrays.  It does restore the settings back to
+    the numpy defaults, but if you had your own formatting specified
+    before calling this function, you will need to reset it.
+    """
 
-    print "      " + '  '.join(["%7s" % tracker for tracker in skillScores.label[-1]])
-    #for (index, vals) in enumerate(zip(*skillScores.x)) :
-    #    print ("%3d.  " % index) + \
-    #          '  '.join(['%7.4f' % aVal for aVal in vals])
-    print skillScores.x
+    numpy.set_string_function(lambda x: '\n'.join(['  '.join(["% 11.8f" % val for val in row])
+                                                                              for row in x]),
+                              repr=True)
+
+    # Print the last eleven characters of each trackrun name for
+    # the column labels.
+    print '  '.join(["%11.11s" % tracker[-11:] for tracker in skillScores.label[-1]])
+
+    print repr(skillScores.x)
+
+    print "-" * (11*skillScores.shape[1] + 2*(skillScores.shape[1] - 1))
+    numpy.set_string_function(lambda x: '  '.join(["% 11.8f" % val for val in x]),
+                              repr=True)
+    print repr(skillScores.mean(axis=0).x)
+
+    # Resetting back to how it was
+    numpy.set_string_function(None, repr=True)
 
 
-    print "-" * (6 + 7*(skillScores.shape[1] - 1) + 7)
-    #print "AVG   " + '  '.join(['%7.4f' % sum(scores)/len(scores)
-    #                            for scores in skillScores.x])
-    print skillScores.mean(axis=0).x
+def AnalyzeTrackings(simName, simParams, skillNames,
+                     trackRuns=None, path='.') :
 
-def AnalyzeTrackings(simName, simParams, skillNames, path='.') :
+    if trackRuns is None :
+        # If the user does not specify any trackruns
+        # to analyze, then just do all of them.
+        trackRuns = simParams['trackers']
+
+    # We only want to process the trackers as specified by the user
+    # This change in simParams should *not* get saved!
+    simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], trackRuns)
+
     dirName = path + os.sep + simName
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
     true_AssocSegs = CreateSegments(true_tracks)
@@ -89,6 +129,9 @@ if __name__ == '__main__' :
     parser.add_argument("skillNames", nargs="+",
                         help="The skill measures to use (e.g., HSS)",
                         metavar="SKILL")
+    parser.add_argument("-t", "--trackruns", dest="trackRuns",
+                        nargs="*", help="Trackruns to analyze.  Analyze all runs if none are given",
+                        metavar="RUN", default=None)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME",
                         metavar="DIRNAME", default='.')
@@ -100,7 +143,10 @@ if __name__ == '__main__' :
     dirName = args.directory + os.sep + args.simName
     simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
-    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames, path=args.directory)
+
+
+    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
+                                trackRuns=args.trackRuns, path=args.directory)
     analysis = analysis.insertaxis(axis=1, label=args.simName)
     for skill in args.skillNames :
         DisplaySkillScores(analysis.lix[[skill]], skill)
