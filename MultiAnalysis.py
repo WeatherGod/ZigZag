@@ -5,6 +5,9 @@ import ParamUtils
 import la
 import os           # for os.sep
 from ListRuns import ExpandTrackRuns
+import numpy as np
+import bootstrap as btstrp
+
 
 def FindCommonTrackRuns(simCnt, multiDir) :
     allTrackRuns = []
@@ -54,12 +57,30 @@ def MultiAnalyze(multiSimParams, skillNames,
             completeAnalysis = completeAnalysis.merge(analysis)
 
     return completeAnalysis
+
+def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
+    booting = btstrp.bootstrap(n_boot, np.mean, analysisInfo, axis=0)
+    btmean = booting.mean(axis=0)
+    btci = btstrp.bootci(n_boot, np.mean, analysisInfo, alpha=ci_alpha, axis=0)
+
+    return btmean, btci
+
+
+
+def MakeErrorBars(bootMeans, bootCIs, trackRuns, ax) :
+    ax.errorbar(np.arange(len(trackRuns)) + 1,
+          bootMeans, yerr=numpy.array([bootMeans - bootCIs[0],
+                                       bootCIs[1] - bootMeans]),
+                  fmt='.', ecolor='k', elinewidth=2.0, capsize=5, markersize=10, color='k')
+    ax.set_xticks(np.arange(len(trackRuns)) + 1)
+    ax.set_xticklabels(trackRuns, fontsize='medium')
+    ax.set_xlim((0.5, len(trackRuns) + 0.5))
  
 
 
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
-
+    import matplotlib.pyplot as plt
 
 
 
@@ -86,15 +107,29 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
+    n_boot = 100
+    ci_alpha = 0.05
+
     multiDir = args.directory + os.sep + args.multiSim
     paramFile = multiDir + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames,
                                     trackRuns=args.trackRuns, path=args.directory)
 
+    trackRuns = completeAnalysis.label[-1]
+    shortNames = [runname[-11:] for runname in trackRuns]
+
     for skillname in args.skillNames :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
                         compareTo=args.compareTo)
         print "\n\n"
-       
+
+        btmean, btci = Bootstrapping(n_boot, ci_alpha, completeAnalysis.lix[[skillname]].x)
+
+        fig = plt.figure()
+        ax = fig.gca()
+        
+        MakeErrorBars(btmean, btci, shortNames, ax=ax)
+        
+    plt.show()
