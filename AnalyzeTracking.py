@@ -6,6 +6,7 @@ import numpy
 import Analyzers
 from la import larry        # Labeled arrays
 import fnmatch              # for glob-like pattern-matching (but without real files)
+import bootstrap as btstrp
 
 def ExpandTrackRuns(allTrackRuns, requestedRuns) :
     """
@@ -46,7 +47,13 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     print "-" * (11*skillScores.shape[1] + 2*(skillScores.shape[1] - 1))
     numpy.set_string_function(lambda x: '  '.join(["% 11.8f" % val for val in x]),
                               repr=True)
-    print repr(skillScores.mean(axis=0).x)
+    bootmean = btstrp.bootstrap(25, numpy.mean, skillScores.x, axis=0)
+    btmean = bootmean.mean(axis=0)
+    bootci = btstrp.bootci(25, numpy.mean, skillScores.x, alpha=0.05, axis=0)
+#    print repr(skillScores.mean(axis=0).x)
+    print repr((bootci[0] - btmean))
+    print repr(btmean)
+    print repr((bootci[1] - btmean))
 
     # Resetting back to how it was
     numpy.set_string_function(None, repr=True)
