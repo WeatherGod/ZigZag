@@ -5,24 +5,8 @@ from TrackFileUtils import *
 import numpy
 import Analyzers
 from la import larry        # Labeled arrays
-import fnmatch              # for glob-like pattern-matching (but without real files)
 import bootstrap as btstrp
-
-def ExpandTrackRuns(allTrackRuns, requestedRuns) :
-    """
-    Some requested runs may have glob-like search expressions.
-    This resolves those expressions and returns a list of requested
-    runs fully qualified.
-    """
-    expandedAll = []
-    for aRun in requestedRuns :
-        matches = fnmatch.filter(allTrackRuns, aRun)
-        if len(matches) == 0 :
-            raise ValueError("Could not find a track to match: " + aRun)
-        expandedAll.extend(matches)
-
-    return expandedAll
-
+from ParamUtils import ExpandTrackRuns
 
 def DisplaySkillScores(skillScores, skillScoreName) :
     """
