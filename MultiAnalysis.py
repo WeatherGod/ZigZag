@@ -11,7 +11,7 @@ import bootstrap as btstrp
 def FindCommonTrackRuns(simCnt, multiDir) :
     allTrackRuns = []
 
-    for index in range(int(multiSimParams['simCnt'])) :
+    for index in range(simCnt) :
         simName = "%.3d" % index
         dirName = multiDir + os.sep + simName
         simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
@@ -53,14 +53,17 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
 
 
 
-def MakeErrorBars(bootMeans, bootCIs, trackRuns, ax) :
-    ax.errorbar(np.arange(len(trackRuns)) + 1,
-          bootMeans, yerr=numpy.array([bootMeans - bootCIs[0],
-                                       bootCIs[1] - bootMeans]),
+def MakeErrorBars(bootMeans, bootCIs, barLabels, ax, startLoc=1) :
+    """
+    bootCIs[1] is the lower end of the confidence interval
+    while bootCIs[0] is the upper end of the confidence interval.
+    """
+    xlocs = np.linspace(0.1, 0.9, len(barLabels)) + startLoc
+    ax.errorbar(xlocs,
+          bootMeans, yerr=numpy.array([bootMeans - bootCIs[1],
+                                       bootCIs[0] - bootMeans]),
                   fmt='.', ecolor='k', elinewidth=2.0, capsize=5, markersize=10, color='k')
-    ax.set_xticks(np.arange(len(trackRuns)) + 1)
-    ax.set_xticklabels(trackRuns, fontsize='medium')
-    ax.set_xlim((0.5, len(trackRuns) + 0.5))
+
  
 
 
@@ -117,11 +120,10 @@ if __name__ == "__main__" :
     if (args.trackRuns is not None) and (len(args.trackRuns) != len(trackRuns)) :
         trackRuns.sort()
  
+    shortNames = [runname[-11:] for runname in trackRuns]
+
     completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames,
                                     trackRuns=trackRuns, path=args.directory)
-
-    trackRuns = completeAnalysis.label[-1]
-    shortNames = [runname[-11:] for runname in trackRuns]
 
     for skillname in args.skillNames :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
@@ -135,5 +137,8 @@ if __name__ == "__main__" :
         ax = fig.gca()
         
         MakeErrorBars(btmean, btci, shortNames, ax=ax)
+        ax.set_xticks(np.linspace(0.1, 0.9, len(shortNames)) + 1)
+        ax.set_xticklabels(shortNames, fontsize='medium')
+        ax.set_xlim((0.5, len(shortNames) + 0.5))
         
     plt.show()
