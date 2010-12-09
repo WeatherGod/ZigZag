@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os                   # for os.sep
 from TrackUtils import *
 from TrackFileUtils import *
 import numpy
@@ -109,7 +110,6 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 
 if __name__ == '__main__' :
     import argparse
-    import os                   # for os.sep
     import ParamUtils
 
 

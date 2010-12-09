@@ -3,6 +3,7 @@
 from AnalyzeTracking import *
 import ParamUtils
 import la
+import os           # for os.sep
 
 def FindCommonTrackRuns(simCnt, multiDir) :
     allTrackRuns = []
@@ -57,7 +58,7 @@ def MultiAnalyze(multiSimParams, skillNames,
 
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
-    import os           # for os.sep
+
 
 
 
