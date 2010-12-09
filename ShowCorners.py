@@ -19,12 +19,14 @@ parser.add_argument("inputDataFiles", nargs='*',
 parser.add_argument("-t", "--track", dest="trackFile",
                   help="Use TRACKFILE for determining domain limits.",
                   metavar="TRACKFILE", default=None)
-
+parser.add_argument("-l", "--layout", dest="layout", type=int,
+                    nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
+                    metavar="NUM", default=None)
 parser.add_argument("-d", "--dir", dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")
 parser.add_argument("-s", "--simName", dest="simName",
-          help="Use data from the simulation SIMNAME for domain limits",
+          help="Use data from the simulation SIMNAME.",
           metavar="SIMNAME", default=None)
 
 args = parser.parse_args()
@@ -44,6 +46,9 @@ titles += args.inputDataFiles
 
 
 if len(inputDataFiles) == 0 : print "WARNING: No inputDataFiles given or found!"
+
+if args.layout is None :
+    args.layout = (1, len(inputDataFiles))
 
 cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data'] for inFileName in inputDataFiles]
 
@@ -68,7 +73,7 @@ theAnim = CornerAnimation(theFig, frameLims[1] - frameLims[0] + 1,
                           interval=250, blit=True)
 
 for (index, volData) in enumerate(cornerVolumes) :
-    curAxis = theFig.add_subplot(1, len(inputDataFiles), index + 1)
+    curAxis = theFig.add_subplot(args.layout[0], args.layout[1], index + 1)
 
     corners = PlotCorners(volData, frameLims, axis=curAxis)
 

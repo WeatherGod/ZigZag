@@ -21,6 +21,9 @@ parser.add_argument("-t", "--truth", dest="truthTrackFile",
 parser.add_argument("-r", "--trackruns", dest="trackRuns",
                     nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
                     metavar="RUN", default=None)
+parser.add_argument("-l", "--layout", dest="layout", type=int,
+                    nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
+                    metavar="NUM", default=None)
 parser.add_argument("-d", "--dir", dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")
@@ -55,6 +58,9 @@ trackTitles += args.trackFiles
 
 if len(trackFiles) == 0 : print "WARNING: No trackFiles given or found!"
 
+if args.layout is None :
+    args.layout = (1, len(trackFiles))
+
 trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
 
@@ -84,7 +90,7 @@ else :
     (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
 for (index, aTracker) in enumerate(trackerData) :
-    curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
+    curAxis = theFig.add_subplot(args.layout[0], args.layout[1], index + 1)
 
     if true_AssocSegs is not None and true_FAlarmSegs is not None :
         trackAssocSegs = CreateSegments(aTracker[0])
