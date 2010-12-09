@@ -8,15 +8,17 @@ from matplotlib.animation import FuncAnimation
 #------------------------
 
 import numpy
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
 import matplotlib.collections as mcoll
 
 #################################
 #		Segment Plotting        #
 #################################
 def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
+    return PlotTrack(lineSegs, tLims, axis=axis, **kwargs)
+    """
     if (axis is None) :
-       axis = pyplot.gca()
+       axis = plt.gca()
 
     tLower = min(tLims)
     tUpper = max(tLims)
@@ -29,11 +31,12 @@ def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
 			       **kwargs)[0])
 
     return lines
+    """
 
 def PlotSegments(truthTable, tLims,
 	         axis=None, width=4.0, **kwargs) :
     if axis is None :
-        axis = pyplot.gca()
+        axis = plt.gca()
 
     tableSegs = {}
 
@@ -64,7 +67,7 @@ def PlotSegments(truthTable, tLims,
 
 def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=None, **kwargs) :
     if figure is None :
-        figure = pyplot.gcf()
+        figure = plt.gcf()
 
     if axis is None :
         axis = figure.gca()
@@ -85,45 +88,85 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=Non
 #############################################
 def PlotCorners(volData, tLims, axis=None, **kwargs) :
     if axis is None :
-        axis = pyplot.gca()
+        axis = plt.gca()
 
     corners = []
     for aVol in volData :
         if aVol['volTime'] >= min(tLims) and aVol['volTime'] <= max(tLims) :
-            corners.append(axis.scatter(aVol['stormCells']['xLocs'],
-                                        aVol['stormCells']['yLocs'], s=1, **kwargs))
+            newitem = mcoll.CircleCollection([1], offsets=zip(aVol['stormCells']['xLocs'],
+                                                              aVol['stormCells']['yLocs']),
+                                             transOffset=axis.transData, **kwargs)
+            axis.add_collection(newitem)
         else :
             # an empty circle collection
-            corners.append(mcoll.CircleCollection([], offsets=zip([], [])))
+            newitem = mcoll.CircleCollection([], offsets=zip([], []), transOffset=axis.transData)
+
+        axis.add_collection(newitem)
+        corners.append(newitem)
 
     return corners
 
-class CornerAnimation(FuncAnimation) :
+class GeneralTrackAnim(FuncAnimation) :
     def __init__(self, figure, frameCnt, **kwargs) :
-        self._allcorners = []
-        self._flatcorners = []
+        self._allitems = []
+        self._flatitems = []
         self._myframeCnt = frameCnt
+        self._init_vis_state = True
 
-        FuncAnimation.__init__(self, figure, self.update_corners,
-                                     frameCnt, fargs=(self._allcorners,),
+        FuncAnimation.__init__(self, figure, self._update_items,
+                                     frameCnt, fargs=(self._allitems,),
                                      **kwargs)
 
-    def update_corners(self, idx, corners) :
+    def _update_items(self, idx, items) :
+        raise NotImplementedError("Derived class must implement this")
+
+    def _init_draw(self) :
+        for anItem in self._flatitems :
+            anItem.set_visible(self._init_vis_state)
+
+class CornerAnimation(GeneralTrackAnim) :
+    def __init__(self, figure, frameCnt, **kwargs) :
+        GeneralTrackAnim.__init__(self, figure, frameCnt, **kwargs)
+        self._init_vis_state = False
+
+    def _update_items(self, idx, corners) :
         for index, scatterCol in enumerate(zip(*corners)) :
             for aCollection in scatterCol :
                 aCollection.set_visible(index == idx)
             
-        return self._flatcorners
+        return self._flatitems
 
     def AddCornerVolume(self, corners) :
         if len(corners) > self._myframeCnt :
             self._myframeCnt = len(corners)
-        self._allcorners.append(corners)
-        self._flatcorners.extend(corners)
+        self._allitems.append(corners)
+        self._flatitems.extend(corners)
 
-    def _init_draw(self) :
-        for aColl in self._flatcorners :
-            aColl.set_visible(False)
+
+class TruthTableAnimation(GeneralTrackAnim) :
+    def __init__(self, figure, frameCnt, **kwargs) :
+        GeneralTrackAnim.__init__(self, figure, frameCnt, **kwargs)
+        self._init_vis_state = True
+
+    def _update_items(self, idx, vols) :
+        #print "Another Update!", idx
+        for index, lines in enumerate(vols) :
+            isVis = (index <= idx)
+            #print isVis
+            for aLine in lines :
+                aLine.set_visible(isVis)
+
+        return self._flatitems
+
+    def AddTruthTable(self, segVols) :
+        if len(segVols) > len(self._allitems) :
+            # extend the frames in _allitems by the difference in length
+            self._allitems.extend([[]] * (len(segVols) - len(self._allitems)))
+            self._myframeCnt = len(segVols)
+
+        for aVol, newVol in zip(self._allitems, segVols) :
+            aVol.extend(newVol)
+            self._flatitems.extend(newVol)
 
 #############################################
 #           Animation Code                  #
@@ -133,7 +176,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
                  speed=1.0, loop_hold=2.0, tail=None, event_source=None) :
 
     if figure is None :
-        figure = pyplot.gcf()
+        figure = plt.gcf()
 
     if axis is None :
         axis = figure.gca()
@@ -161,9 +204,61 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 ###################################################
 #		Track Plotting                            #
 ###################################################
+def PlotTrackVol(segs, frameLims, axis=None, **kwargs) :
+    if axis is None :
+        axis = plt.gca()
+
+    frames = numpy.arange(min(frameLims), max(frameLims) + 1)
+
+    volSegs = []
+    for frameIndex in frames :
+        currSegs = [plt.Line2D(aSeg['xLocs'], aSeg['yLocs'], **kwargs)
+                    for aSeg in segs
+                    if aSeg['frameNums'][0] == frameIndex]
+        
+        for aSeg in currSegs :
+            axis.add_line(aSeg)
+        volSegs.append(currSegs)
+
+    return volSegs
+
+def PlotTruthTable(truthTable, frameLims, axis=None, **kwargs) :
+    if axis is None :
+        axis = plt.gca()
+
+    width = 2
+
+    # Correct Stuff
+    assocs_Correct = PlotTrackVol(truthTable['assocs_Correct'], frameLims, axis,
+                                  linewidth=width, color= 'green',
+                          marker=' ',
+                          zorder=1, **kwargs)
+    falarms_Correct = PlotTrackVol(truthTable['falarms_Correct'], frameLims, axis,
+                                   color='lightgreen', linestyle=' ',
+                           marker='.', markersize=2*width,
+                           zorder=1, **kwargs)
+
+    # Wrong Stuff
+    falarms_Wrong = PlotTrackVol(truthTable['falarms_Wrong'], frameLims, axis,
+                                 linewidth=width, color='gray', linestyle='-.',
+                         dash_capstyle = 'round',
+                         marker=' ', #markersize = 2*width,
+                         zorder=2, **kwargs)
+    assocs_Wrong = PlotTrackVol(truthTable['assocs_Wrong'], frameLims, axis,
+                            linewidth=width, color='red',
+                        marker=' ',
+                        zorder=2, **kwargs)
+
+    volColls = [C + F + M + N for C, F, M, N in zip(assocs_Correct, assocs_Wrong,
+                                                    falarms_Wrong, falarms_Correct)]
+
+    return volColls
+
+
+
 def PlotTrack(tracks, tLims, axis=None, **kwargs) :
     if axis is None :
-        axis = pyplot.gca()
+        axis = plt.gca()
 
     startFrame = min(tLims)
     endFrame = max(tLims)
@@ -172,8 +267,10 @@ def PlotTrack(tracks, tLims, axis=None, **kwargs) :
     for aTrack in tracks :
         mask = numpy.logical_and(aTrack['frameNums'] <= endFrame,
                                  aTrack['frameNums'] >= startFrame)
-        lines.append(axis.plot(aTrack['xLocs'][mask], aTrack['yLocs'][mask],
-			       **kwargs)[0])
+        newLine = plt.Line2D(aTrack['xLocs'][mask], aTrack['yLocs'][mask],
+                             **kwargs)
+        axis.add_line(newLine)
+        lines.append(newLine)
 
     return lines
 
@@ -182,7 +279,7 @@ def PlotTrack(tracks, tLims, axis=None, **kwargs) :
 def PlotTracks(true_tracks, model_tracks, tLims, startFrame=None, endFrame=None,
 	       axis=None, animated=False) :
     if axis is None :
-        axis = pyplot.gca()
+        axis = plt.gca()
 
     if startFrame is None : startFrame = min(tLims)
     if endFrame is None : endFrame = max(tLims)
@@ -199,7 +296,7 @@ def PlotTracks(true_tracks, model_tracks, tLims, startFrame=None, endFrame=None,
 
 def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis=None, animated=False) :
     if axis is None :
-        axis = pyplot.gca()
+        axis = plt.gca()
 
     if startFrame is None : startFrame = min(tLims)
     if endFrame is None : endFrame = max(tLims)
@@ -216,7 +313,7 @@ def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis
 def Animate_Tracks(true_tracks, model_tracks, tLims, 
                    axis=None, figure=None, event_source=None, **kwargs) :
     if figure is None :
-        figure = pyplot.gcf()
+        figure = plt.gcf()
 
     if axis is None :
         axis = figure.gca()
@@ -236,7 +333,7 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
 def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
                         axis=None, event_source=None, **kwargs) :
     if figure is None :
-        figure = pyplot.gcf()
+        figure = plt.gcf()
 
     if axis is None :
         axis = figure.gca()

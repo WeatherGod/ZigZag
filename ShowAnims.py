@@ -54,12 +54,6 @@ trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFil
 # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
 theFig = pyplot.figure(figsize = (11, 5))
 
-# store the animations in this list to prevent them from going out of scope and GC'ed
-anims = []
-
-# A common timer for all animations for syncing purposes.
-theTimer = None
-
 if args.truthTrackFile is not None :
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
@@ -76,6 +70,9 @@ else :
         stackedTracks += aTracker[0] + aTracker[1]
     (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
+theAnim = TruthTableAnimation(theFig, frameLims[1] - frameLims[0] + 1,
+                              interval=100, blit=True)
+
 for (index, aTracker) in enumerate(trackerData) :
     curAxis = theFig.add_subplot(1, len(trackFiles), index + 1)
 
@@ -83,14 +80,16 @@ for (index, aTracker) in enumerate(trackerData) :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-        l = Animate_Segments(truthtable, frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+#        l = Animate_Segments(truthtable, frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+        tablePlot = PlotTruthTable(truthtable, frameLims, axis=curAxis, animated=True)
+        theAnim.AddTruthTable(tablePlot)
     else :
         l = Animate_PlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
         
-    if theTimer is None :
-        theTimer = l.event_source
+#    if theTimer is None :
+#        theTimer = l.event_source
 
-    anims.append(l)
+#    anims.append(l)
 
     curAxis.set_xlim(xLims)
     curAxis.set_ylim(yLims)
@@ -99,7 +98,6 @@ for (index, aTracker) in enumerate(trackerData) :
     curAxis.set_title(trackTitles[index])
     curAxis.set_xlabel("X")
     curAxis.set_ylabel("Y")
-
 
 #anims[0].save("test.mp4")
 pyplot.show()

@@ -85,7 +85,8 @@ for (index, aTracker) in enumerate(trackerData) :
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-        PlotSegments(truthtable, frameLims, axis = curAxis)
+        PlotTruthTable(truthtable, frameLims, axis=curAxis)
+        #PlotSegments(truthtable, frameLims, axis = curAxis)
     else :
         PlotPlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis)
 
