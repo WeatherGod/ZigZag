@@ -3,7 +3,8 @@
 from TrackPlot import *			# for plotting tracks
 from TrackFileUtils import *		# for reading track files
 from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
-import ParamUtils			# for ReadSimulationParams(), ExpandTrackRuns()
+import ParamUtils			# for ReadSimulationParams()
+from ListRuns import ExpandTrackRuns
 
 import argparse				# Command-line parsing
 import os				# for os.sep
@@ -51,7 +52,7 @@ if args.simName is not None :
     simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
     if args.trackRuns is not None :
-        simParams['trackers'] = ParamUtils.ExpandTrackRuns(simParams['trackers'], args.trackRuns)
+        simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
 
     trackFiles = [dirName + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
     trackTitles = simParams['trackers']

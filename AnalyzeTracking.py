@@ -7,7 +7,7 @@ import numpy
 import Analyzers
 from la import larry        # Labeled arrays
 import bootstrap as btstrp
-from ParamUtils import ExpandTrackRuns
+from ListRuns import ExpandTrackRuns
 
 def DisplaySkillScores(skillScores, skillScoreName) :
     """

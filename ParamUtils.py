@@ -3,7 +3,6 @@ import argparse
 from configobj import ConfigObj, flatten_errors
 from Sim import gen_modelList, noise_modelList, motion_modelList, init_modelList
 from validate import Validator
-import fnmatch
 
 simDefaults = dict( frameCnt = 12,
 	                totalTracks = 30,
@@ -20,21 +19,6 @@ trackerDefaults = dict( trackers = [],
                         corner_file = "corners",
 		                inputDataFile = "InputDataFile",
 		                result_file = "testResults")
-
-def ExpandTrackRuns(allTrackRuns, requestedRuns) :
-    """
-    Some requested runs may have glob-like search expressions.
-    This resolves those expressions and returns a list of requested
-    runs fully qualified.
-    """
-    expandedAll = []
-    for aRun in requestedRuns :
-        matches = fnmatch.filter(allTrackRuns, aRun)
-        if len(matches) == 0 :
-            raise ValueError("Could not find a track to match: " + aRun)
-        expandedAll.extend(matches)
-
-    return expandedAll
 
 def Save_MultiSim_Params(filename, params) :
     SaveConfigFile(filename, params)
