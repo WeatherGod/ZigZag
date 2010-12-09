@@ -121,7 +121,7 @@ if __name__ == '__main__' :
                         help="The skill measures to use (e.g., HSS)",
                         metavar="SKILL")
     parser.add_argument("-t", "--trackruns", dest="trackRuns",
-                        nargs="*", help="Trackruns to analyze.  Analyze all runs if none are given",
+                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
                         metavar="RUN", default=None)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME",

@@ -69,7 +69,7 @@ if __name__ == "__main__" :
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
     parser.add_argument("-t", "--trackruns", dest="trackRuns",
-                        nargs="*", help="Trackruns to analyze.  Analyze all runs if none are given",
+                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
                         metavar="RUN", default=None)
     parser.add_argument("skillNames", nargs="+",
                         help="The skill measures to use",
