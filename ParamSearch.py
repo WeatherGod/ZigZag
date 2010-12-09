@@ -52,6 +52,9 @@ if __name__ == '__main__' :
     parser.add_argument("-p", "--param", dest="parameters", type=str,
                         help="Name of parameter", action="append",
                         metavar="NAME", default=[])
+    parser.add_argument("--silent", dest="silentParams", type=str,
+                        help="Parameters not to include in the name of the track runs",
+                        metavar="NAME", nargs='+', default=[])
     parser.add_argument("-i", "--int", dest="paramSpecs", type=int,
                         help="Scalar integer parameter value", action="append",
                         metavar="VAL")
@@ -143,7 +146,7 @@ if __name__ == '__main__' :
     paramSpecs = map(np.ravel, np.broadcast_arrays(*np.ix_(*args.paramSpecs)))
 
     for vals in zip(*paramSpecs) :
-        trackrun = '_'.join("%s_%s" % (name, val) for name, val in zip(args.parameters, vals))
+        trackrun = '_'.join("%s_%s" % (name, val) for name, val in zip(args.parameters, vals) if name not in args.silentParams)
         aConf = {'algorithm': args.tracker}
         aConf.update(zip(args.parameters, vals))
         trackConfs[args.tracker + '_' + trackrun] = aConf
