@@ -4,7 +4,6 @@ from AnalyzeTracking import *
 import ParamUtils
 import la
 import os           # for os.sep
-from ListRuns import ExpandTrackRuns
 import numpy as np
 import bootstrap as btstrp
 
@@ -23,24 +22,11 @@ def FindCommonTrackRuns(simCnt, multiDir) :
 
 
 def MultiAnalyze(multiSimParams, skillNames,
-                 trackRuns=None, path='.') :
+                 trackRuns, path='.') :
     completeAnalysis = None
     multiDir = path + os.sep + multiSimParams['simName']
 
-    # First, find the trackruns that exist for all the simulations
-    commonTrackRuns = FindCommonTrackRuns(multiSimParams['simCnt'], multiDir)
-
-    # If the user did not specify a list of trackRuns, then do all of them.
-    if trackRuns is None :
-        trackRuns = commonTrackRuns
-
-    trackRuns = ExpandTrackRuns(commonTrackRuns, trackRuns)
-    
-    # Double-check that the given trackRuns are all available
-    if not set(commonTrackRuns).issuperset(trackRuns) :
-        missingRuns = set(trackRuns).difference(commonTrackRuns)
-        raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
-        
+           
     # Now, go through each simulation and analyze them.
     for index in range(int(multiSimParams['simCnt'])) :
         simName = "%.3d" % index
@@ -81,7 +67,7 @@ def MakeErrorBars(bootMeans, bootCIs, trackRuns, ax) :
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
     import matplotlib.pyplot as plt
-
+    from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
@@ -113,8 +99,26 @@ if __name__ == "__main__" :
     multiDir = args.directory + os.sep + args.multiSim
     paramFile = multiDir + os.sep + "MultiSim.ini"
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
+
+
+    commonTrackRuns = FindCommonTrackRuns(multiSimParams['simCnt'], multiDir)
+    trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
+
+    # Double-check that the generated trackRuns were all available
+    # NOTE: The following if-statement should now be obsolete with
+    #       the use of ExpandTrackRuns().
+    #if not set(commonTrackRuns).issuperset(trackRuns) :
+    #    missingRuns = set(trackRuns).difference(commonTrackRuns)
+    #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
+
+    # If there was any expansion, then we probably want to sort these.
+    # The idea being that if the user specified which trackers to use, then
+    # he probably wants it in the order that he gave it in, otherwise sort it.
+    if (args.trackRuns is not None) and (len(args.trackRuns) != len(trackRuns)) :
+        trackRuns.sort()
+ 
     completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames,
-                                    trackRuns=args.trackRuns, path=args.directory)
+                                    trackRuns=trackRuns, path=args.directory)
 
     trackRuns = completeAnalysis.label[-1]
     shortNames = [runname[-11:] for runname in trackRuns]

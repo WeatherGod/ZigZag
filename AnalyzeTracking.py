@@ -7,7 +7,7 @@ import numpy
 import Analyzers
 from la import larry        # Labeled arrays
 import bootstrap as btstrp
-from ListRuns import ExpandTrackRuns
+
 
 def DisplaySkillScores(skillScores, skillScoreName) :
     """
@@ -36,16 +36,7 @@ def DisplaySkillScores(skillScores, skillScoreName) :
 
 
 def AnalyzeTrackings(simName, simParams, skillNames,
-                     trackRuns=None, path='.') :
-
-    if trackRuns is None :
-        # If the user does not specify any trackruns
-        # to analyze, then just do all of them.
-        trackRuns = simParams['trackers']
-
-    # We only want to process the trackers as specified by the user
-    # This change in simParams should *not* get saved!
-    simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], trackRuns)
+                     trackRuns, path='.') :
 
     dirName = path + os.sep + simName
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
@@ -55,11 +46,11 @@ def AnalyzeTrackings(simName, simParams, skillNames,
     # Initializing the analysis data, which will hold a table of analysis results for
     # this simulation
     analysis = numpy.empty((len(skillNames),
-                            len(simParams['trackers'])))
-    labels = [skillNames, simParams['trackers']]
+                            len(trackRuns)))
+    labels = [skillNames, trackRuns]
     
 
-    for trackerIndex, tracker in enumerate(simParams['trackers']) :
+    for trackerIndex, tracker in enumerate(trackRuns) :
         (finalTracks, finalFAlarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['result_file'] + '_' + tracker))
         trackerAssocSegs = CreateSegments(finalTracks)
         trackerFAlarmSegs = CreateSegments(finalFAlarms)
@@ -102,6 +93,7 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 if __name__ == '__main__' :
     import argparse
     import ParamUtils
+    from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description="Analyze the tracking results of a storm-track simulation")
@@ -125,10 +117,17 @@ if __name__ == '__main__' :
     dirName = args.directory + os.sep + args.simName
     simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
 
+    # We only want to process the trackers as specified by the user
+    trackRuns = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
 
+    # If there was any expansion, then we probably want to sort these.
+    # The idea being that if the user specified which trackers to use, then
+    # he probably wants it in the order that he gave it in, otherwise sort it.
+    if (args.trackRuns is not None) and (len(args.trackRuns) != len(trackRuns)) :
+        trackRuns.sort()
 
     analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
-                                trackRuns=args.trackRuns, path=args.directory)
+                                trackRuns=trackRuns, path=args.directory)
     analysis = analysis.insertaxis(axis=1, label=args.simName)
     for skill in args.skillNames :
         DisplaySkillScores(analysis.lix[[skill]], skill)
