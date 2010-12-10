@@ -53,16 +53,16 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
 
 
 
-def MakeErrorBars(bootMeans, bootCIs, barLabels, ax, startLoc=1) :
+def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
     """
     bootCIs[1] is the lower end of the confidence interval
     while bootCIs[0] is the upper end of the confidence interval.
     """
-    xlocs = np.linspace(0.1, 0.9, len(barLabels)) + startLoc
+    xlocs = np.arange(len(bootMeans)) + startLoc
     ax.errorbar(xlocs,
-          bootMeans, yerr=numpy.array([bootMeans - bootCIs[1],
-                                       bootCIs[0] - bootMeans]),
-                  fmt='.', ecolor='k', elinewidth=2.0, capsize=5, markersize=10, color='k')
+          bootMeans, yerr=(bootMeans - bootCIs[1],
+                           bootCIs[0] - bootMeans),
+                  fmt='.', elinewidth=3.0, capsize=5, markersize=14, mew=3.0, label=label)
 
  
 
@@ -136,9 +136,10 @@ if __name__ == "__main__" :
         fig = plt.figure()
         ax = fig.gca()
         
-        MakeErrorBars(btmean, btci, shortNames, ax=ax)
-        ax.set_xticks(np.linspace(0.1, 0.9, len(shortNames)) + 1)
+        MakeErrorBars(btmean, btci, ax)
+        ax.set_xticks(np.arange(len(btmean)) + 0.5)
         ax.set_xticklabels(shortNames, fontsize='medium')
-        ax.set_xlim((0.5, len(shortNames) + 0.5))
+        ax.set_xlim(0.0, len(shortNames))
+        ax.set_title(skillname)
         
     plt.show()

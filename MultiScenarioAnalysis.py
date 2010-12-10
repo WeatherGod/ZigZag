@@ -81,23 +81,28 @@ if __name__ == '__main__' :
     meanSkills, skills_ci_upper, skills_ci_lower = MultiScenarioAnalyze(args.multiSims, args.skillNames, trackRuns,
                                                                         n_boot, ci_alpha, path=args.directory)
 
+    shortNames = [runname[-11:] for runname in trackRuns]
+
     figs = [None] * len(args.skillNames)
-    for sceneIndex, aScene in enumerate(args.multiSims) :
+    for runIndex, trackRun in enumerate(shortNames) :
         for skillIndex, skillName in enumerate(args.skillNames) :
             if figs[skillIndex] is None :
                 figs[skillIndex] = plt.figure()
 
-            ax = figs[skillIndex].add_subplot(111)
+            ax = figs[skillIndex].gca()
 
-            manal.MakeErrorBars(meanSkills[sceneIndex, skillIndex, :],
-                                (skills_ci_upper[sceneIndex, skillIndex, :],
-                                 skills_ci_lower[sceneIndex, skillIndex, :]),
-                                trackRuns, ax, sceneIndex)
+            manal.MakeErrorBars(meanSkills[:, skillIndex, runIndex],
+                                (skills_ci_upper[:, skillIndex, runIndex],
+                                 skills_ci_lower[:, skillIndex, runIndex]), ax,
+                                startLoc=(runIndex + 1)/(len(shortNames) + 1.0),
+                                label=trackRun)
 
-    for aFig in figs :
-        ax = aFig.add_subplot(111)
+    for figIndex, aFig in enumerate(figs) :
+        ax = aFig.gca()
         ax.set_xticks(np.arange(len(args.multiSims)) + 0.5)
         ax.set_xticklabels(args.multiSims)
         ax.set_xlim((0.0, len(args.multiSims)))
+        ax.set_title(args.skillNames[figIndex])
+        ax.legend(numpoints=1)
 
     plt.show()
