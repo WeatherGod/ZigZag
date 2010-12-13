@@ -65,7 +65,7 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
     SaveTracks(dirName + os.sep + simParams['simTrackFile'], *origTracks)
     SaveTracks(dirName + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)
     SaveCorners(dirName + os.sep + simParams['inputDataFile'],
-                dirName + os.sep + simParams['corner_file'], volData)    
+                simParams['corner_file'], volData, path=dirName)
 
 
 
