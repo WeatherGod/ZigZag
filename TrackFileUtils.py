@@ -116,17 +116,28 @@ def ReadCorners(inputDataFile, path='.') :
     volume_data = []
     dataFile.close()
 
+    def LoadCorner(filename) :
+        try :
+            # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
+            #       Using loadtxt() on a single-line file will return a file with fewer dimensions
+            #       than expected.
+            cornerData = numpy.atleast_1d(numpy.loadtxt(filename,
+                                                        dtype=TrackUtils.corner_dtype,
+                                                        usecols=(0, 1, 27)))
+        except IOError as anError :
+            if anError.args == ('End-of-file reached before encountering data.',) :
+                # This is a corner case of dealing with an empty (but existant!) file.
+                # I want these to be treated as empty arrays.
+                cornerData = numpy.array([[]], dtype=TrackUtils.corner_dtype)
+            else :
+                # Some other IOError occurred...
+                raise
+
+        return cornerData
+
     volume_data = [{'volTime': frameNum,
-                    # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
-                    #       Using loadtxt() on a single-line file will return a file with fewer dimensions
-                    #       than expected.
-                    # HOWEVER!  This still does not address the issue with empty files!
-                    # That situation will cause loadtxt() (and just about all other readers)
-                    # to raise an exception.
-                    'stormCells': numpy.atleast_1d(numpy.loadtxt("%s.%d" % (path+os.sep+corner_filestem, frameNum),
-					           dtype=TrackUtils.corner_dtype,
-                                                   usecols=(0, 1, 27)))}
-                    for frameNum in range(startFrame, frameCnt + startFrame)]
+                    'stormCells': LoadCorner("%s.%d" % (path+os.sep+corner_filestem, frameNum))}
+                   for frameNum in range(startFrame, frameCnt + startFrame)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
 
