@@ -11,7 +11,7 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
     for (index, track) in enumerate(tracks) :
         dataFile.write("%d %d\n" % (index, len(track)))
         for centroid in track :
-	    dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f 0.0 0.0 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
+            dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f 0.0 0.0 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
                             centroid)
 
     for false_alarm in falarms :
