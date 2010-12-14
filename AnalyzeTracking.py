@@ -51,12 +51,7 @@ def AnalyzeTrackings(simName, simParams, skillNames,
     
 
     for trackerIndex, tracker in enumerate(trackRuns) :
-        (finalTracks, finalFAlarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['result_file'] + '_' + tracker))
-        trackerAssocSegs = CreateSegments(finalTracks)
-        trackerFAlarmSegs = CreateSegments(finalFAlarms)
-
-        truthTable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
-                                     trackerAssocSegs, trackerFAlarmSegs)
+        truthTable, finalTracks, finalFAlarms = ReadTruthTable(tracker, simParams, true_AssocSegs, true_FAlarmSegs, path=dirName)
 
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](tracks=finalTracks, falarms=finalFAlarms,

@@ -19,7 +19,8 @@ trackerDefaults = dict( trackers = [],
                         corner_file = "corners",
 		                inputDataFile = "InputDataFile",
 		                result_file = "testResults",
-                        trackerparams = "trackruns.ini")
+                        trackerparams = "trackruns.ini",
+                        analysis_stem = "resultAnalysis")
 
 def Save_MultiSim_Params(filename, params) :
     SaveConfigFile(filename, params)
@@ -82,7 +83,8 @@ def ReadSimulationParams(simParamName) :
                                        corner_file="string(default=%s)" % trackerDefaults['corner_file'],
                                        inputDataFile = "string(default=%s)" % trackerDefaults['inputDataFile'],
                                        result_file = "string(default=%s)" % trackerDefaults['result_file'],
-                                       trackerparams="string(default=%s)" % trackerDefaults['trackerparams']),
+                                       trackerparams="string(default=%s)" % trackerDefaults['trackerparams'],
+                                       analysis_stem="string(default=%s)" % trackerDefaults['analysis_stem']),
                                  list_values=False,
                                  _inspec=True)
     
@@ -267,6 +269,10 @@ def TrackerGroup(parser) :
                        help="Filename to use for storing the parameters for each trackrun. (default = %(default)s)",
                        metavar="FILE", default=trackerDefaults['trackerparams'])
 
+    group.add_argument("--analysis", dest="analysis_stem", type=str,
+                       help="Filename stem for the analysis of track run results. (default = %(default)s)",
+                       metavar="ANALYSIS", default=trackerDefaults['analysis_stem'])
+
     return group
 
 
@@ -294,6 +300,7 @@ def ParamsFromOptions(options, simName = None) :
 		inputDataFile = options.inputDataFile,
 		result_file = options.result_file,
         trackerparams = options.trackerparams,
+        analysis_stem = options.analysis_stem,
         simTrackFile = options.simTrackFile,
 		noisyTrackFile = options.noisyTrackFile,
         simConfFile = options.simConfFile,

@@ -100,6 +100,43 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
 
     dataFile.close()
 
+
+def SaveTruthTable(trackrun, filestem, truthTable) :
+    SaveTracks(filestem + "_" + trackrun + "_Correct.segs", truthTable['assocs_Correct'], truthTable['falarms_Correct'])
+    SaveTracks(filestem + "_" + trackrun + "_Wrong.segs", truthTable['assocs_Wrong'], truthTable['falarms_Wrong'])
+
+def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
+    correctFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs"
+    wrongFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs"
+
+    resultFilename = path + os.sep + simParams['result_file'] + "_" + trackrun
+    (finalTracks, finalFAlarms) = TrackUtils.FilterMHTTracks(*ReadTracks(resultFilename))
+
+    if (not (os.path.exists(correctFilename) and os.path.exists(wrongFilename))
+       or (os.path.getmtime(correctFilename) < os.path.getmtime(resultFilename))
+       or (os.path.getmtime(wrongFilename) < os.path.getmtime(resultFilename))) :
+        # rebuild the correct and wrong segments files because they either
+        # don't exist or the result file is newer than one of the segments files.
+        trackerAssocSegs = TrackUtils.CreateSegments(finalTracks)
+        trackerFAlarmSegs = TrackUtils.CreateSegments(finalFAlarms)
+
+        truthTable = TrackUtils.CompareSegments(true_AssocSegs, true_FAlarmSegs,
+                                                trackerAssocSegs, trackerFAlarmSegs)
+
+        SaveTruthTable(trackrun, path + os.sep + simParams['analysis_stem'], truthTable)
+
+    else :
+        # Ok, the results are not newer than the cached truth table segments file, so the
+        # cached truth table segments files are valid. So load the cache.
+        assocs_Correct, falarms_Correct = TrackUtils.FilterMHTTracks(*ReadTracks(correctFilename))
+        assocs_Wrong, falarms_Wrong = TrackUtils.FilterMHTTracks(*ReadTracks(wrongFilename))
+
+        truthTable = {'assocs_Correct': assocs_Correct, 'falarms_Correct': falarms_Correct,
+                      'assocs_Wrong': assocs_Wrong, 'falarms_Wrong': falarms_Wrong}
+
+    return truthTable, finalTracks, finalFAlarms
+
+
 def ReadCorners(inputDataFile, path='.') :
     """
     Read corner files.
