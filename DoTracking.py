@@ -2,10 +2,16 @@
 
 import Trackers
 import ParamUtils	  # for reading simParams files
+import os                               # for os.sep
 
 
 def SingleTracking(simFile, simParams, trackConfs, path='.') :
     #simParams['trackers'] = trackConfs.keys()
+
+    storedConfFile = path + os.sep + simParams['simName'] + os.sep + simParams['trackerparams']
+    if not os.path.exists(storedConfFile) :
+        ParamUtils.SaveConfigFile(storedConfFile, {})
+    storedTrackConfs = ParamUtils.LoadTrackerParams([storedConfFile], None)
 
     for trackRun in trackConfs :
         tracker = trackConfs[trackRun]['algorithm']
@@ -22,10 +28,12 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
         simParams['trackers'] = tempHold
         ParamUtils.SaveSimulationParams(simFile, simParams)
 
+        storedTrackConfs[trackRun] = trackConfs[trackRun].copy()
+        ParamUtils.SaveConfigFile(storedConfFile, storedTrackConfs)
+
 
 if __name__ == "__main__" :
     import argparse       # Command-line parsing
-    import os                               # for os.sep.join()
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
     parser.add_argument("simName",

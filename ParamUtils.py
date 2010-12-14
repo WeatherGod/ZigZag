@@ -18,7 +18,8 @@ simDefaults = dict( frameCnt = 12,
 trackerDefaults = dict( trackers = [],
                         corner_file = "corners",
 		                inputDataFile = "InputDataFile",
-		                result_file = "testResults")
+		                result_file = "testResults",
+                        trackerparams = "trackruns.ini")
 
 def Save_MultiSim_Params(filename, params) :
     SaveConfigFile(filename, params)
@@ -75,7 +76,13 @@ def ReadSimulationParams(simParamName) :
                                        endTrackProb="float(min=0.0, max=1.0, default=%f)" % simDefaults['endTrackProb'],
                                        tLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['tLims']),
                                        xLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['xLims']),
-                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['yLims'])),
+                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['yLims']),
+
+                                       trackers="force_list()",
+                                       corner_file="string(default=%s)" % trackerDefaults['corner_file'],
+                                       inputDataFile = "string(default=%s)" % trackerDefaults['inputDataFile'],
+                                       result_file = "string(default=%s)" % trackerDefaults['result_file'],
+                                       trackerparams="string(default=%s)" % trackerDefaults['trackerparams']),
                                  list_values=False,
                                  _inspec=True)
     
@@ -256,6 +263,10 @@ def TrackerGroup(parser) :
 		     help="Tracker filename stem for results. (default = %(default)s)",
 		     metavar="RESULT", default=trackerDefaults['result_file'])
 
+    group.add_argument("--paramstore", dest="trackerparams", type=str,
+                       help="Filename to use for storing the parameters for each trackrun. (default = %(default)s)",
+                       metavar="FILE", default=trackerDefaults['trackerparams'])
+
     return group
 
 
@@ -282,6 +293,7 @@ def ParamsFromOptions(options, simName = None) :
     return dict(corner_file = options.corner_file,
 		inputDataFile = options.inputDataFile,
 		result_file = options.result_file,
+        trackerparams = options.trackerparams,
         simTrackFile = options.simTrackFile,
 		noisyTrackFile = options.noisyTrackFile,
         simConfFile = options.simConfFile,
