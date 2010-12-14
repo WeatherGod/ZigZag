@@ -13,7 +13,7 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
     if (not os.path.exists(path + os.sep + newName)) :
         os.makedirs(path + os.sep + newName)
     else :
-        raise ValueError("%s is an existing simulation!" % path + os.sep + newName)
+        raise ValueError("%s is an existing simulation!" % (path + os.sep + newName))
 
     # FIXME: This isn't quite right, but it might be easily fixed.
     #        Heck, it might actually already be right.
