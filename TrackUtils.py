@@ -173,6 +173,63 @@ def PrintTruthTable(truthTable) :
 """ % (len(truthTable['assocs_Correct']), len(truthTable['assocs_Wrong']),
        len(truthTable['falarms_Wrong']), len(truthTable['falarms_Correct']))
 
+def MakeTruthTable(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
+    """
+    Revamped version of CompareSegments().  I am not willing to replace
+    CompareSegments() yet because it is valuable in producing the data
+    necessary to display the track plots (although it still needs fixing...).
+
+    This method will be a mathematically, margin-sum correct method of creating
+    a contingency table, however it is not useful for producing track plots.
+    """
+    # Do comparisons between the real track segments and
+    # the predicted segments.
+    assocs_Correct, assocs_Wrong = _compare_segs(realSegs, predSegs)
+
+    # Now, do comparisons between the real false alarms and the
+    # predicted false alarms.
+    falarms_Correct, falarms_Wrong = _compare_segs(realFAlarmSegs, predFAlarmSegs)
+
+    return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
+            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+    
+
+def _compare_segs(realSegs, predSegs) :
+    """
+    Convenience function to keep code clean and consistent.
+    This code takes segment data and (quickly) determines
+    which of the real segments has a matching predicted
+    segment.
+    """
+    predData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs]
+    realData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
+
+    correct = []
+    wrong = []
+
+    if len(predData) > 0 and len(realData) > 0 :
+        predTree = KDTree(predData)
+        
+        # closestIndicies will have length equal to the length of realData.
+        # In other words, for each point in realData, the closest point in predData
+        # will be provided.
+        dists, closestIndicies = predTree.query(realData)
+
+        # Now, see if the closest point matches the real point
+        for predIndex, realPoint in zip(closestIndicies, realSegs) :
+            if is_eq(realPoint, predSegs[predIndex]) :
+                correct.append(realPoint)
+            else :
+                wrong.append(realPoint)
+    else :
+        # For whatever reason (no real data, or no predicted data),
+        # we can't make any comparisons.  But, this does mean that any
+        # real trackings that existed were completely missed.
+        wrong = [aSeg for aSeg in realSegs]
+
+    return correct, wrong
+
+
 
 def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     """
@@ -200,7 +257,11 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
         predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs])
         trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
 
-        closestMatches = predTree.query(trueData)
+        if len(realSegs) > 0 :
+            closestMatches = predTree.query(trueData)
+        else :
+            closestMatches = []
+
 
         for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
             if is_eq(realSegs[trueIndex], predSegs[predIndex]) :
@@ -220,7 +281,11 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
         predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predFAlarmSegs])
         trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realFAlarmSegs]
 
-        closestMatches = predTree.query(trueData)
+        if len(realFAlarmSegs) > 0 :
+            closestMatches = predTree.query(trueData)
+        else :
+            closestMatches = []
+
         # Now for the falarms...
         for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
             if is_eq(realFAlarmSegs[trueIndex], predFAlarmSegs[predIndex]) :		
@@ -243,6 +308,7 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
 #    print "falarms_Wrong: ", falarms_Wrong
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
             'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+
 
 
 def FilterMHTTracks(origTracks, origFalarms) :

@@ -106,6 +106,9 @@ def SaveTruthTable(trackrun, filestem, truthTable) :
     SaveTracks(filestem + "_" + trackrun + "_Wrong.segs", truthTable['assocs_Wrong'], truthTable['falarms_Wrong'])
 
 def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
+    """
+    NOTE: This is not suitable yet for getting truth tables for Track Plotting!
+    """
     correctFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs"
     wrongFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs"
 
@@ -120,7 +123,10 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
         trackerAssocSegs = TrackUtils.CreateSegments(finalTracks)
         trackerFAlarmSegs = TrackUtils.CreateSegments(finalFAlarms)
 
-        truthTable = TrackUtils.CompareSegments(true_AssocSegs, true_FAlarmSegs,
+
+        #truthTable = TrackUtils.CompareSegments(true_AssocSegs, true_FAlarmSegs,
+        #                                        trackerAssocSegs, trackerFAlarmSegs)
+        truthTable = TrackUtils.MakeTruthTable(true_AssocSegs, true_FAlarmSegs,
                                                 trackerAssocSegs, trackerFAlarmSegs)
 
         SaveTruthTable(trackrun, path + os.sep + simParams['analysis_stem'], truthTable)
