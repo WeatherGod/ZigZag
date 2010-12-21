@@ -179,9 +179,9 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
         #trackLen = len(theTrackInfo['track'])
 
         if len(aTrack) > 1 :
-            xAvg = numpy.mean(aTrack['xLocs'])
-            yAvg = numpy.mean(aTrack['yLocs'])
-            tAvg = numpy.mean(aTrack['frameNums'])
+            xAvg = numpy.mean(aTrack['xLocs'][-10:])
+            yAvg = numpy.mean(aTrack['yLocs'][-10:])
+            tAvg = numpy.mean(aTrack['frameNums'][-10:])
 
             #xtVar = sum([(xLoc - xAvg) * (trackTime - tAvg)
             #	         for (xLoc, trackTime) in zip(aTrack['xLocs'], aTrack['frameNums'])])
@@ -190,9 +190,9 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
             #ttVar = sum([(trackTime - tAvg)**2
             #	         for trackTime in aTrack['frameNums']])
 
-            tDev = aTrack['frameNums'] - tAvg
-            xtVar = numpy.sum((aTrack['xLocs'] - xAvg) * tDev)
-            ytVar = numpy.sum((aTrack['yLocs'] - yAvg) * tDev)
+            tDev = aTrack['frameNums'][-10:] - tAvg
+            xtVar = numpy.sum((aTrack['xLocs'][-10:] - xAvg) * tDev)
+            ytVar = numpy.sum((aTrack['yLocs'][-10:] - yAvg) * tDev)
             ttVar = numpy.sum(tDev**2)
 
             tot_x_spd += (xtVar / ttVar)
