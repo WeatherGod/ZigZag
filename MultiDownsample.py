@@ -5,8 +5,11 @@ from TrackFileUtils import *
 from TrackUtils import *
 import ParamUtils
 import os
+from ListRuns import Sims_of_MultiSim
 
 def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
+    simNames = Sims_of_MultiSim(multiSim, path)
+
     multiDir = path + os.sep + multiSim
     newDir = path + os.sep + newMulti
 
@@ -14,8 +17,7 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     if multiDir == newDir :
         raise ValueError("The new downsampled directory is the same as the current!")
 
-    for index in range(multiParams['simCnt']) :
-        simName = "%.3d" % index
+    for simName in simNames :
         dirName = multiDir + os.sep + simName
         simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
         origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
@@ -25,7 +27,6 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
                          origTrackData, noisyTrackData, path=newDir)
 
         print "Sim:", simName
-
 
     multiParams['simName'] = newMulti
     ParamUtils.Save_MultiSim_Params(newDir + os.sep + "MultiSim.ini", multiParams)

@@ -4,14 +4,13 @@ import os
 import Trackers
 from DoTracking import SingleTracking
 import ParamUtils     # for reading simParams files
+from ListRuns import Sims_of_MultiSim
 
-def MultiTrack(multiSimParams, trackConfs, path='.') :
-    multiDir = path + os.sep + multiSimParams['simName']
+def MultiTrack(multiSim, trackConfs, path='.') :
+    simNames = Sims_of_MultiSim(multiSim, path)
+    multiDir = path + os.sep + multiSim
 
-    simCnt = int(multiSimParams['simCnt'])
-
-    for index in range(simCnt) :
-        simName = "%.3d" % index
+    for simName in simNames :
         print "Sim:", simName
         paramFile = multiDir + os.sep + simName + os.sep + "simParams.conf"
         simParams = ParamUtils.ReadSimulationParams(paramFile)
@@ -39,12 +38,7 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    multiDir = args.directory + os.sep + args.multiSim
-    paramFile = multiDir + os.sep + "MultiSim.ini"
-    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-
-    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, multiSimParams)
-
-    MultiTrack(multiSimParams, trackConfs.dict(), path=args.directory)
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
+    MultiTrack(args.multiSim, trackConfs.dict(), path=args.directory)
 
 

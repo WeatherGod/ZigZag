@@ -11,7 +11,7 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
     storedConfFile = path + os.sep + simParams['simName'] + os.sep + simParams['trackerparams']
     if not os.path.exists(storedConfFile) :
         ParamUtils.SaveConfigFile(storedConfFile, {})
-    storedTrackConfs = ParamUtils.LoadTrackerParams([storedConfFile], None)
+    storedTrackConfs = ParamUtils.LoadTrackerParams([storedConfFile])
 
     for trackRun in trackConfs :
         tracker = trackConfs[trackRun]['algorithm']
@@ -52,7 +52,7 @@ if __name__ == "__main__" :
     simFile = dirName + os.sep + "simParams.conf"
     simParams = ParamUtils.ReadSimulationParams(simFile)
     
-    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs, simParams)
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
 
     SingleTracking(simFile, simParams, trackConfs.dict(), path=args.directory)
 

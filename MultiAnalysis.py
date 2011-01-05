@@ -6,30 +6,16 @@ import la
 import os           # for os.sep
 import numpy as np
 import bootstrap as btstrp
+from ListRuns import CommonTrackRuns, Sims_of_MultiSim
 
-
-def FindCommonTrackRuns(simCnt, multiDir) :
-    allTrackRuns = []
-
-    for index in range(simCnt) :
-        simName = "%.3d" % index
-        dirName = multiDir + os.sep + simName
-        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
-        allTrackRuns.append(set(simParams['trackers']))
-
-    # Get the intersection of all the sets of trackRuns in each simulation
-    return list(set.intersection(*allTrackRuns))
-
-
-def MultiAnalyze(multiSimParams, skillNames,
+def MultiAnalyze(simNames, multiSim, skillNames,
                  trackRuns, path='.') :
     completeAnalysis = None
-    multiDir = path + os.sep + multiSimParams['simName']
+    multiDir = path + os.sep + multiSim
 
            
     # Now, go through each simulation and analyze them.
-    for index in range(int(multiSimParams['simCnt'])) :
-        simName = "%.3d" % index
+    for simName in simNames :
         dirName = multiDir + os.sep + simName
         print "Sim:", simName
         simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
@@ -99,12 +85,9 @@ if __name__ == "__main__" :
     n_boot = 100
     ci_alpha = 0.05
 
-    multiDir = args.directory + os.sep + args.multiSim
-    paramFile = multiDir + os.sep + "MultiSim.ini"
-    multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
-
-
-    commonTrackRuns = FindCommonTrackRuns(multiSimParams['simCnt'], multiDir)
+    simNames = Sims_of_MultiSim(args.multiSim, args.directory)
+    fullNames = [os.sep.join([args.multiSim, aSim]) for aSim in simNames]
+    commonTrackRuns = CommonTrackRuns(fullNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
 
     # Double-check that the generated trackRuns were all available
@@ -114,15 +97,9 @@ if __name__ == "__main__" :
     #    missingRuns = set(trackRuns).difference(commonTrackRuns)
     #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
 
-    # If there was any expansion, then we probably want to sort these.
-    # The idea being that if the user specified which trackers to use, then
-    # he probably wants it in the order that he gave it in, otherwise sort it.
-    if (args.trackRuns is not None) and (len(args.trackRuns) != len(trackRuns)) :
-        trackRuns.sort()
- 
     shortNames = [runname[-11:] for runname in trackRuns]
 
-    completeAnalysis = MultiAnalyze(multiSimParams, args.skillNames,
+    completeAnalysis = MultiAnalyze(simNames, args.multiSim, args.skillNames,
                                     trackRuns=trackRuns, path=args.directory)
 
     for skillname in args.skillNames :

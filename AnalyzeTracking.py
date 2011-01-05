@@ -53,6 +53,8 @@ def AnalyzeTrackings(simName, simParams, skillNames,
     for trackerIndex, tracker in enumerate(trackRuns) :
         truthTable, finalTracks, finalFAlarms = ReadTruthTable(tracker, simParams, true_AssocSegs, true_FAlarmSegs, path=dirName)
 
+        print "Margin Sums:", len(truthTable['assocs_Correct']) + len(truthTable['assocs_Wrong']) + len(truthTable['falarms_Wrong']) + len(truthTable['falarms_Correct'])
+
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](tracks=finalTracks, falarms=finalFAlarms,
                                                                   truthTable=truthTable)
@@ -114,12 +116,6 @@ if __name__ == '__main__' :
 
     # We only want to process the trackers as specified by the user
     trackRuns = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
-
-    # If there was any expansion, then we probably want to sort these.
-    # The idea being that if the user specified which trackers to use, then
-    # he probably wants it in the order that he gave it in, otherwise sort it.
-    if (args.trackRuns is not None) and (len(args.trackRuns) != len(trackRuns)) :
-        trackRuns.sort()
 
     analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
                                 trackRuns=trackRuns, path=args.directory)
