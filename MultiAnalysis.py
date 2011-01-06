@@ -55,7 +55,7 @@ def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
 
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
-    import matplotlib.pyplot as plt
+
     from ListRuns import ExpandTrackRuns
 
 
@@ -75,6 +75,9 @@ if __name__ == "__main__" :
     parser.add_argument("--compare", dest="compareTo", type=str,
                         help="Compare other trackers to TRACKER",
                         metavar="TRACKER", default="MHT")
+    parser.add_argument("--cache", dest="cacheOnly",
+                        help="Only bother with processing for the purpose of caching results.",
+                        action="store_true", default=False)
     parser.add_argument("--find_best", dest="doFindBest", action="store_true",
               help="Find the best comparisons.", default=False)
     parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
@@ -84,6 +87,11 @@ if __name__ == "__main__" :
 
     n_boot = 100
     ci_alpha = 0.05
+
+    if args.cacheOnly :
+        args.skillNames = []
+    else :
+        import matplotlib.pyplot as plt
 
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
     fullNames = [os.sep.join([args.multiSim, aSim]) for aSim in simNames]
@@ -118,5 +126,7 @@ if __name__ == "__main__" :
         ax.set_xticklabels(shortNames, fontsize='medium')
         ax.set_xlim(0.0, len(shortNames))
         ax.set_title(skillname)
-        
-    plt.show()
+
+    if not args.cacheOnly :
+        plt.show()
+
