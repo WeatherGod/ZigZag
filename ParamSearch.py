@@ -156,7 +156,3 @@ if __name__ == '__main__' :
     config.filename = args.paramFile
     config.write()
 
-
-        # TODO: still need to modify the destination of the result files
-#        MultiTrack(multiSimParams, trackConfs.dict(), path=args.directory)
-
