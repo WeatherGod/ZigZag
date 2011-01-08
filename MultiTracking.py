@@ -23,6 +23,7 @@ def MultiTrack(multiSim, trackConfs, path='.') :
 
 if __name__ == '__main__' :
     import argparse       # Command-line parsing
+    from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
@@ -32,6 +33,9 @@ if __name__ == '__main__' :
     parser.add_argument("trackconfs", nargs='+',
                       help="Config files for the parameters for the trackers",
                       metavar="CONF")
+    parser.add_argument("-t", "--trackruns", dest="trackRuns",
+                        nargs="+", help="Trackruns to perform.  Perform all runs in CONF if none are given.",
+                        metavar="RUN", default=None)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
@@ -39,6 +43,11 @@ if __name__ == '__main__' :
     args = parser.parse_args()
 
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
-    MultiTrack(args.multiSim, trackConfs.dict(), path=args.directory)
+
+    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
+    
+    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
+    
+    MultiTrack(args.multiSim, trackrunConfs, path=args.directory)
 
 
