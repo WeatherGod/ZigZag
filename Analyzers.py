@@ -8,6 +8,49 @@ def _register_trackskill(func, name) :
 
     skillcalcs[name] = func
 
+_contingency_diagram = \
+"""
+                Observed
+              True    False
+Forecasted
+    True       a        b
+    False      c        d
+"""
+
+def _breakup_truthtable(truthTable) :
+    a = len(truthTable['assocs_Correct'])
+    b = len(truthTable['assocs_Wrong'])
+    c = len(truthTable['falarms_Wrong'])
+    d = len(truthTable['falarms_Correct'])
+
+    return a, b, c, d
+
+def CalcPercentCorrect(truthTable, **kwargs) :
+    """
+    Percent Correct from "Statistical Methods in the Atmospheric Sciences"
+    by Daniel S. Wilks (2nd Edition) on page 262.
+
+    PC = (a + d) / n
+
+    A forecast is better when closer to 1, and at its worst when zero.
+
+    This skill score is probably better suited for scoring tracking algorithms.
+    This is because the majority of the data will be the track associations,
+    while there may be little (or even none) of non-associations.
+    In HSS and TSS, if d was zero or very small due to lack of noisy data,
+    then it didn't matter how well the tracker was in making associations,
+    the resulting score will be unfairly set to very small (or even negative!).
+    """
+
+    a, b, c, d = _breakup_truthtable(truthTable)
+
+    n = float(a + b + c + d)
+    return (a + d) / n
+
+_register_trackskill(CalcPercentCorrect, 'PC')
+CalcPercentCorrect.__doc__ += _contingency_diagram
+
+
 
 def GilbertSkillScore(truthTable, **kwargs) :
     """
@@ -18,15 +61,8 @@ def GilbertSkillScore(truthTable, **kwargs) :
 
     where a_ref = (a + b)(a + c)/n          .
 
-    Note that a forecase is better when closer to 1, and
+    Note that a forecast is better when closer to 1, and
     worse if less than zero.
-
-    This skill score is probably better suited for scoring tracking algorithms.
-    This is because the majority of the data will be the track associations,
-    while there may be little (or even none) of non-associations.
-    In HSS and TSS, if d was zero or very small due to lack of noisy data,
-    then it didn't matter how well the tracker was in making associations,
-    the resulting score will be unfairly set to very small (or even negative!).
 
                 Observed
               True    False
@@ -34,10 +70,7 @@ Forecasted
     True       a        b
     False      c        d
     """
-    a = len(truthTable['assocs_Correct'])
-    b = len(truthTable['assocs_Wrong'])
-    c = len(truthTable['falarms_Wrong'])
-    d = len(truthTable['falarms_Correct'])
+    a, b, c, d = _breakup_truthtable(truthTable)
 
     n = float(a + b + c + d)
     a_ref = float((a + b) * (a + c)) / n
@@ -62,17 +95,13 @@ Forecasted
     True       a        b
     False      c        d
     """
-
-    a = float(len(truthTable['assocs_Correct']))
-    b = float(len(truthTable['assocs_Wrong']))
-    c = float(len(truthTable['falarms_Wrong']))
-    d = float(len(truthTable['falarms_Correct']))
+    a, b, c, d = _breakup_truthtable(truthTable)
     denom = ((a + c) * (c + d)) + ((a + b) * (b + d))
-    if denom < 0.1 :
+    if denom == 0 :
        # Prevent division by zero...
        return 1.0
     else :
-       return 2. * ((a * d) - (b * c)) / denom
+       return 2. * ((a * d) - (b * c)) / float(denom)
 
 _register_trackskill(CalcHeidkeSkillScore, "HSS")
 
@@ -94,16 +123,13 @@ Forecasted
     False      c        d
     """
 
-    a = float(len(truthTable['assocs_Correct']))
-    b = float(len(truthTable['assocs_Wrong']))
-    c = float(len(truthTable['falarms_Wrong']))
-    d = float(len(truthTable['falarms_Correct']))
+    a, b, c, d = _breakup_truthtable(truthTable)
     denom = (a + c) * (b + d)
-    if denom < 0.1 :
+    if denom == 0 :
         # Prevent division by zero...
         return 1.0
     else :
-        return ((a * d) - (b * c)) / denom
+        return ((a * d) - (b * c)) / float(denom)
 
 _register_trackskill(CalcTrueSkillStatistic, "TSS")
 
