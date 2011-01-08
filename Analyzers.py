@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import scipy
 
 skillcalcs = {}
@@ -7,6 +7,44 @@ def _register_trackskill(func, name) :
         raise ValueError("%s is already a registered track skill measure." % name)
 
     skillcalcs[name] = func
+
+
+def GilbertSkillScore(truthTable, **kwargs) :
+    """
+    Skill Score formula from "Statistical Methods in the Atmospheric Sciences"
+    by Daniel S. Wilks (2nd Edition) on page 267.
+
+    GSS = (a - a_ref) / (a - a_ref + b + c)
+
+    where a_ref = (a + b)(a + c)/n          .
+
+    Note that a forecase is better when closer to 1, and
+    worse if less than zero.
+
+    This skill score is probably better suited for scoring tracking algorithms.
+    This is because the majority of the data will be the track associations,
+    while there may be little (or even none) of non-associations.
+    In HSS and TSS, if d was zero or very small due to lack of noisy data,
+    then it didn't matter how well the tracker was in making associations,
+    the resulting score will be unfairly set to very small (or even negative!).
+
+                Observed
+              True    False
+Forecasted
+    True       a        b
+    False      c        d
+    """
+    a = len(truthTable['assocs_Correct'])
+    b = len(truthTable['assocs_Wrong'])
+    c = len(truthTable['falarms_Wrong'])
+    d = len(truthTable['falarms_Correct'])
+
+    n = float(a + b + c + d)
+    a_ref = float((a + b) * (a + c)) / n
+
+    return (a - a_ref) / (a - a_ref + b + c)
+
+_register_trackskill(GilbertSkillScore, "GSS")
 
 def CalcHeidkeSkillScore(truthTable, **kwargs) :
     """
@@ -73,7 +111,7 @@ def Skill_TrackLen(tracks, **kwargs) :
     """
     Using one of Lak's measures for goodness of tracking  -- median length/duration of tracks
     """
-    return numpy.median([aTrack['frameNums'].ptp() for aTrack in tracks])
+    return np.median([aTrack['frameNums'].ptp() for aTrack in tracks])
 
 _register_trackskill(Skill_TrackLen, "Dur")
 
@@ -88,8 +126,15 @@ def Skill_LineErr(tracks, **kwargs) :
             continue
         a, b = scipy.polyfit(aTrack['xLocs'], aTrack['yLocs'], 1)
         y_fit = scipy.polyval([a, b], aTrack['xLocs'])
-        fiterr.append(numpy.sqrt(numpy.mean((aTrack['yLocs'] - y_fit)**2)))
-    return numpy.mean(fiterr)
+        fiterr.append(np.sqrt(np.mean((aTrack['yLocs'] - y_fit)**2)))
+    return np.mean(fiterr)
+
+
 
 _register_trackskill(Skill_LineErr, "Line")
+
+
+
+    
+
 
