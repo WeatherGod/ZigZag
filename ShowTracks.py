@@ -36,6 +36,9 @@ if __name__ == '__main__' :
     parser.add_argument("-l", "--layout", dest="layout", type=int,
                         nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
                         metavar="NUM", default=None)
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
 
     parser.add_argument("--noshow", dest="doShow", action = 'store_false',
               help="To display or not to display...",
@@ -47,10 +50,6 @@ if __name__ == '__main__' :
     args = parser.parse_args()
 
     
-    # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
-    figsize = (11, 5)
-
-
     # FIXME: Currently, the code allows for trackFiles to be listed as well
     #        as providing a simulation (which trackfiles are automatically grabbed).
     #        Both situations can not be handled right now, though.
@@ -83,7 +82,7 @@ if __name__ == '__main__' :
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
 
-    theFig = plt.figure(figsize=figsize)
+    theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
                             share_all=True, axes_pad=0.32)
     

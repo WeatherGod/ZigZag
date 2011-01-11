@@ -28,6 +28,9 @@ if __name__ == '__main__' :
     parser.add_argument("-l", "--layout", dest="layout", type=int,
                         nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
                         metavar="NUM", default=None)
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
     parser.add_argument("-d", "--dir", dest="directory",
               help="Base directory to work from when using --simName",
               metavar="DIRNAME", default=".")
@@ -44,9 +47,6 @@ if __name__ == '__main__' :
     #        Both situations can not be handled right now, though.
     trackFiles = []
     trackTitles = []
-
-    # TODO: Dependent on the assumption that I am doing a comparison between 2 trackers
-    figsize = (11, 5)
 
     if args.simName is not None :
         dirName = args.directory + os.sep + args.simName
@@ -74,7 +74,7 @@ if __name__ == '__main__' :
 
 
 
-    theFig = plt.figure(figsize=figsize)
+    theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
                             share_all=True, axes_pad=0.32)
 
