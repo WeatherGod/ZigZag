@@ -103,13 +103,17 @@ if __name__ == '__main__' :
     parser.add_argument("-t", "--trackruns", dest="trackRuns",
                         nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
                         metavar="RUN", default=None)
+    parser.add_argument("--cache", dest="cacheOnly",
+                        help="Only bother with processing for the purpose of caching results.",
+                        action="store_true", default=False)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME",
                         metavar="DIRNAME", default='.')
 
     args = parser.parse_args()
 
-    #skillNames = ['HSS', 'TSS', 'Dur']
+    if args.cacheOnly :
+        args.skillNames = []
 
     dirName = args.directory + os.sep + args.simName
     simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
@@ -119,8 +123,10 @@ if __name__ == '__main__' :
 
     analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
                                 trackRuns=trackRuns, path=args.directory)
-    analysis = analysis.insertaxis(axis=1, label=args.simName)
-    for skill in args.skillNames :
-        DisplaySkillScores(analysis.lix[[skill]], skill)
-        print '\n\n'
+
+    if not args.cacheOnly :
+        analysis = analysis.insertaxis(axis=1, label=args.simName)
+        for skill in args.skillNames :
+            DisplaySkillScores(analysis.lix[[skill]], skill)
+            print '\n\n'
 

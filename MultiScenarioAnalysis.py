@@ -5,6 +5,7 @@ import ParamUtils
 import os
 import numpy as np
 from ListRuns import Sims_of_MultiSim
+import matplotlib.pyplot as plt
 
 def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
                          n_boot, ci_alpha, path='.') :
@@ -26,11 +27,37 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
 
     return skillMeans, means_ci_upper, means_ci_lower
 
+def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims, 
+                              meanSkills, skills_ci_upper, skills_ci_lower) :
+    figs = [None] * len(skillNames)
+    for runIndex, trackRun in enumerate(shortNames) :
+        for skillIndex, skillName in enumerate(skillNames) :
+            if figs[skillIndex] is None :
+                figs[skillIndex] = plt.figure()
+
+            ax = figs[skillIndex].gca()
+
+            manal.MakeErrorBars(meanSkills[:, skillIndex, runIndex],
+                                (skills_ci_upper[:, skillIndex, runIndex],
+                                 skills_ci_lower[:, skillIndex, runIndex]),
+                                ax, startLoc=(runIndex + 1)/(len(shortNames) + 1.0),
+                                label=trackRun)
+
+    for figIndex, aFig in enumerate(figs) :
+        ax = aFig.gca()
+        ax.set_xticks(np.arange(len(multiSims)) + 0.5)
+        ax.set_xticklabels(multiSims)
+        ax.set_xlim((0.0, len(multiSims)))
+        ax.set_title(skillNames[figIndex])
+        ax.legend(numpoints=1)
+
+    return figs
+
 
 if __name__ == '__main__' :
     import argparse
     from ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
-    import matplotlib.pyplot as plt
+
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple scenarios of multiple storm-track simulations')
     parser.add_argument("multiSims",
@@ -43,6 +70,9 @@ if __name__ == '__main__' :
     parser.add_argument("-t", "--trackruns", dest="trackRuns",
                         nargs="+", help="Trackruns to analyze.  Analyze all common runs if none are given",
                         metavar="RUN", default=None)
+    parser.add_argument("--cache", dest="cacheOnly",
+                        help="Only bother with processing for the purpose of caching results.",
+                        action="store_true", default=False)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
@@ -55,6 +85,10 @@ if __name__ == '__main__' :
     if len(args.multiSims) < 2 :
         raise ValueError("Need at least 2 scenarios to analyze")
 
+    if args.cacheOnly :
+        args.skillNames = []
+
+
     simNames = MultiSims2Sims(args.multiSims, args.directory)
     commonTrackRuns = CommonTrackRuns(simNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
@@ -62,28 +96,10 @@ if __name__ == '__main__' :
     meanSkills, skills_ci_upper, skills_ci_lower = MultiScenarioAnalyze(args.multiSims, args.skillNames, trackRuns,
                                                                         n_boot, ci_alpha, path=args.directory)
 
-    shortNames = [runname[-11:] for runname in trackRuns]
+    if not args.cacheOnly :
+        shortNames = [runname[-11:] for runname in trackRuns]
 
-    figs = [None] * len(args.skillNames)
-    for runIndex, trackRun in enumerate(shortNames) :
-        for skillIndex, skillName in enumerate(args.skillNames) :
-            if figs[skillIndex] is None :
-                figs[skillIndex] = plt.figure()
+        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, args.multiSims,
+                                         meanSkills, skills_ci_upper, skills_ci_lower)
 
-            ax = figs[skillIndex].gca()
-
-            manal.MakeErrorBars(meanSkills[:, skillIndex, runIndex],
-                                (skills_ci_upper[:, skillIndex, runIndex],
-                                 skills_ci_lower[:, skillIndex, runIndex]), ax,
-                                startLoc=(runIndex + 1)/(len(shortNames) + 1.0),
-                                label=trackRun)
-
-    for figIndex, aFig in enumerate(figs) :
-        ax = aFig.gca()
-        ax.set_xticks(np.arange(len(args.multiSims)) + 0.5)
-        ax.set_xticklabels(args.multiSims)
-        ax.set_xlim((0.0, len(args.multiSims)))
-        ax.set_title(args.skillNames[figIndex])
-        ax.legend(numpoints=1)
-
-    plt.show()
+        plt.show()
