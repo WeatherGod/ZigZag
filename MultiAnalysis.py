@@ -106,6 +106,7 @@ if __name__ == "__main__" :
     #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
 
     shortNames = [runname[-11:] for runname in trackRuns]
+    #xlab = 'SCIT: Speed Threshold'
 
     completeAnalysis = MultiAnalyze(simNames, args.multiSim, args.skillNames,
                                     trackRuns=trackRuns, path=args.directory)
@@ -125,6 +126,8 @@ if __name__ == "__main__" :
         ax.set_xticks(np.arange(len(btmean)) + 0.5)
         ax.set_xticklabels(shortNames, fontsize='medium')
         ax.set_xlim(0.0, len(shortNames))
+        #ax.set_xlabel(xlab)
+        ax.set_ylabel('Skill Score')
         ax.set_title(skillname)
 
     if not args.cacheOnly :
