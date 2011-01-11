@@ -78,6 +78,18 @@ if __name__ == "__main__" :
     parser.add_argument("--cache", dest="cacheOnly",
                         help="Only bother with processing for the purpose of caching results.",
                         action="store_true", default=False)
+    parser.add_argument("--save", dest="saveImgFile", type=str,
+                        help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
+                        metavar="FILESTEM", default=None)
+    parser.add_argument("--type", dest="imageType", type=str,
+                        help="Image format to use for saving the figures. Default: %(default)s",
+                        metavar="TYPE", default='png')
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("--noshow", dest="doShow", action = 'store_false',
+                        help="To display or not to display...",
+                        default=True)
     parser.add_argument("--find_best", dest="doFindBest", action="store_true",
               help="Find the best comparisons.", default=False)
     parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
@@ -119,7 +131,7 @@ if __name__ == "__main__" :
 
         btmean, btci = Bootstrapping(n_boot, ci_alpha, completeAnalysis.lix[[skillname]].x)
 
-        fig = plt.figure()
+        fig = plt.figure(figsize=args.figsize)
         ax = fig.gca()
         
         MakeErrorBars(btmean, btci, ax)
@@ -130,6 +142,9 @@ if __name__ == "__main__" :
         ax.set_ylabel('Skill Score')
         ax.set_title(skillname)
 
-    if not args.cacheOnly :
+        if args.saveImgFile is not None :
+            fig.savefig("%s_%s.%s" % (args.saveImgFile, skillname, args.imageType))
+
+    if not args.cacheOnly or args.doShow:
         plt.show()
 
