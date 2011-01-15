@@ -145,6 +145,6 @@ if __name__ == "__main__" :
         if args.saveImgFile is not None :
             fig.savefig("%s_%s.%s" % (args.saveImgFile, skillname, args.imageType))
 
-    if not args.cacheOnly or args.doShow:
+    if not args.cacheOnly and args.doShow:
         plt.show()
 
