@@ -39,6 +39,9 @@ if __name__ == '__main__' :
     parser.add_argument("-f", "--figsize", dest="figsize", type=float,
                         nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
                         metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("--titles", dest='trackTitles', type=str,
+                        nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
+                        metavar="TITLE", default=None)
 
     parser.add_argument("--noshow", dest="doShow", action = 'store_false',
               help="To display or not to display...",
@@ -64,13 +67,20 @@ if __name__ == '__main__' :
             simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
 
         trackFiles = [dirName + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
-        trackTitles = simParams['trackers']
+        if args.trackTitles is None :
+            trackTitles = simParams['trackers']
+        else :
+            trackTitles = args.trackTitles
 
         if args.truthTrackFile is None :
             args.truthTrackFile = dirName + os.sep + simParams['noisyTrackFile']
 
     trackFiles += args.trackFiles
-    trackTitles += args.trackFiles
+
+    if args.trackTitles is None :
+        trackTitles += args.trackFiles
+    else :
+        trackTitles += args.trackTitles
 
 
     if len(trackFiles) == 0 : print "WARNING: No trackFiles given or found!"
