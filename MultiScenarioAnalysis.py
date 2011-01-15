@@ -50,7 +50,7 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims,
         ax.set_xticklabels(multiSims)
         ax.set_xlim((0.0, len(multiSims)))
         ax.set_title(skillNames[figIndex])
-        ax.legend(numpoints=1, loc='lower left', bbox_to_anchor=(0.9, 0.9))
+        ax.legend(numpoints=1, loc='lower left', bbox_to_anchor=(0.95, 0.9))
 
     return figs
 

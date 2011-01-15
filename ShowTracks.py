@@ -83,8 +83,8 @@ if __name__ == '__main__' :
 
 
     theFig = plt.figure(figsize=args.figsize)
-    grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
-                            share_all=True, axes_pad=0.32)
+    grid = AxesGrid(theFig, 111, nrows_ncols=args.layout, aspect=False,
+                            share_all=True, axes_pad=0.35)
     
     
     if args.truthTrackFile is not None :
@@ -120,12 +120,13 @@ if __name__ == '__main__' :
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")
         curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
+        curAxis.set_xlabel("X (km)")
+        curAxis.set_ylabel("Y (km)")
+         
 
 
     if args.saveImgFile is not None :
-        theFig.savefig(args.saveImgFile, dpi=300)
+        theFig.savefig(args.saveImgFile, dpi=300, bbox_inches='tight')
 
     if args.doShow :
         plt.show()
