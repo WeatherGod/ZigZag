@@ -1,0 +1,10 @@
+Dependencies:
+
+numpy
+scipy
+matplotlib
+larry (labeled arrays: http://github.com/kwgoodman/la.git)
+argparse (should already be available in more recent versions of python...)
+configobj (should already be available in more recent versions of python...)
+
+MHT (assumed to be installed in ~/Programs/mht_tracking/)
