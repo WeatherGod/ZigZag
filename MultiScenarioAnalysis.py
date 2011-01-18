@@ -28,12 +28,13 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
     return skillMeans, means_ci_upper, means_ci_lower
 
 def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims, 
-                              meanSkills, skills_ci_upper, skills_ci_lower) :
+                              meanSkills, skills_ci_upper, skills_ci_lower,
+                              figsize=None) :
     figs = [None] * len(skillNames)
     for runIndex, trackRun in enumerate(shortNames) :
         for skillIndex, skillName in enumerate(skillNames) :
             if figs[skillIndex] is None :
-                figs[skillIndex] = plt.figure()
+                figs[skillIndex] = plt.figure(figsize=figsize)
 
             ax = figs[skillIndex].gca()
 
@@ -49,7 +50,7 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims,
         ax.set_xticklabels(multiSims)
         ax.set_xlim((0.0, len(multiSims)))
         ax.set_title(skillNames[figIndex])
-        ax.legend(numpoints=1)
+        ax.legend(numpoints=1, loc='lower left', bbox_to_anchor=(0.95, 0.9))
 
     return figs
 
@@ -73,6 +74,18 @@ if __name__ == '__main__' :
     parser.add_argument("--cache", dest="cacheOnly",
                         help="Only bother with processing for the purpose of caching results.",
                         action="store_true", default=False)
+    parser.add_argument("--save", dest="saveImgFile", type=str,
+                        help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
+                        metavar="FILESTEM", default=None)
+    parser.add_argument("--type", dest="imageType", type=str,
+                        help="Image format to use for saving the figures. Default: %(default)s",
+                        metavar="TYPE", default='png')
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("--noshow", dest="doShow", action = 'store_false',
+                        help="To display or not to display...",
+                        default=True)
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
@@ -100,6 +113,12 @@ if __name__ == '__main__' :
         shortNames = [runname[-11:] for runname in trackRuns]
 
         figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, args.multiSims,
-                                         meanSkills, skills_ci_upper, skills_ci_lower)
+                                         meanSkills, skills_ci_upper, skills_ci_lower,
+                                         figsize=args.figsize)
 
-        plt.show()
+        if args.saveImgFile is not None :
+            for aFig, skillName in zip(figs, args.skillNames) :
+                aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
+
+        if args.doShow :
+            plt.show()

@@ -3,6 +3,7 @@ import argparse
 from configobj import ConfigObj, flatten_errors
 from Sim import gen_modelList, noise_modelList, motion_modelList, init_modelList
 from validate import Validator
+from Trackers import param_confList
 
 simDefaults = dict( frameCnt = 12,
 	                totalTracks = 30,
@@ -129,6 +130,19 @@ def LoadTrackerParams(filenames, trackers=None) :
     for name in filenames :
         partConf = ConfigObj(name, interpolation=False)
         trackConfs.merge(partConf)
+
+    configSpec = {}
+    # Building the config spec for the tracker parameters
+    # This data comes from the registration info that each Tracker provides.
+    for aTrackRun in trackConfs.keys() :
+        algo = trackConfs[aTrackRun]['algorithm']
+        configSpec[aTrackRun] = param_confList[algo]
+
+    vdtor = Validator()
+    trackConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+    res = trackConfs.validate(vdtor, preserve_errors=True)
+    flatErrs = flatten_errors(trackConfs, res)
+    _ShowErrors(flatErrs)
 
     if trackers is not None :
         raise NotImplementedError("Selecting trackers have not been implemented yet...")
