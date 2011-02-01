@@ -1,7 +1,7 @@
 import numpy
 #import numpy.lib.recfunctions as nprf   # for .append_fields()
 from scipy.spatial import KDTree
-from TrackUtils import Tracks2Cells
+from ZigZag.TrackUtils import Tracks2Cells
 
 
 noise_modelList = {}

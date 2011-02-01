@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import Trackers
-import ParamUtils	  # for reading simParams files
+import ZigZag.Trackers as Trackers
+import ZigZag.ParamUtils as ParamUtils	  # for reading simParams files
 import os                               # for os.sep
 
 

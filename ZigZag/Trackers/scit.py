@@ -1,7 +1,7 @@
 import math                                 # for abs(), sqrt()
 import numpy
 import numpy.lib.recfunctions as nprf       # for append_fields()
-from TrackUtils import volume_dtype
+from ZigZag.TrackUtils import volume_dtype
 
 
 

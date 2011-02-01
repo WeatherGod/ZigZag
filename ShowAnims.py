@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from TrackPlot import *			# for plotting tracks
-from TrackFileUtils import *		# for reading track files
-from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
-import ParamUtils           # for ReadSimulationParams()
+from ZigZag.TrackPlot import *			# for plotting tracks
+from ZigZag.TrackFileUtils import *		# for reading track files
+from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
+import ZigZag.ParamUtils as ParamUtils           # for ReadSimulationParams()
 from ListRuns import ExpandTrackRuns
 
 

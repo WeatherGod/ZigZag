@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import os
-import Trackers
+import ZigZag.Trackers as Trackers
 from DoTracking import SingleTracking
-import ParamUtils     # for reading simParams files
+import ZigZag.ParamUtils as ParamUtils     # for reading simParams files
 from ListRuns import Sims_of_MultiSim
 
 def MultiTrack(multiSim, trackConfs, path='.') :

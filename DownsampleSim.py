@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import os
-from TrackUtils import *
-from TrackFileUtils import *
-import ParamUtils
+from ZigZag.TrackUtils import *
+from ZigZag.TrackFileUtils import *
+import ZigZag.ParamUtils as ParamUtils
 import numpy as np
 
 

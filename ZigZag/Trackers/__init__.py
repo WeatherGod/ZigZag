@@ -1,6 +1,6 @@
 import scit
-import TrackFileUtils
-import TrackUtils
+import ZigZag.TrackFileUtils as TrackFileUtils
+import ZigZag.TrackUtils as TrackUtils
 import os
 
 

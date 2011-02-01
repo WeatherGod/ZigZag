@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 
-from MultiAnalysis import MultiAnalyze
-from MultiTracking import MultiTrack
-
-import numpy as np
-
 
 
 
 if __name__ == '__main__' :
+    import numpy as np
     import argparse
-    import os           # for os.sep
     from configobj import ConfigObj
 
     # --------------------------------------------

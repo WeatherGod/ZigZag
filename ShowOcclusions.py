@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from TrackPlot import *			# for plotting tracks
-from TrackFileUtils import *		# for reading track files
-from TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
+from ZigZag.TrackPlot import *			# for plotting tracks
+from ZigZag.TrackFileUtils import *		# for reading track files
+from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 
 import argparse 			# Command-line parsing
 import os				# for os.sep.join()

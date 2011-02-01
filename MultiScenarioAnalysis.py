@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import MultiAnalysis as manal
-import ParamUtils
+import ZigZag.ParamUtils as ParamUtils
 import os
 import numpy as np
 from ListRuns import Sims_of_MultiSim

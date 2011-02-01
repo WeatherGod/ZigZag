@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 from DownsampleSim import DownsampleTracks
-from TrackFileUtils import *
-from TrackUtils import *
-import ParamUtils
+from ZigZag.TrackFileUtils import *
+from ZigZag.TrackUtils import *
+import ZigZag.ParamUtils as ParamUtils
 import os
 from ListRuns import Sims_of_MultiSim
 

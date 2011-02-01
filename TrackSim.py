@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 
-import TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
+import ZigZag.TrackUtils as TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import numpy				# for Numpy
 import os				# for os.sep, os.makedirs(), os.path.exists()
 
-import Sim
-import ParamUtils 			        # for SaveSimulationParams(), SetupParser()
-from TrackFileUtils import *		# for writing the track data
+import ZigZag.Sim as Sim
+import ZigZag.ParamUtils as ParamUtils     # for SaveSimulationParams(), SetupParser()
+from ZigZag.TrackFileUtils import *		# for writing the track data
 
 
 #####################################################################################

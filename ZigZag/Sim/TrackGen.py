@@ -1,4 +1,4 @@
-import TrackUtils
+import ZigZag.TrackUtils as TrackUtils
 import numpy
 
 gen_modelList = {}

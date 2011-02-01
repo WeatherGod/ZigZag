@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import fnmatch
-import ParamUtils
+import ZigZag.ParamUtils as ParamUtils
 import os
 
 def ExpandTrackRuns(allTrackRuns, requestedRuns=None) :

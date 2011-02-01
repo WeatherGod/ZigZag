@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 from AnalyzeTracking import *
-import ParamUtils
+import ZigZag.ParamUtils as ParamUtilss
 import la
 import os           # for os.sep
 import numpy as np
-import bootstrap as btstrp
+import ZigZag.bootstrap as btstrp
 from ListRuns import CommonTrackRuns, Sims_of_MultiSim
 
 def MultiAnalyze(simNames, multiSim, skillNames,

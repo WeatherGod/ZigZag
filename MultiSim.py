@@ -3,7 +3,7 @@
 import os				    # for os.sep
 from TrackSim import SingleSimulation, SaveSimulation
 import numpy
-import ParamUtils
+import ZigZag.ParamUtils as ParamUtils
 
 def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
@@ -41,7 +41,7 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
 if __name__ == '__main__' :
     import argparse
-    import Sim
+    import ZigZag.Sim as Sim
 
 
     parser = argparse.ArgumentParser(description="Run and track several storm-track simulations")

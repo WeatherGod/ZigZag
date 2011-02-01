@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import os                   # for os.sep
-from TrackUtils import *
-from TrackFileUtils import *
+from ZigZag.TrackUtils import *
+from ZigZag.TrackFileUtils import *
 import numpy
-import Analyzers
+import ZigZag.Analyzers as Analyzers
 from la import larry        # Labeled arrays
-import bootstrap as btstrp
 
 
 def DisplaySkillScores(skillScores, skillScoreName) :
@@ -89,7 +88,7 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 
 if __name__ == '__main__' :
     import argparse
-    import ParamUtils
+    import ZigZag.ParamUtils as ParamUtils
     from ListRuns import ExpandTrackRuns
 
 
