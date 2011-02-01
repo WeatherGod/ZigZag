@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from AnalyzeTracking import *
-import ZigZag.ParamUtils as ParamUtilss
+import ZigZag.ParamUtils as ParamUtils
 import la
 import os           # for os.sep
 import numpy as np
