@@ -11,9 +11,14 @@ setup(
     keywords = "track simulator evalutator tracker",
     url = "https://github.com/WeatherGod/ZigZag",
     packages = ['ZigZag', 'ZigZag.Sim', 'ZigZag.Trackers'],
-    scripts = ['AnalyzeTracking.py', 'DoTracking.py', 'DownsampleSim.py',
-                'ListRuns.py', 'MultiAnalysis.py', 'MultiDownsample.py',
-                'MultiScenarioAnalysis.py', 'MultiSim.py', 'MultiTracking.py',
-                'ParamSearch.py', 'ShowAnims.py', 'ShowCorners.py',
-                'ShowOcclusions.py', 'ShowTracks.py', 'TrackSim.py'])
+    package_dir = {'': 'lib'},
+    scripts = ['scripts/AnalyzeTracking.py', 'scripts/DoTracking.py',
+               'scripts/DownsampleSim.py', 'scripts/ListRuns.py',
+               'scripts/MultiAnalysis.py', 'scripts/MultiDownsample.py',
+               'scripts/MultiScenarioAnalysis.py', 'scripts/MultiSim.py',
+               'scripts/MultiTracking.py', 'scripts/ParamSearch.py',
+               'scripts/ShowAnims.py', 'scripts/ShowCorners.py',
+               'scripts/ShowOcclusions.py', 'scripts/ShowTracks.py',
+               'scripts/TrackSim.py']
+    )
 
