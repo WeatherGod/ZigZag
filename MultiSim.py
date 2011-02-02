@@ -41,7 +41,6 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
 if __name__ == '__main__' :
     import argparse
-    import ZigZag.Sim as Sim
 
 
     parser = argparse.ArgumentParser(description="Run and track several storm-track simulations")
