@@ -53,7 +53,10 @@ if __name__ == '__main__' :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to place MULTISIM",
                         metavar="DIRNAME", default='.')
-
+    parser.add_argument("-c", "--conf", dest="simConfFiles",
+                        nargs='+',
+                        help="Configuration files for the simulation.",
+                        metavar="CONFFILE", default=None)
     ParamUtils.SetupParser(parser)
 
     args = parser.parse_args()
@@ -65,9 +68,10 @@ if __name__ == '__main__' :
 
     globalSeed = int(simParams['seed'])
 
-    simConfFiles = ["InitModels.conf", "MotionModels.conf",
-                    "GenModels.conf", "NoiseModels.conf",
-                    "SimModels.conf"]
+    simConfFiles = args.simConfFiles if args.simConfFiles is not None else \
+                                        ["InitModels.conf", "MotionModels.conf",
+                                         "GenModels.conf", "NoiseModels.conf",
+                                         "SimModels.conf"]
 
     simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
 
