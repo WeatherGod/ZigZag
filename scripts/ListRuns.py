@@ -55,9 +55,12 @@ def MultiSims2Sims(multiSims, dirName='.') :
 
 if __name__ == '__main__' :
     import argparse
+    from ZigZag.zigargs import AddCommandParser
 
 
     parser = argparse.ArgumentParser(description="List the trackruns for a simulation.")
+    AddCommandParser('ListRuns', parser)
+    """
     parser.add_argument("simNames", nargs='+',
                         help="List track runs done for SIMNAME. If more than one, then list all common track runs.",
                         metavar="SIMNAME")
@@ -70,7 +73,7 @@ if __name__ == '__main__' :
     parser.add_argument("-m", "--multi", dest='isMulti',
                         help="Indicate that SIMNAME(s) is actually a Multi-Sim so that we can process correctly.",
                         default=False, action='store_true')
-
+    """
     args = parser.parse_args()
 
 

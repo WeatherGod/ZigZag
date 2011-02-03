@@ -57,10 +57,13 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims,
 
 if __name__ == '__main__' :
     import argparse
+    from ZigZag.zigargs import AddCommandParser
     from ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
 
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple scenarios of multiple storm-track simulations')
+    AddCommandParser('MultiScenarioAnalysis', parser)
+    """
     parser.add_argument("multiSims",
                       help="Analyze tracks for MULTISIM",
                       nargs='+',
@@ -89,7 +92,7 @@ if __name__ == '__main__' :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
-
+    """
     args = parser.parse_args()
 
     n_boot = 100

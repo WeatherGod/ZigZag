@@ -6,7 +6,15 @@
 if __name__ == '__main__' :
     import numpy as np
     import argparse
+
+    # FIXME: this import is a bit different from other scripts because
+    #        of the kludge mentioned later.
+    import ZigZag.zigargs as zigargs
+
+    from ZigZag.zigargs import AddCommandParser
     from configobj import ConfigObj
+    
+
 
     # --------------------------------------------
     #  Functions and Argument Action classes for advanced handling
@@ -38,10 +46,26 @@ if __name__ == '__main__' :
     class AppendLogspace(argparse.Action) :
         def __call__(self, parser, namespace, values, option_string=None) :
             ListAppend(namespace, self.dest, np.logspace(*values))
+
+    # FIXME: This is part of the major kludge mentioned later...
+    zigActions = {'AppendRange': AppendRange,
+                  'AppendARange': AppendARange,
+                  'AppendLinspace': AppendLinspace,
+                  'AppendLogspace': AppendLogspace}
     #
     # ---------------------------------------------------------------
 
     parser = argparse.ArgumentParser(description='Search for optimal parameters for a tracker for a given multi-sim')
+    # FIXME: The following is the embarrasing kludge.  I am ashamed! (but it works!)
+    #        The basic idea here is to search through the arguments for ParamSearch
+    #        and find any 'action' kwargs that correspond with actions in zigActions.
+    #        Then, we switch out the string label for the actual function!
+    for args, kwargs in zigargs._zigargs['ParamSearch'] :
+        if ('action' in kwargs) and (kwargs['action'] in zigActions) :
+            kwargs['action'] = zigActions[kwargs['action']]
+
+    AddCommandParser('ParamSearch', parser)
+    """
     parser.add_argument("paramFile", help="The configuration file", metavar="FILE")
     parser.add_argument("tracker", help="The tracker algorithm to use", metavar="TRACKER")
     parser.add_argument("-p", "--param", dest="parameters", type=str,
@@ -93,6 +117,7 @@ if __name__ == '__main__' :
     parser.add_argument("--logspace", dest="paramSpecs", nargs='+', type=float,
                         help="Float list created by numpy.logspace()", action=AppendLogspace,
                         metavar="VAL")
+    """
     
 
     # The basic premise here is that we want to run a tracking algorithm

@@ -88,11 +88,15 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 
 if __name__ == '__main__' :
     import argparse
+    from ZigZag.zigargs import AddCommandParser
     import ZigZag.ParamUtils as ParamUtils
     from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description="Analyze the tracking results of a storm-track simulation")
+
+    AddCommandParser('AnalyzeTracking', parser)
+    """
     parser.add_argument("simName", type=str,
                       help="Analyze tracks for SIMNAME",
                       metavar="SIMNAME", default="NewSim")
@@ -108,6 +112,7 @@ if __name__ == '__main__' :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME",
                         metavar="DIRNAME", default='.')
+    """
 
     args = parser.parse_args()
 

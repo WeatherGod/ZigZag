@@ -34,9 +34,12 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
 
 if __name__ == '__main__' :
     import argparse         # command-line parsing
+    from ZigZag.zigargs import AddCommandParser
 
 
     parser = argparse.ArgumentParser(description="Copy and downsample the simulations of a scenario")
+    AddCommandParser('MultiDownsample', parser)
+    """
     parser.add_argument("multiSim",
               help="Downsample the simulations of MULTISIM",
               metavar="MULTISIM")
@@ -49,7 +52,7 @@ if __name__ == '__main__' :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM and NEWMULTI",
                         metavar="DIRNAME", default='.')
-
+    """
 
     args = parser.parse_args()
 

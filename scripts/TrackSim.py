@@ -223,10 +223,13 @@ def SaveSimulation(theSimulation, simParams, simConfs,
 
 		    
 if __name__ == '__main__' :
+    from ZigZag.zigargs import AddCommandParser
 
     import argparse	                    # Command-line parsing
 
     parser = argparse.ArgumentParser(description="Produce a track simulation")
+    AddCommandParser('TrackSim', parser)
+    """
     parser.add_argument("simName",
 		      help="Generate Tracks for SIMNAME", 
 		      metavar="SIMNAME", default="NewSim")
@@ -237,6 +240,7 @@ if __name__ == '__main__' :
                         nargs='+',
                         help="Configuration files for the simulation.",
                         metavar="CONFFILE", default=None)
+    """
     ParamUtils.SetupParser(parser)
 
     args = parser.parse_args()

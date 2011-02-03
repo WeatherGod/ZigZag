@@ -34,8 +34,11 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
 
 if __name__ == "__main__" :
     import argparse       # Command-line parsing
+    from ZigZag.zigargs import AddCommandParser
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
+    AddCommandParser('DoTracking', parser)
+    """
     parser.add_argument("simName",
                       help="Generate Tracks for SIMNAME",
                       metavar="SIMNAME")
@@ -45,6 +48,7 @@ if __name__ == "__main__" :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME",
                         metavar="DIRNAME", default='.')
+    """
 
     args = parser.parse_args()
 

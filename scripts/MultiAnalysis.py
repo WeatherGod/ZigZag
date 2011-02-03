@@ -55,11 +55,14 @@ def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
 
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
+    from ZigZag.zigargs import AddCommandParser
 
     from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
+    AddCommandParser('MultiAnalysis', parser)
+    """
     parser.add_argument("multiSim",
                       help="Analyze tracks for MULTISIM",
                       metavar="MULTISIM", default="NewMulti")
@@ -94,7 +97,7 @@ if __name__ == "__main__" :
               help="Find the best comparisons.", default=False)
     parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
               help="Find the Worst comparisons.", default=False)
-
+    """
     args = parser.parse_args()
 
     n_boot = 100

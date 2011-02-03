@@ -4,6 +4,7 @@ import os
 import ZigZag.Trackers as Trackers
 from DoTracking import SingleTracking
 import ZigZag.ParamUtils as ParamUtils     # for reading simParams files
+
 from ListRuns import Sims_of_MultiSim
 
 def MultiTrack(multiSim, trackConfs, path='.') :
@@ -23,10 +24,14 @@ def MultiTrack(multiSim, trackConfs, path='.') :
 
 if __name__ == '__main__' :
     import argparse       # Command-line parsing
+    from ZigZag.zigargs import AddCommandParser
     from ListRuns import ExpandTrackRuns
 
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
+
+    AddCommandParser("MultiTracking", parser)
+    """
     parser.add_argument("multiSim",
                       help="Generate Tracks for MULTISIM",
                       metavar="MULTISIM")
@@ -39,6 +44,7 @@ if __name__ == '__main__' :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find MULTISIM",
                         metavar="DIRNAME", default='.')
+    """
 
     args = parser.parse_args()
 

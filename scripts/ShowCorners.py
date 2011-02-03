@@ -11,9 +11,12 @@ if __name__ == '__main__' :
     import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
+    from ZigZag.zigargs import AddCommandParser
 
 
     parser = argparse.ArgumentParser(description="Produce an animation of the centroids")
+    AddCommandParser('ShowCorners', parser)
+    """
     parser.add_argument("inputDataFiles", nargs='*',
                         help="Use INDATAFILE for finding corner data files",
                         metavar="INDATAFILE")
@@ -33,7 +36,7 @@ if __name__ == '__main__' :
     parser.add_argument("-s", "--simName", dest="simName",
               help="Use data from the simulation SIMNAME.",
               metavar="SIMNAME", default=None)
-
+    """
     args = parser.parse_args()
 
     

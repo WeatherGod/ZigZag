@@ -41,9 +41,12 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
 if __name__ == '__main__' :
     import argparse
+    from ZigZag.zigargs import AddCommandParser
 
 
     parser = argparse.ArgumentParser(description="Run and track several storm-track simulations")
+    AddCommandParser('MultiSim', parser)
+    """
     parser.add_argument("multiSim", type=str,
                       help="Generate Tracks for MULTISIM",
                       metavar="MULTISIM", default="NewMulti")
@@ -57,6 +60,7 @@ if __name__ == '__main__' :
                         nargs='+',
                         help="Configuration files for the simulation.",
                         metavar="CONFFILE", default=None)
+    """
     ParamUtils.SetupParser(parser)
 
     args = parser.parse_args()

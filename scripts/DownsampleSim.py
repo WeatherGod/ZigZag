@@ -71,9 +71,12 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
 
 if __name__ == "__main__" :
     import argparse             # command-line parsing
+    from ZigZag.zigargs import AddCommandParser
 
 
     parser = argparse.ArgumentParser(description="Copy and downsample a simulation")
+    AddCommandParser('DownsampleSim', parser)
+    """
     parser.add_argument("simName",
               help="Downsample the tracks of SIMNAME",
               metavar="SIMNAME")
@@ -86,7 +89,7 @@ if __name__ == "__main__" :
     parser.add_argument("-d", "--dir", dest="directory",
                         help="Base directory to find SIMNAME and NEWNAME",
                         metavar="DIRNAME", default='.')
-
+    """
     args = parser.parse_args()
 
     dirName = args.directory + os.sep + args.simName
