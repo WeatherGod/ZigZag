@@ -87,6 +87,10 @@ _zigargs['DoTracking'] = [
      dict(nargs='+',
           help="Config files for the parameters for the trackers",
           metavar="CONF")),
+#    (("-t", "--trackruns"),
+#     dict(dest="trackRuns",
+#          nargs="+", help="Trackruns to perform.  Perform all runs in CONF if none are given.",
+#          metavar="RUN", default=None)),
     (("-d", "--dir"), 
      dict(dest="directory",
           help="Base directory to find SIMNAME",
@@ -139,26 +143,34 @@ _zigargs['MultiAnalysis'] = [
     (("multiSim",), 
      dict(help="Analyze tracks for MULTISIM",
           metavar="MULTISIM", default="NewMulti")),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM",
-          metavar="DIRNAME", default='.')),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-          metavar="RUN", default=None)),
     (("skillNames",), 
      dict(nargs="+",
           help="The skill measures to use",
           metavar="SKILL")),
-    (("--compare",), 
-     dict(dest="compareTo", type=str,
-          help="Compare other trackers to TRACKER",
-          metavar="TRACKER", default="MHT")),
+    (("-t", "--trackruns"), 
+     dict(dest="trackRuns",
+          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
+          metavar="RUN", default=None)),
     (("--cache",), 
      dict(dest="cacheOnly",
           help="Only bother with processing for the purpose of caching results.",
           action="store_true", default=False)),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to find MULTISIM",
+          metavar="DIRNAME", default='.')),
+
+    (("--compare",), 
+     dict(dest="compareTo", type=str,
+          help="Compare other trackers to TRACKER",
+          metavar="TRACKER", default="MHT")),
+    (("--find_best",), 
+     dict(dest="doFindBest", action="store_true",
+          help="Find the best comparisons.", default=False)),
+    (("--find_worst",), 
+     dict(dest="doFindWorst", action = "store_true",
+          help="Find the Worst comparisons.", default=False)),
+
     (("--save",), 
      dict(dest="saveImgFile", type=str,
           help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
@@ -174,13 +186,7 @@ _zigargs['MultiAnalysis'] = [
     (("--noshow",), 
      dict(dest="doShow", action = 'store_false',
           help="To display or not to display...",
-          default=True)),
-    (("--find_best",), 
-     dict(dest="doFindBest", action="store_true",
-          help="Find the best comparisons.", default=False)),
-    (("--find_worst",), 
-     dict(dest="doFindWorst", action = "store_true",
-          help="Find the Worst comparisons.", default=False))
+          default=True))
     ]
 
 _zigargs['MultiScenarioAnalysis'] = [
@@ -200,6 +206,11 @@ _zigargs['MultiScenarioAnalysis'] = [
      dict(dest="cacheOnly",
           help="Only bother with processing for the purpose of caching results.",
           action="store_true", default=False)),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to find MULTISIM",
+          metavar="DIRNAME", default='.')),
+
     (("--save",), 
      dict(dest="saveImgFile", type=str,
           help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
@@ -215,11 +226,7 @@ _zigargs['MultiScenarioAnalysis'] = [
     (("--noshow",), 
      dict(dest="doShow", action = 'store_false',
           help="To display or not to display...",
-          default=True)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM",
-          metavar="DIRNAME", default='.'))
+          default=True))
     ]
 
 _zigargs['ListRuns'] = [
@@ -227,10 +234,6 @@ _zigargs['ListRuns'] = [
      dict(nargs='+',
           help="List track runs done for SIMNAME. If more than one, then list all common track runs.",
           metavar="SIMNAME")),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME",
-          metavar="DIRNAME", default='.')),
     (("-t", "--trackruns"), 
      dict(dest="trackRuns",
           nargs="+", help="Trackruns to list.  List all runs if none are given.",
@@ -238,7 +241,11 @@ _zigargs['ListRuns'] = [
     (("-m", "--multi"), 
      dict(dest='isMulti',
           help="Indicate that SIMNAME(s) is actually a Multi-Sim so that we can process correctly.",
-          default=False, action='store_true'))
+          default=False, action='store_true')),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to find SIMNAME",
+          metavar="DIRNAME", default='.'))
     ]
 
 _zigargs['ParamSearch'] = [
@@ -315,18 +322,29 @@ _zigargs['ShowTracks'] = [
      dict(dest="truthTrackFile",
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE", default=None)),
-    (("--save",), 
-     dict(dest="saveImgFile",
-          help="Save the resulting image as FILENAME.",
-          metavar="FILENAME", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
     (("-r", "--trackruns"), 
      dict(dest="trackRuns",
           nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
           metavar="RUN", default=None)),
+
+    (("-s", "--simName"), 
+     dict(dest="simName",
+          help="Use data from the simulation SIMNAME",
+          metavar="SIMNAME", default=None)),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to work from when using --simName",
+          metavar="DIRNAME", default=".")),
+
+    (("--save",), 
+     dict(dest="saveImgFile",
+          help="Save the resulting image as FILENAME.",
+          metavar="FILENAME", default=None)),
+    (("--noshow",), 
+     dict(dest="doShow", action = 'store_false',
+          help="To display or not to display...",
+          default=True)),
+
     (("-l", "--layout"), 
      dict(dest="layout", type=int,
           nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
@@ -338,16 +356,7 @@ _zigargs['ShowTracks'] = [
     (("--titles",), 
      dict(dest='trackTitles', type=str,
           nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-          metavar="TITLE", default=None)),
-
-    (("--noshow",), 
-     dict(dest="doShow", action = 'store_false',
-          help="To display or not to display...",
-          default=True)),
-    (("-s", "--simName"), 
-     dict(dest="simName",
-          help="Use data from the simulation SIMNAME",
-          metavar="SIMNAME", default=None))
+          metavar="TITLE", default=None))
     ]
 
 
@@ -360,6 +369,16 @@ _zigargs['ShowAnims'] = [
      dict(dest="trackRuns",
           nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
           metavar="RUN", default=None)),
+
+    (("-s", "--simName"), 
+     dict(dest="simName",
+          help="Use data from the simulation SIMNAME",
+          metavar="SIMNAME", default=None)),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to work from when using --simName",
+          metavar="DIRNAME", default=".")),
+
     (("-l", "--layout"), 
      dict(dest="layout", type=int,
           nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
@@ -368,14 +387,11 @@ _zigargs['ShowAnims'] = [
      dict(dest="figsize", type=float,
           nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
           metavar="SIZE", default=(11.0, 5.0))),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
-    (("-s", "--simName"), 
-     dict(dest="simName",
-          help="Use data from the simulation SIMNAME",
-          metavar="SIMNAME", default=None))
+#    (("--titles",),
+#     dict(dest='trackTitles', type=str,
+#          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
+#          metavar="TITLE", default=None))
+
     ]
 
 _zigargs['ShowCorners'] = [
@@ -387,6 +403,16 @@ _zigargs['ShowCorners'] = [
      dict(dest="trackFile",
           help="Use TRACKFILE for determining domain limits.",
           metavar="TRACKFILE", default=None)),
+
+    (("-s", "--simName"), 
+     dict(dest="simName",
+          help="Use data from the simulation SIMNAME.",
+          metavar="SIMNAME", default=None)),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to work from when using --simName",
+          metavar="DIRNAME", default=".")),
+
     (("-l", "--layout"), 
      dict(dest="layout", type=int,
           nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
@@ -395,13 +421,10 @@ _zigargs['ShowCorners'] = [
      dict(dest="figsize", type=float,
           nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
           metavar="SIZE", default=(11.0, 5.0))),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
-    (("-s", "--simName"), 
-     dict(dest="simName",
-          help="Use data from the simulation SIMNAME.",
-          metavar="SIMNAME", default=None))
+#    (("--titles",),
+#     dict(dest='trackTitles', type=str,
+#          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
+#          metavar="TITLE", default=None))
+
     ]
 
