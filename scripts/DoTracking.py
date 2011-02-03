@@ -35,6 +35,7 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
 if __name__ == "__main__" :
     import argparse       # Command-line parsing
     from ZigZag.zigargs import AddCommandParser
+    from ListRuns import ExpandTrackRuns
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
     AddCommandParser('DoTracking', parser)
@@ -57,7 +58,9 @@ if __name__ == "__main__" :
     simParams = ParamUtils.ReadSimulationParams(simFile)
     
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
+    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
+    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
 
-    SingleTracking(simFile, simParams, trackConfs.dict(), path=args.directory)
+    SingleTracking(simFile, simParams, trackrunConfs, path=args.directory)
 
 
