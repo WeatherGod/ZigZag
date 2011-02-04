@@ -1,10 +1,51 @@
 #!/usr/bin/env python
 
 
+def main(args) :
+    import numpy as np
+    from configobj import ConfigObj
+
+    # Quickly fix any scalars to be a one-element list
+    # Scalars are defined to be any non-sequencable item.
+    for index, val in enumerate(args.paramSpecs) :
+        if isinstance(val, (type(None),int,float,str,bool,dict)) :
+            args.paramSpecs[index] = [val]
+
+
+    print "Output File:", args.paramFile, "  Tracker:", args.tracker
+
+    trackConfs = {}
+
+    # ------------------------------------------------------------
+    # Ok, let me explain the magic of the next line.
+    # Three parts: first, I create numpy arrays out of the
+    #       lists given for each parameter.  These lists are made
+    #       such that their ndim == # of parameters.
+    #
+    #       Second, these arrays are broadcasted against each other.
+    #
+    #       Third, I flatten each of these arrays.
+    #
+    # The upshot of all of this is that I can loop through a zipped
+    # representation of the arrays and experience every possible combination
+    # of parameter values.
+    # ---------------------------------------------------------
+    paramSpecs = map(np.ravel, np.broadcast_arrays(*np.ix_(*args.paramSpecs)))
+
+    for vals in zip(*paramSpecs) :
+        trackrun = '_'.join("%s_%s" % (name, val) for name, val in zip(args.parameters, vals) if name not in args.silentParams)
+        aConf = {'algorithm': args.tracker}
+        aConf.update(zip(args.parameters, vals))
+        trackConfs[args.tracker + '_' + trackrun] = aConf
+
+
+    config = ConfigObj(trackConfs, interpolation=False)
+    config.filename = args.paramFile
+    config.write()
 
 
 if __name__ == '__main__' :
-    import numpy as np
+
     import argparse
 
     # FIXME: this import is a bit different from other scripts because
@@ -12,7 +53,7 @@ if __name__ == '__main__' :
     import ZigZag.zigargs as zigargs
 
     from ZigZag.zigargs import AddCommandParser
-    from configobj import ConfigObj
+
     
 
 
@@ -138,41 +179,6 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    # Quickly fix any scalars to be a one-element list
-    # Scalars are defined to be any non-sequencable item.
-    for index, val in enumerate(args.paramSpecs) :
-        if isinstance(val, (type(None),int,float,str,bool,dict)) :
-            args.paramSpecs[index] = [val]
+    main(args)
 
-
-    print "Output File:", args.paramFile, "  Tracker:", args.tracker
-
-    trackConfs = {}
-
-    # ------------------------------------------------------------
-    # Ok, let me explain the magic of the next line.
-    # Three parts: first, I create numpy arrays out of the
-    #       lists given for each parameter.  These lists are made
-    #       such that their ndim == # of parameters.
-    #
-    #       Second, these arrays are broadcasted against each other.
-    #
-    #       Third, I flatten each of these arrays.
-    #
-    # The upshot of all of this is that I can loop through a zipped
-    # representation of the arrays and experience every possible combination
-    # of parameter values.
-    # ---------------------------------------------------------
-    paramSpecs = map(np.ravel, np.broadcast_arrays(*np.ix_(*args.paramSpecs)))
-
-    for vals in zip(*paramSpecs) :
-        trackrun = '_'.join("%s_%s" % (name, val) for name, val in zip(args.parameters, vals) if name not in args.silentParams)
-        aConf = {'algorithm': args.tracker}
-        aConf.update(zip(args.parameters, vals))
-        trackConfs[args.tracker + '_' + trackrun] = aConf
-
-
-    config = ConfigObj(trackConfs, interpolation=False)
-    config.filename = args.paramFile
-    config.write()
 

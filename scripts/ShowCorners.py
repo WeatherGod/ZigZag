@@ -5,40 +5,12 @@ from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 import ZigZag.ParamUtils as ZigZag          # for ReadSimulationParams()
 
-if __name__ == '__main__' :
-    import argparse                         # Command-line parsing
+
+def main(args) :
     import os				# for os.sep, os.path
     import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
-    from ZigZag.zigargs import AddCommandParser
-
-
-    parser = argparse.ArgumentParser(description="Produce an animation of the centroids")
-    AddCommandParser('ShowCorners', parser)
-    """
-    parser.add_argument("inputDataFiles", nargs='*',
-                        help="Use INDATAFILE for finding corner data files",
-                        metavar="INDATAFILE")
-
-    parser.add_argument("-t", "--track", dest="trackFile",
-                      help="Use TRACKFILE for determining domain limits.",
-                      metavar="TRACKFILE", default=None)
-    parser.add_argument("-l", "--layout", dest="layout", type=int,
-                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-                        metavar="NUM", default=None)
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("-d", "--dir", dest="directory",
-              help="Base directory to work from when using --simName",
-              metavar="DIRNAME", default=".")
-    parser.add_argument("-s", "--simName", dest="simName",
-              help="Use data from the simulation SIMNAME.",
-              metavar="SIMNAME", default=None)
-    """
-    args = parser.parse_args()
-
     
     inputDataFiles = []
     titles = []
@@ -99,3 +71,39 @@ if __name__ == '__main__' :
     #theAnim.save("test.mp4")
 
     plt.show()
+
+
+
+if __name__ == '__main__' :
+    import argparse                         # Command-line parsing
+
+    from ZigZag.zigargs import AddCommandParser
+
+
+    parser = argparse.ArgumentParser(description="Produce an animation of the centroids")
+    AddCommandParser('ShowCorners', parser)
+    """
+    parser.add_argument("inputDataFiles", nargs='*',
+                        help="Use INDATAFILE for finding corner data files",
+                        metavar="INDATAFILE")
+
+    parser.add_argument("-t", "--track", dest="trackFile",
+                      help="Use TRACKFILE for determining domain limits.",
+                      metavar="TRACKFILE", default=None)
+    parser.add_argument("-l", "--layout", dest="layout", type=int,
+                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
+                        metavar="NUM", default=None)
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("-d", "--dir", dest="directory",
+              help="Base directory to work from when using --simName",
+              metavar="DIRNAME", default=".")
+    parser.add_argument("-s", "--simName", dest="simName",
+              help="Use data from the simulation SIMNAME.",
+              metavar="SIMNAME", default=None)
+    """
+    args = parser.parse_args()
+
+    main(args)
+

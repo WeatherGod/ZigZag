@@ -22,10 +22,22 @@ def MultiTrack(multiSim, trackConfs, path='.') :
         SingleTracking(paramFile, simParams, trackConfs.copy(), path=multiDir)
 
 
+def main(args) :
+    from ListRuns import ExpandTrackRuns
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
+
+    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
+    
+    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
+    
+    MultiTrack(args.multiSim, trackrunConfs, path=args.directory)
+
+
+
 if __name__ == '__main__' :
     import argparse       # Command-line parsing
     from ZigZag.zigargs import AddCommandParser
-    from ListRuns import ExpandTrackRuns
+
 
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
@@ -48,12 +60,6 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
-
-    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
-    
-    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
-    
-    MultiTrack(args.multiSim, trackrunConfs, path=args.directory)
+    main(args)
 
 

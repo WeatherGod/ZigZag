@@ -220,30 +220,7 @@ def SaveSimulation(theSimulation, simParams, simConfs,
     ParamUtils.SaveConfigFile(simDir + simParams['simConfFile'], simConfs)
 
 
-
-		    
-if __name__ == '__main__' :
-    from ZigZag.zigargs import AddCommandParser
-
-    import argparse	                    # Command-line parsing
-
-    parser = argparse.ArgumentParser(description="Produce a track simulation")
-    AddCommandParser('TrackSim', parser)
-    """
-    parser.add_argument("simName",
-		      help="Generate Tracks for SIMNAME", 
-		      metavar="SIMNAME", default="NewSim")
-    parser.add_argument("-d", "--dir", dest="directory",
-                        help="Base directory to place SIMNAME",
-                        metavar="DIRNAME", default='.')
-    parser.add_argument("-c", "--conf", dest="simConfFiles",
-                        nargs='+',
-                        help="Configuration files for the simulation.",
-                        metavar="CONFFILE", default=None)
-    """
-    ParamUtils.SetupParser(parser)
-
-    args = parser.parse_args()
+def main(args) :
 
     simParams = ParamUtils.ParamsFromOptions(args)
 
@@ -260,4 +237,18 @@ if __name__ == '__main__' :
     theSimulation = SingleSimulation(simConfs, **simParams)
 
     SaveSimulation(theSimulation, simParams, simConfs, path=args.directory)
+
+
+		    
+if __name__ == '__main__' :
+    from ZigZag.zigargs import AddCommandParser
+    import argparse	                    # Command-line parsing
+
+    parser = argparse.ArgumentParser(description="Produce a track simulation")
+    AddCommandParser('TrackSim', parser)
+    ParamUtils.SetupParser(parser)
+
+    args = parser.parse_args()
+
+    main(args)
 

@@ -39,6 +39,27 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
                        path=multiDir)
 
 
+def main(args) :
+    if args.simCnt <= 0 :
+        parser.error("ERROR: Invalid N value: %d" % (args.simCnt))
+
+    simParams = ParamUtils.ParamsFromOptions(args, args.multiSim)
+
+    simConfFiles = args.simConfFiles if args.simConfFiles is not None else \
+                                        ["InitModels.conf", "MotionModels.conf",
+                                         "GenModels.conf", "NoiseModels.conf",
+                                         "SimModels.conf"]
+
+    simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
+
+    multiParams = dict(simCnt=args.simCnt,
+                       globalSeed=simParams['seed'],
+                       simName=args.multiSim)
+
+    MultiSimulation(multiParams, simConfs, simParams, path=args.directory)
+
+
+
 if __name__ == '__main__' :
     import argparse
     from ZigZag.zigargs import AddCommandParser
@@ -65,23 +86,5 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    simParams = ParamUtils.ParamsFromOptions(args, args.multiSim)
-
-    if args.simCnt <= 0 :
-        parser.error("ERROR: Invalid N value: %d" % (args.simCnt))
-
-    globalSeed = int(simParams['seed'])
-
-    simConfFiles = args.simConfFiles if args.simConfFiles is not None else \
-                                        ["InitModels.conf", "MotionModels.conf",
-                                         "GenModels.conf", "NoiseModels.conf",
-                                         "SimModels.conf"]
-
-    simConfs = ParamUtils.LoadSimulatorConf(simConfFiles)
-
-    multiParams = dict(simCnt=args.simCnt,
-                       globalSeed=simParams['seed'],
-                       simName=args.multiSim)
-
-    MultiSimulation(multiParams, simConfs, simParams, path=args.directory)
+    main(args)
 

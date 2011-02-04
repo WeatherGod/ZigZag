@@ -51,54 +51,8 @@ def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
                   fmt='.', elinewidth=3.0, capsize=5, markersize=14, mew=3.0, label=label)
 
  
-
-
-if __name__ == "__main__" :
-    import argparse     # Command-line parsing
-    from ZigZag.zigargs import AddCommandParser
-
+def main(args) :
     from ListRuns import ExpandTrackRuns
-
-
-    parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
-    AddCommandParser('MultiAnalysis', parser)
-    """
-    parser.add_argument("multiSim",
-                      help="Analyze tracks for MULTISIM",
-                      metavar="MULTISIM", default="NewMulti")
-    parser.add_argument("-d", "--dir", dest="directory",
-                        help="Base directory to find MULTISIM",
-                        metavar="DIRNAME", default='.')
-    parser.add_argument("-t", "--trackruns", dest="trackRuns",
-                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-                        metavar="RUN", default=None)
-    parser.add_argument("skillNames", nargs="+",
-                        help="The skill measures to use",
-                        metavar="SKILL")
-    parser.add_argument("--compare", dest="compareTo", type=str,
-                        help="Compare other trackers to TRACKER",
-                        metavar="TRACKER", default="MHT")
-    parser.add_argument("--cache", dest="cacheOnly",
-                        help="Only bother with processing for the purpose of caching results.",
-                        action="store_true", default=False)
-    parser.add_argument("--save", dest="saveImgFile", type=str,
-                        help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
-                        metavar="FILESTEM", default=None)
-    parser.add_argument("--type", dest="imageType", type=str,
-                        help="Image format to use for saving the figures. Default: %(default)s",
-                        metavar="TYPE", default='png')
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("--noshow", dest="doShow", action = 'store_false',
-                        help="To display or not to display...",
-                        default=True)
-    parser.add_argument("--find_best", dest="doFindBest", action="store_true",
-              help="Find the best comparisons.", default=False)
-    parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
-              help="Find the Worst comparisons.", default=False)
-    """
-    args = parser.parse_args()
 
     n_boot = 100
     ci_alpha = 0.05
@@ -150,4 +104,55 @@ if __name__ == "__main__" :
 
     if not args.cacheOnly and args.doShow:
         plt.show()
+
+
+if __name__ == "__main__" :
+    import argparse     # Command-line parsing
+    from ZigZag.zigargs import AddCommandParser
+
+
+
+
+    parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
+    AddCommandParser('MultiAnalysis', parser)
+    """
+    parser.add_argument("multiSim",
+                      help="Analyze tracks for MULTISIM",
+                      metavar="MULTISIM", default="NewMulti")
+    parser.add_argument("-d", "--dir", dest="directory",
+                        help="Base directory to find MULTISIM",
+                        metavar="DIRNAME", default='.')
+    parser.add_argument("-t", "--trackruns", dest="trackRuns",
+                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
+                        metavar="RUN", default=None)
+    parser.add_argument("skillNames", nargs="+",
+                        help="The skill measures to use",
+                        metavar="SKILL")
+    parser.add_argument("--compare", dest="compareTo", type=str,
+                        help="Compare other trackers to TRACKER",
+                        metavar="TRACKER", default="MHT")
+    parser.add_argument("--cache", dest="cacheOnly",
+                        help="Only bother with processing for the purpose of caching results.",
+                        action="store_true", default=False)
+    parser.add_argument("--save", dest="saveImgFile", type=str,
+                        help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
+                        metavar="FILESTEM", default=None)
+    parser.add_argument("--type", dest="imageType", type=str,
+                        help="Image format to use for saving the figures. Default: %(default)s",
+                        metavar="TYPE", default='png')
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("--noshow", dest="doShow", action = 'store_false',
+                        help="To display or not to display...",
+                        default=True)
+    parser.add_argument("--find_best", dest="doFindBest", action="store_true",
+              help="Find the best comparisons.", default=False)
+    parser.add_argument("--find_worst", dest="doFindWorst", action = "store_true",
+              help="Find the Worst comparisons.", default=False)
+    """
+    args = parser.parse_args()
+
+    main(args)
+
 

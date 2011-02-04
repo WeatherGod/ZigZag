@@ -67,6 +67,14 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
     SaveCorners(dirName + os.sep + simParams['inputDataFile'],
                 simParams['corner_file'], volData, path=dirName)
 
+def main(args) :
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
+    origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
+    noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
+
+    DownsampleTracks(args.skipCnt, args.simName, args.newName, simParams,
+                     origTrackData, noisyTrackData, path=args.directory)
 
 
 if __name__ == "__main__" :
@@ -92,11 +100,6 @@ if __name__ == "__main__" :
     """
     args = parser.parse_args()
 
-    dirName = args.directory + os.sep + args.simName
-    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
-    origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
-    noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
+    main(args)
 
-    DownsampleTracks(args.skipCnt, args.simName, args.newName, simParams,
-                     origTrackData, noisyTrackData, path=args.directory)
 

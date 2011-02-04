@@ -84,13 +84,35 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 
         if doFindWorst :
             print "Worst Run:", '  '.join(["%7d" % index for index in indices[0]])
-    
+
+
+ def main(args) :
+    import ZigZag.ParamUtils as ParamUtils
+    from ListRuns import ExpandTrackRuns
+
+    if args.cacheOnly :
+        args.skillNames = []
+
+    dirName = args.directory + os.sep + args.simName
+    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
+
+    # We only want to process the trackers as specified by the user
+    trackRuns = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
+
+    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
+                                trackRuns=trackRuns, path=args.directory)
+
+    if not args.cacheOnly :
+        analysis = analysis.insertaxis(axis=1, label=args.simName)
+        for skill in args.skillNames :
+            DisplaySkillScores(analysis.lix[[skill]], skill)
+            print '\n\n'
+   
 
 if __name__ == '__main__' :
     import argparse
     from ZigZag.zigargs import AddCommandParser
-    import ZigZag.ParamUtils as ParamUtils
-    from ListRuns import ExpandTrackRuns
+
 
 
     parser = argparse.ArgumentParser(description="Analyze the tracking results of a storm-track simulation")
@@ -116,21 +138,6 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    if args.cacheOnly :
-        args.skillNames = []
+    main(args)
 
-    dirName = args.directory + os.sep + args.simName
-    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
-
-    # We only want to process the trackers as specified by the user
-    trackRuns = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
-
-    analysis = AnalyzeTrackings(args.simName, simParams, args.skillNames,
-                                trackRuns=trackRuns, path=args.directory)
-
-    if not args.cacheOnly :
-        analysis = analysis.insertaxis(axis=1, label=args.simName)
-        for skill in args.skillNames :
-            DisplaySkillScores(analysis.lix[[skill]], skill)
-            print '\n\n'
 

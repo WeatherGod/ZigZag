@@ -32,6 +32,15 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     ParamUtils.Save_MultiSim_Params(newDir + os.sep + "MultiSim.ini", multiParams)
 
 
+def main(args) :
+    multiDir = args.directory + os.sep + args.multiSim
+    paramFile = multiDir + os.sep + "MultiSim.ini"
+    multiParams = ParamUtils.Read_MultiSim_Params(paramFile)
+
+    Multi_DownsampleTracks(multiParams, args.skipCnt, args.multiSim, args.newName, path=args.directory)
+
+
+
 if __name__ == '__main__' :
     import argparse         # command-line parsing
     from ZigZag.zigargs import AddCommandParser
@@ -56,8 +65,6 @@ if __name__ == '__main__' :
 
     args = parser.parse_args()
 
-    multiDir = args.directory + os.sep + args.multiSim
-    paramFile = multiDir + os.sep + "MultiSim.ini"
-    multiParams = ParamUtils.Read_MultiSim_Params(paramFile)
+    main(args)
 
-    Multi_DownsampleTracks(multiParams, args.skipCnt, args.multiSim, args.newName, path=args.directory)
+

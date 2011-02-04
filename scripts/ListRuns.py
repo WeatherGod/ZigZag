@@ -52,6 +52,15 @@ def MultiSims2Sims(multiSims, dirName='.') :
 
     return simNames
 
+def main(args) :
+    simNames = args.simNames if not args.isMulti else MultiSims2Sims(args.simNames, args.directory)
+
+    trackers = CommonTrackRuns(simNames, args.directory)
+    trackRuns = ExpandTrackRuns(trackers, args.trackRuns)
+
+    for aRun in trackRuns :
+        print aRun
+
 
 if __name__ == '__main__' :
     import argparse
@@ -76,12 +85,6 @@ if __name__ == '__main__' :
     """
     args = parser.parse_args()
 
+    main(args)
 
-    simNames = args.simNames if not args.isMulti else MultiSims2Sims(args.simNames, args.directory)
-
-    trackers = CommonTrackRuns(simNames, args.directory)
-    trackRuns = ExpandTrackRuns(trackers, args.trackRuns)
-
-    for aRun in trackRuns :
-        print aRun
 

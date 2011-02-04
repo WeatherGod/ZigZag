@@ -19,6 +19,6 @@ setup(
                'scripts/MultiTracking.py', 'scripts/ParamSearch.py',
                'scripts/ShowAnims.py', 'scripts/ShowCorners.py',
                'scripts/ShowOcclusions.py', 'scripts/ShowTracks.py',
-               'scripts/TrackSim.py']
+               'scripts/TrackSim.py', 'scripts/ZigZag']
     )
 

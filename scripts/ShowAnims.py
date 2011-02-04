@@ -7,43 +7,11 @@ import ZigZag.ParamUtils as ParamUtils           # for ReadSimulationParams()
 from ListRuns import ExpandTrackRuns
 
 
-if __name__ == '__main__' :
-    import argparse                         # Command-line parsing
+def main(args) :
     import os				# for os.sep.join()
     import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
-    from ZigZag.zigargs import AddCommandParser
-
-
-    parser = argparse.ArgumentParser(description="Produce an animation of the tracks")
-    AddCommandParser('ShowAnims', parser)
-    """
-    parser.add_argument("trackFiles", nargs='*',
-                        help="Use TRACKFILE for track data",
-                        metavar="TRACKFILE")
-    parser.add_argument("-t", "--truth", dest="truthTrackFile",
-                      help="Use TRUTHFILE for true track data",
-                      metavar="TRUTHFILE", default=None)
-    parser.add_argument("-r", "--trackruns", dest="trackRuns",
-                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-                        metavar="RUN", default=None)
-    parser.add_argument("-l", "--layout", dest="layout", type=int,
-                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-                        metavar="NUM", default=None)
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("-d", "--dir", dest="directory",
-              help="Base directory to work from when using --simName",
-              metavar="DIRNAME", default=".")
-    parser.add_argument("-s", "--simName", dest="simName",
-              help="Use data from the simulation SIMNAME",
-              metavar="SIMNAME", default=None)
-    """
-    args = parser.parse_args()
-
-    
 
     # FIXME: Currently, the code allows for trackFiles to be listed as well
     #        as providing a simulation (which trackfiles are automatically grabbed).
@@ -130,3 +98,42 @@ if __name__ == '__main__' :
 
     #anims[0].save("test.mp4")
     plt.show()
+
+
+if __name__ == '__main__' :
+    import argparse                         # Command-line parsing
+
+    from ZigZag.zigargs import AddCommandParser
+
+
+    parser = argparse.ArgumentParser(description="Produce an animation of the tracks")
+    AddCommandParser('ShowAnims', parser)
+    """
+    parser.add_argument("trackFiles", nargs='*',
+                        help="Use TRACKFILE for track data",
+                        metavar="TRACKFILE")
+    parser.add_argument("-t", "--truth", dest="truthTrackFile",
+                      help="Use TRUTHFILE for true track data",
+                      metavar="TRUTHFILE", default=None)
+    parser.add_argument("-r", "--trackruns", dest="trackRuns",
+                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
+                        metavar="RUN", default=None)
+    parser.add_argument("-l", "--layout", dest="layout", type=int,
+                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
+                        metavar="NUM", default=None)
+    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
+                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+                        metavar="SIZE", default=(11.0, 5.0))
+    parser.add_argument("-d", "--dir", dest="directory",
+              help="Base directory to work from when using --simName",
+              metavar="DIRNAME", default=".")
+    parser.add_argument("-s", "--simName", dest="simName",
+              help="Use data from the simulation SIMNAME",
+              metavar="SIMNAME", default=None)
+    """
+    args = parser.parse_args()
+
+    main(args)
+
+    
+

@@ -31,11 +31,25 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
         storedTrackConfs[trackRun] = trackConfs[trackRun].copy()
         ParamUtils.SaveConfigFile(storedConfFile, storedTrackConfs)
 
+def main(args) :
+    from ListRuns import ExpandTrackRuns
+
+    dirName = args.directory + os.sep + args.simName
+    simFile = dirName + os.sep + "simParams.conf"
+    simParams = ParamUtils.ReadSimulationParams(simFile)
+    
+    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
+    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
+    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
+
+    SingleTracking(simFile, simParams, trackrunConfs, path=args.directory)
+
+
 
 if __name__ == "__main__" :
     import argparse       # Command-line parsing
     from ZigZag.zigargs import AddCommandParser
-    from ListRuns import ExpandTrackRuns
+
 
     parser = argparse.ArgumentParser(description='Track the given centroids')
     AddCommandParser('DoTracking', parser)
@@ -53,14 +67,6 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    dirName = args.directory + os.sep + args.simName
-    simFile = dirName + os.sep + "simParams.conf"
-    simParams = ParamUtils.ReadSimulationParams(simFile)
-    
-    trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
-    trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
-    trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
-
-    SingleTracking(simFile, simParams, trackrunConfs, path=args.directory)
+    main(args)
 
 

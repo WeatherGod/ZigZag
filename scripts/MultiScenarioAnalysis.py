@@ -55,10 +55,45 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims,
     return figs
 
 
+def main(args) :
+    from ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
+
+    n_boot = 100
+    ci_alpha = 0.05
+
+    if len(args.multiSims) < 2 :
+        raise ValueError("Need at least 2 scenarios to analyze")
+
+    if args.cacheOnly :
+        args.skillNames = []
+
+
+    simNames = MultiSims2Sims(args.multiSims, args.directory)
+    commonTrackRuns = CommonTrackRuns(simNames, args.directory)
+    trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
+
+    meanSkills, skills_ci_upper, skills_ci_lower = MultiScenarioAnalyze(args.multiSims, args.skillNames, trackRuns,
+                                                                        n_boot, ci_alpha, path=args.directory)
+
+    if not args.cacheOnly :
+        shortNames = [runname[-11:] for runname in trackRuns]
+
+        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, args.multiSims,
+                                         meanSkills, skills_ci_upper, skills_ci_lower,
+                                         figsize=args.figsize)
+
+        if args.saveImgFile is not None :
+            for aFig, skillName in zip(figs, args.skillNames) :
+                aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
+
+        if args.doShow :
+            plt.show()
+
+
 if __name__ == '__main__' :
     import argparse
     from ZigZag.zigargs import AddCommandParser
-    from ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
+
 
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple scenarios of multiple storm-track simulations')
@@ -95,33 +130,6 @@ if __name__ == '__main__' :
     """
     args = parser.parse_args()
 
-    n_boot = 100
-    ci_alpha = 0.05
-
-    if len(args.multiSims) < 2 :
-        raise ValueError("Need at least 2 scenarios to analyze")
-
-    if args.cacheOnly :
-        args.skillNames = []
+    main(args)
 
 
-    simNames = MultiSims2Sims(args.multiSims, args.directory)
-    commonTrackRuns = CommonTrackRuns(simNames, args.directory)
-    trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
-
-    meanSkills, skills_ci_upper, skills_ci_lower = MultiScenarioAnalyze(args.multiSims, args.skillNames, trackRuns,
-                                                                        n_boot, ci_alpha, path=args.directory)
-
-    if not args.cacheOnly :
-        shortNames = [runname[-11:] for runname in trackRuns]
-
-        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, args.multiSims,
-                                         meanSkills, skills_ci_upper, skills_ci_lower,
-                                         figsize=args.figsize)
-
-        if args.saveImgFile is not None :
-            for aFig, skillName in zip(figs, args.skillNames) :
-                aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
-
-        if args.doShow :
-            plt.show()
