@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+
+
+# TODO: Simplify these things down by grouping some of these as single-mode and multi-mode
+scripts = ['TrackSim.py', 'MultiSim.py',
+           'DownsampleSim.py', 'MultiDownsample.py',
+           'DoTracking.py', 'MultiTracking.py',
+           'AnalyzeTracking.py', 'MultiAnalysis.py', 
+           'MultiScenarioAnalysis.py',
+           'ListRuns.py', #'ParamSearch.py',
+           'ShowAnims.py', 'ShowCorners.py',
+           'ShowTracks.py']
+
+
+commands = [name.replace('.py', '') for name in scripts]
+
+mains = {}
+descriptions = {}
+
+def TrackSim_Main(args) :
+    from TrackSim import main
+
+    main(args)
+
+mains['TrackSim'] = TrackSim_Main
+descriptions['TrackSim'] = "Produce a track simulation"
+
+def MultiSim_Main(args) :
+    from MultiSim import main
+
+    main(args)
+
+mains['MultiSim'] = MultiSim_Main
+descriptions['MultiSim'] = "Run multiple storm-track simulations"
+
+def DownsampleSim_Main(args) :
+    from DownsampleSim import main
+
+    main(args)
+
+mains['DownsampleSim'] = DownsampleSim_Main
+descriptions['DownsampleSim'] = "Copy and downsample a simulation"
+
+
+def MultiDownsample_Main(args) :
+    from MultiDownsample import main
+
+    main(args)
+
+
+mains['MultiDownsample'] = MultiDownsample_Main
+descriptions['MultiDownsample'] = "Copy and downsample the simulations of a scenario"
+
+
+def DoTracking_Main(args) :
+    from DoTracking import main
+
+    main(args)
+
+mains['DoTracking'] = DoTracking_Main
+descriptions['DoTracking'] = 'Track the given centroids'
+
+
+def MultiTracking_Main(args) :
+    from MultiTracking import main
+
+    main(args)
+
+mains['MultiTracking'] = MultiTracking_Main
+descriptions['MultiTracking'] = 'Track the given centroids for multiple simulations'
+
+
+def AnalyzeTracking_Main(args) :
+    from AnalyzeTracking import main
+
+    main(args)
+
+mains['AnalyzeTracking'] = AnalyzeTracking_Main
+descriptions['AnalyzeTracking'] = "Analyze the tracking results of a storm-track simulation"
+
+def MultiAnalysis_Main(args) :
+    from MultiAnalysis import main
+
+    main(args)
+
+mains['MultiAnalysis'] = MultiAnalysis_Main
+descriptions['MultiAnalysis'] = 'Analyze the tracking results of multiple storm-track simulations'
+
+
+def MultiScenarioAnalysis_Main(args) :
+    from MultiScenarioAnalysis import main
+
+    main(args)
+
+mains['MultiScenarioAnalysis'] = MultiScenarioAnalysis_Main
+descriptions['MultiScenarioAnalysis'] = 'Analyze the tracking results of multiple scenarios'
+
+def ListRuns_Main(args) :
+    from ListRuns import main
+
+    main(args)
+
+mains['ListRuns'] = ListRuns_Main
+descriptions['ListRuns'] = "List the trackruns."
+
+
+def ShowAnims_Main(args) :
+    from ShowAnims import main
+
+    main(args)
+
+mains['ShowAnims'] = ShowAnims_Main
+descriptions['ShowAnims'] = "Produce an animation of the tracks"
+
+def ShowCorners_Main(args) :
+    from ShowCorners import main
+
+    main(args)
+
+mains['ShowCorners'] = ShowCorners_Main
+descriptions['ShowCorners'] = "Produce an animation of the centroids"
+
+def ShowTracks_Main(args) :
+    from ShowTracks import main
+
+    main(args)
+
+mains['ShowTracks'] = ShowTracks_Main
+descriptions['ShowTracks'] = "Produce a display of the tracks"
+
+
+
+
+if __name__ == '__main__' :
+    import argparse
+    import ZigZag
+    from ZigZag.zigargs import AddCommandParser
+
+    parser = argparse.ArgumentParser(prog="ZigZag",
+                                     description="The track simulator and tracker evaluator")
+
+    subparsers = parser.add_subparsers()
+    for command in commands :
+        subparse = subparsers.add_parser(command, help=descriptions[command])
+        AddCommandParser(command, subparse)
+        subparse.set_defaults(func=mains[command])
+
+    args = parser.parse_args()
+
+
