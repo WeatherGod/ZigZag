@@ -433,10 +433,10 @@ _zigargs['ShowCorners'] = [
     ]
 
 
-#_zigargs['TrackStats'] = [
-#    (("trackfiles",),
-#     dict(nargs='+', type=str,
-#          help='Analyze the tracks in FILE.',
-#          metavar='FILE')),
-#    ]
+_zigargs['TrackReports'] = [
+    (("trackfiles",),
+     dict(nargs='+', type=str,
+          help='Analyze the tracks in FILE.',
+          metavar='FILE')),
+    ]
 
