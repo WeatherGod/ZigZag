@@ -234,6 +234,10 @@ _zigargs['ListRuns'] = [
      dict(nargs='+',
           help="List track runs done for SIMNAME. If more than one, then list all common track runs.",
           metavar="SIMNAME")),
+    (("-f", "--files"),
+     dict(action='store_true', dest='listfiles',
+          help="Do we list the track runs, or the track result files? (Default is to list the runs)",
+          default=False)),
     (("-t", "--trackruns"), 
      dict(dest="trackRuns",
           nargs="+", help="Trackruns to list.  List all runs if none are given.",
@@ -427,4 +431,12 @@ _zigargs['ShowCorners'] = [
 #          metavar="TITLE", default=None))
 
     ]
+
+
+#_zigargs['TrackStats'] = [
+#    (("trackfiles",),
+#     dict(nargs='+', type=str,
+#          help='Analyze the tracks in FILE.',
+#          metavar='FILE')),
+#    ]
 

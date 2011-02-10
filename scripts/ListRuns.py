@@ -58,8 +58,14 @@ def main(args) :
     trackers = CommonTrackRuns(simNames, args.directory)
     trackRuns = ExpandTrackRuns(trackers, args.trackRuns)
 
-    for aRun in trackRuns :
-        print aRun
+    if not args.listfiles :
+        for aRun in trackRuns :
+            print(aRun)
+    else :
+        for simName in simNames :
+            simParams = ParamUtils.ReadSimulationParams(os.path.join(args.directory, simName, 'simParams.conf'))
+            for aRun in trackRuns :
+                print(os.path.join(args.directory, simName, simParams['result_file'] + '_' + aRun))
 
 
 if __name__ == '__main__' :
