@@ -31,6 +31,9 @@ def main(args) :
     if args.layout is None :
         args.layout = (1, len(inputDataFiles))
 
+    if args.figsize is None :
+        args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
+
     cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data'] for inFileName in inputDataFiles]
 
     theFig = plt.figure(figsize=args.figsize)

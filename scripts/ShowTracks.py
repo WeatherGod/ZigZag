@@ -47,6 +47,8 @@ def main(args) :
     if args.layout is None :
         args.layout = (1, len(trackFiles))
 
+    if args.figsize is None :
+        args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
