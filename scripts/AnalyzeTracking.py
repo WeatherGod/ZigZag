@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os                   # for os.sep
+import os.path
 from ZigZag.TrackUtils import *
 from ZigZag.TrackFileUtils import *
 import numpy
@@ -37,8 +37,8 @@ def DisplaySkillScores(skillScores, skillScoreName) :
 def AnalyzeTrackings(simName, simParams, skillNames,
                      trackRuns, path='.') :
 
-    dirName = path + os.sep + simName
-    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
+    dirName = os.path.join(path, simName)
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
     true_AssocSegs = CreateSegments(true_tracks)
     true_FAlarmSegs = CreateSegments(true_falarms)
 
@@ -93,8 +93,8 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
     if args.cacheOnly :
         args.skillNames = []
 
-    dirName = args.directory + os.sep + args.simName
-    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
+    dirName = os.path.join(args.directory, args.simName)
+    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
 
     # We only want to process the trackers as specified by the user
     trackRuns = ExpandTrackRuns(simParams['trackers'], args.trackRuns)

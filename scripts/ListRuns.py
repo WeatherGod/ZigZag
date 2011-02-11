@@ -2,7 +2,7 @@
 
 import fnmatch
 import ZigZag.ParamUtils as ParamUtils
-import os
+import os.path
 
 def ExpandTrackRuns(allTrackRuns, requestedRuns=None) :
     """
@@ -28,7 +28,7 @@ def CommonTrackRuns(simNames, dirName='.') :
     allTrackRuns = []
 
     for simName in simNames :
-        simParams = ParamUtils.ReadSimulationParams(os.sep.join([dirName, simName, "simParams.conf"]))
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, simName, "simParams.conf"))
         allTrackRuns.append(set(simParams['trackers']))
 
     # Get the intersection of all the sets of trackRuns in each simulation
@@ -38,7 +38,7 @@ def CommonTrackRuns(simNames, dirName='.') :
 def Sims_of_MultiSim(multiSim, dirName='.') :
     """ Build list of actual single-sim names for a multi-sim.
         Note that this does not include the multi-sim's name in the list. """
-    paramFile = os.sep.join([dirName, multiSim, "MultiSim.ini"])
+    paramFile = os.path.join(dirName, multiSim, "MultiSim.ini")
     multiSimParams = ParamUtils.Read_MultiSim_Params(paramFile)
     return ["%.3d" % index for index in xrange(int(multiSimParams['simCnt']))]
 
@@ -48,7 +48,7 @@ def MultiSims2Sims(multiSims, dirName='.') :
     simNames = []
     for multiSim in multiSims :
         sims = Sims_of_MultiSim(multiSim, dirName)
-        simNames.extend([os.sep.join([multiSim, aSim]) for aSim in sims])
+        simNames.extend([os.path.join(multiSim, aSim) for aSim in sims])
 
     return simNames
 
@@ -65,7 +65,7 @@ def main(args) :
         for simName in simNames :
             simParams = ParamUtils.ReadSimulationParams(os.path.join(args.directory, simName, 'simParams.conf'))
             for aRun in trackRuns :
-                print(os.path.join(args.directory, simName, simParams['result_file'] + '_' + aRun))
+                print os.path.join(args.directory, simName, simParams['result_file'] + '_' + aRun)
 
 
 if __name__ == '__main__' :

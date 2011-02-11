@@ -1,6 +1,6 @@
 import numpy
 import TrackUtils
-import os           # for os.sep
+import os.path
 
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
@@ -90,7 +90,7 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     dataFile.write("%s %d %d\n" % (corner_filestem, len(volume_data), startFrame))
 
     for (frameNo, aVol) in enumerate(volume_data) :
-        outFile = open("%s.%d" % (path+os.sep+corner_filestem, frameNo + startFrame), 'w')
+        outFile = open("%s.%d" % (os.path.join(path, corner_filestem), frameNo + startFrame), 'w')
         for strmCell in aVol['stormCells'] :
             outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
                           + ' '.join(['0'] * 25) + ' '
@@ -109,10 +109,9 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
     """
     NOTE: This is not suitable yet for getting truth tables for Track Plotting!
     """
-    correctFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs"
-    wrongFilename = path + os.sep + simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs"
-
-    resultFilename = path + os.sep + simParams['result_file'] + "_" + trackrun
+    correctFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs")
+    wrongFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs")
+    resultFilename = os.path.join(path, simParams['result_file'] + "_" + trackrun)
     (finalTracks, finalFAlarms) = TrackUtils.FilterMHTTracks(*ReadTracks(resultFilename))
 
     if (not (os.path.exists(correctFilename) and os.path.exists(wrongFilename))
@@ -129,7 +128,7 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
         truthTable = TrackUtils.MakeTruthTable(true_AssocSegs, true_FAlarmSegs,
                                                 trackerAssocSegs, trackerFAlarmSegs)
 
-        SaveTruthTable(trackrun, path + os.sep + simParams['analysis_stem'], truthTable)
+        SaveTruthTable(trackrun, os.path.join(path, simParams['analysis_stem']), truthTable)
 
     else :
         # Ok, the results are not newer than the cached truth table segments file, so the
@@ -179,7 +178,7 @@ def ReadCorners(inputDataFile, path='.') :
         return cornerData
 
     volume_data = [{'volTime': frameNum,
-                    'stormCells': LoadCorner("%s.%d" % (path+os.sep+corner_filestem, frameNum))}
+                    'stormCells': LoadCorner("%s.%d" % (os.path.join(path, corner_filestem), frameNum))}
                    for frameNum in range(startFrame, frameCnt + startFrame)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}

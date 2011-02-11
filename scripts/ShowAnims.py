@@ -8,7 +8,7 @@ from ListRuns import ExpandTrackRuns
 
 
 def main(args) :
-    import os				# for os.sep.join()
+    import os.path			# for os.path.join()
     import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
@@ -20,17 +20,18 @@ def main(args) :
     trackTitles = []
 
     if args.simName is not None :
-        dirName = args.directory + os.sep + args.simName
-        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
+        dirName = os.path.join(args.directory, args.simName)
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
 
         if args.trackRuns is not None :
             simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
 
-        trackFiles = [dirName + os.sep + simParams['result_file'] + '_' + aTracker for aTracker in simParams['trackers']]
+        trackFiles = [os.path.join(dirName, simParams['result_file'] + '_' + aTracker)
+                      for aTracker in simParams['trackers']]
         trackTitles = simParams['trackers']
 
         if args.truthTrackFile is None :
-            args.truthTrackFile = dirName + os.sep + simParams['noisyTrackFile']
+            args.truthTrackFile = os.path.join(dirName, simParams['noisyTrackFile'])
 
     trackFiles += args.trackFiles
     trackTitles += args.trackFiles

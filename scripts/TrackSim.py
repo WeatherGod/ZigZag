@@ -3,7 +3,7 @@
 
 import ZigZag.TrackUtils as TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
 import numpy				# for Numpy
-import os				# for os.sep, os.makedirs(), os.path.exists()
+import os				# for os.makedirs(), os.path.exists()
 
 import ZigZag.Sim as Sim
 import ZigZag.ParamUtils as ParamUtils     # for SaveSimulationParams(), SetupParser()
@@ -202,7 +202,10 @@ def SingleSimulation(simConfs, frameCnt,
 def SaveSimulation(theSimulation, simParams, simConfs,
                    automake=True, autoreplace=True, path='.') :
 
-    simDir = path + os.sep + simParams['simName'] + os.sep
+    # Use '' in os.path.join() to make the directory name explicity
+    # have a path separator at the end of the name for testing
+    # by os.path.exists().
+    simDir = os.path.join(path, simParams['simName'], '')
     # Create the simulation directory.
     if (not os.path.exists(simDir)) :
         if automake :
@@ -214,10 +217,15 @@ def SaveSimulation(theSimulation, simParams, simConfs,
             raise ValueError("%s already exists and autoreplace==False in SaveSimulation()" % simDir)
     
     ParamUtils.SaveSimulationParams(simDir + "simParams.conf", simParams)
-    SaveTracks(simDir + simParams['simTrackFile'], theSimulation['true_tracks'], theSimulation['true_falarms'])
-    SaveTracks(simDir + simParams['noisyTrackFile'], theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
-    SaveCorners(simDir + simParams['inputDataFile'], simParams['corner_file'], theSimulation['noisy_volumes'], path=simDir)
-    ParamUtils.SaveConfigFile(simDir + simParams['simConfFile'], simConfs)
+    SaveTracks(os.path.join(simDir, simParams['simTrackFile']),
+               theSimulation['true_tracks'], theSimulation['true_falarms'])
+    SaveTracks(os.path.join(simDir, simParams['noisyTrackFile']),
+               theSimulation['noisy_tracks'], theSimulation['noisy_falarms'])
+    SaveCorners(os.path.join(simDir, simParams['inputDataFile']),
+                simParams['corner_file'], theSimulation['noisy_volumes'],
+                path=simDir)
+    ParamUtils.SaveConfigFile(os.path.join(simDir, simParams['simConfFile']),
+                              simConfs)
 
 
 def main(args) :

@@ -3,7 +3,7 @@
 from AnalyzeTracking import *
 import ZigZag.ParamUtils as ParamUtils
 import la
-import os           # for os.sep
+import os.path
 import numpy as np
 import ZigZag.bootstrap as btstrp
 from ListRuns import CommonTrackRuns, Sims_of_MultiSim
@@ -11,14 +11,14 @@ from ListRuns import CommonTrackRuns, Sims_of_MultiSim
 def MultiAnalyze(simNames, multiSim, skillNames,
                  trackRuns, path='.') :
     completeAnalysis = None
-    multiDir = path + os.sep + multiSim
+    multiDir = os.path.join(path, multiSim)
 
            
     # Now, go through each simulation and analyze them.
     for simName in simNames :
-        dirName = multiDir + os.sep + simName
+        dirName = os.path.join(multiDir, simName)
         print "Sim:", simName
-        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
 
         analysis = AnalyzeTrackings(simName, simParams, skillNames,
                                     trackRuns=trackRuns, path=multiDir)
@@ -63,7 +63,7 @@ def main(args) :
         import matplotlib.pyplot as plt
 
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
-    fullNames = [os.sep.join([args.multiSim, aSim]) for aSim in simNames]
+    fullNames = [os.path.join(args.multiSim, aSim) for aSim in simNames]
     commonTrackRuns = CommonTrackRuns(fullNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
 

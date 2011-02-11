@@ -7,7 +7,7 @@ import ZigZag.ParamUtils as ZigZag          # for ReadSimulationParams()
 
 
 def main(args) :
-    import os				# for os.sep, os.path
+    import os.path			# for os.path
     import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
@@ -16,9 +16,9 @@ def main(args) :
     titles = []
 
     if args.simName is not None :
-        dirName = args.directory + os.sep + args.simName
-        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + "simParams.conf")
-        inputDataFiles.append(dirName + os.sep + simParams['inputDataFile'])
+        dirName = os.path.join(args.directory, args.simName)
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
+        inputDataFiles.append(os.path.join(dirName, simParams['inputDataFile']))
         titles.append(args.simName)
 
     # Add on any files specified at the command-line
@@ -34,7 +34,8 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
-    cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data'] for inFileName in inputDataFiles]
+    cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data']
+                     for inFileName in inputDataFiles]
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,

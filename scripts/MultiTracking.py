@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os.path
 import ZigZag.Trackers as Trackers
 from DoTracking import SingleTracking
 import ZigZag.ParamUtils as ParamUtils     # for reading simParams files
@@ -9,11 +9,11 @@ from ListRuns import Sims_of_MultiSim
 
 def MultiTrack(multiSim, trackConfs, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)
-    multiDir = path + os.sep + multiSim
+    multiDir = os.path.join(path, multiSim)
 
     for simName in simNames :
         print "Sim:", simName
-        paramFile = multiDir + os.sep + simName + os.sep + "simParams.conf"
+        paramFile = os.path.join(multiDir, simName, "simParams.conf")
         simParams = ParamUtils.ReadSimulationParams(paramFile)
 
         # A copy of trackConfs is used here because the tracker calls could

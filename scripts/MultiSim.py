@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os				    # for os.sep
+import os.path
 from TrackSim import SingleSimulation, SaveSimulation
 import numpy
 import ZigZag.ParamUtils as ParamUtils
@@ -10,13 +10,13 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
     # Seed the PRNG
     numpy.random.seed(multiParams['globalSeed'])
 
-    multiDir = path + os.sep + multiParams['simName']
+    multiDir = os.path.join(path, multiParams['simName'])
 
     # Create the multi-sim directory
     if (not os.path.exists(multiDir)) :
         os.makedirs(multiDir)
 
-    ParamUtils.Save_MultiSim_Params("%s%sMultiSim.ini" % (multiDir, os.sep),
+    ParamUtils.Save_MultiSim_Params(os.path.join(multiDir, "MultiSim.ini"),
                                     multiParams)
 
     # Get the seeds that will be used for each sub-simulation
@@ -27,11 +27,6 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
         simParams = globalSimParams.copy()
         simParams['simName'] = subSim
-        #for keyname in ('simTrackFile', 'noisyTrackFile', 'inputDataFile',
-        #                'corner_file', 'result_file', 'simConfFile') :
-            #simParams[keyname] = subSim + os.sep + simParams[keyname]
-            #simParams[keyname] = simParams[keyname].replace(multiParams['simName'], simName, 1)
-            
         simParams['seed'] = seed
 
         theSim = SingleSimulation(simConfs, **simParams)

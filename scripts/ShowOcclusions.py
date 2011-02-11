@@ -5,7 +5,7 @@ from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 
 import argparse 			# Command-line parsing
-import os				# for os.sep.join()
+import os.path
 import matplotlib.pyplot as pyplot
 
 parser = argparse.ArgumentParser()
@@ -17,8 +17,8 @@ args = parser.parse_args()
 
 
 
-simTrackFile = os.sep.join([args.simName, "true_tracks"])
-noiseTrackFile = os.sep.join([args.simName, "noise_tracks"])
+simTrackFile = os.path.join(args.simName, "true_tracks")
+noiseTrackFile = os.path.join(args.simName, "noise_tracks")
 
 
 (true_tracks, true_falarms) = ReadTracks(simTrackFile)

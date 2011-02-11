@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os.path
 from ZigZag.TrackUtils import *
 from ZigZag.TrackFileUtils import *
 import ZigZag.ParamUtils as ParamUtils
@@ -10,10 +10,11 @@ import numpy as np
 def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, path='.') :
 
     # Create the simulation directory.
-    if (not os.path.exists(path + os.sep + newName)) :
-        os.makedirs(path + os.sep + newName)
+    newPath = os.path.join(path, newName, '')
+    if not os.path.exists(newPath) :
+        os.makedirs(newPath)
     else :
-        raise ValueError("%s is an existing simulation!" % (path + os.sep + newName))
+        raise ValueError("%s is an existing simulation!" % newPath)
 
     # FIXME: This isn't quite right, but it might be easily fixed.
     #        Heck, it might actually already be right.
@@ -60,18 +61,18 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
     #simParams['noisyTrackFile'] = simParams['noisyTrackFile'].replace(simName, newName, 1)
     
 
-    dirName = path + os.sep + simParams['simName']
-    ParamUtils.SaveSimulationParams(dirName + os.sep + "simParams.conf", simParams)
-    SaveTracks(dirName + os.sep + simParams['simTrackFile'], *origTracks)
-    SaveTracks(dirName + os.sep + simParams['noisyTrackFile'], newTracks, newFAlarms)
-    SaveCorners(dirName + os.sep + simParams['inputDataFile'],
+    dirName = os.path.join(path, simParams['simName'])
+    ParamUtils.SaveSimulationParams(os.path.join(dirName, "simParams.conf"), simParams)
+    SaveTracks(os.path.join(dirName, simParams['simTrackFile']), *origTracks)
+    SaveTracks(os.path.join(dirName, simParams['noisyTrackFile']), newTracks, newFAlarms)
+    SaveCorners(os.path.join(dirName, simParams['inputDataFile']),
                 simParams['corner_file'], volData, path=dirName)
 
 def main(args) :
-    dirName = args.directory + os.sep + args.simName
-    simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
-    origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
-    noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
+    dirName = os.path.join(args.directory, args.simName)
+    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf')
+    origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['simTrackFile'])))
+    noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
 
     DownsampleTracks(args.skipCnt, args.simName, args.newName, simParams,
                      origTrackData, noisyTrackData, path=args.directory)

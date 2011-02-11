@@ -4,24 +4,24 @@ from DownsampleSim import DownsampleTracks
 from ZigZag.TrackFileUtils import *
 from ZigZag.TrackUtils import *
 import ZigZag.ParamUtils as ParamUtils
-import os
+import os.path
 from ListRuns import Sims_of_MultiSim
 
 def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)
 
-    multiDir = path + os.sep + multiSim
-    newDir = path + os.sep + newMulti
+    multiDir = os.path.join(path, multiSim)
+    newDir = os.path.join(path, newMulti)
 
     # TODO: Improve this to actually fully resolve these to completely prevent over-writing.
     if multiDir == newDir :
         raise ValueError("The new downsampled directory is the same as the current!")
 
     for simName in simNames :
-        dirName = multiDir + os.sep + simName
-        simParams = ParamUtils.ReadSimulationParams(dirName + os.sep + 'simParams.conf')
-        origTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['simTrackFile']))
-        noisyTrackData = FilterMHTTracks(*ReadTracks(dirName + os.sep + simParams['noisyTrackFile']))
+        dirName = os.path.join(multiDir, simName)
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
+        origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['simTrackFile'])))
+        noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
 
         DownsampleTracks(skipCnt, simName, simName, simParams,
                          origTrackData, noisyTrackData, path=newDir)
@@ -29,12 +29,13 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
         print "Sim:", simName
 
     multiParams['simName'] = newMulti
-    ParamUtils.Save_MultiSim_Params(newDir + os.sep + "MultiSim.ini", multiParams)
+    ParamUtils.Save_MultiSim_Params(os.path.join(newDir, "MultiSim.ini"),
+                                    multiParams)
 
 
 def main(args) :
-    multiDir = args.directory + os.sep + args.multiSim
-    paramFile = multiDir + os.sep + "MultiSim.ini"
+    multiDir = os.path.join(args.directory, args.multiSim)
+    paramFile = os.path.join(multiDir, "MultiSim.ini")
     multiParams = ParamUtils.Read_MultiSim_Params(paramFile)
 
     Multi_DownsampleTracks(multiParams, args.skipCnt, args.multiSim, args.newName, path=args.directory)
