@@ -85,12 +85,16 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     The control file contains the filestem of the data files, the number of
     data files, and the number of storm cells in each data file.
     """
-    startFrame = volume_data[0]['volTime']
-    dataFile = open(inputDataFile, 'w')
-    dataFile.write("%s %d %d\n" % (corner_filestem, len(volume_data), startFrame))
+    startFrame = volume_data[0]['frameNum']
 
-    for (frameNo, aVol) in enumerate(volume_data) :
-        outFile = open("%s.%d" % (os.path.join(path, corner_filestem), frameNo + startFrame), 'w')
+    # NOTE: Forces the times to be uniformly spaced...
+    timeDelta = np.mean(np.diff([aVol['volTime'] for aVol in volume_data]))
+
+    dataFile = open(inputDataFile, 'w')
+    dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data), startFrame, timeDelta))
+
+    for aVol in enumerate(volume_data) :
+        outFile = open("%s.%d" % (os.path.join(path, corner_filestem), aVol['frameNum'], 'w')
         for strmCell in aVol['stormCells'] :
             outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
                           + ' '.join(['0'] * 25) + ' '
@@ -102,8 +106,12 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
 
 
 def SaveTruthTable(trackrun, filestem, truthTable) :
-    SaveTracks(filestem + "_" + trackrun + "_Correct.segs", truthTable['assocs_Correct'], truthTable['falarms_Correct'])
-    SaveTracks(filestem + "_" + trackrun + "_Wrong.segs", truthTable['assocs_Wrong'], truthTable['falarms_Wrong'])
+    SaveTracks(filestem + "_" + trackrun + "_Correct.segs",
+               truthTable['assocs_Correct'],
+               truthTable['falarms_Correct'])
+    SaveTracks(filestem + "_" + trackrun + "_Wrong.segs",
+               truthTable['assocs_Wrong'],
+               truthTable['falarms_Wrong'])
 
 def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
     """
@@ -154,6 +162,12 @@ def ReadCorners(inputDataFile, path='.') :
     corner_filestem = headerList[0]
     frameCnt = int(headerList[1])
     startFrame = int(headerList[2])
+    
+    # This last item may or may not exist in various files.
+    # When it didn't exist, the frame numbers were assumed to
+    # be the same as the time.
+    # NOTE, this does assume that the frames are uniformly spaced...
+    timeDelta = float(headerList[3]) if len(headerList) > 3 else 1.
 
     volume_data = []
     dataFile.close()
@@ -177,9 +191,13 @@ def ReadCorners(inputDataFile, path='.') :
 
         return cornerData
 
-    volume_data = [{'volTime': frameNum,
+    frames = numpy.arange(startFrame, startFrame + frameCnt)
+    volTimes = numpy.linspace(0.0, (frameCnt - 1)*timeDelta, num=frameCnt)
+
+    volume_data = [{'volTime': volTime,
+                    'frameNum': frameNum,
                     'stormCells': LoadCorner("%s.%d" % (os.path.join(path, corner_filestem), frameNum))}
-                   for frameNum in range(startFrame, frameCnt + startFrame)]
+                   for volTime, frameNum in zip(volTimes, frames)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
 

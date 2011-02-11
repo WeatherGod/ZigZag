@@ -76,6 +76,7 @@ def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
         # Again, this mask is opposite from numpy masked array.
         tMask = (allCells['frameNums'] == frameIndex)
         volData.append({'volTime': volTime,
+                        'frameNum': frameIndex,
                         'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
 
     return(volData)
