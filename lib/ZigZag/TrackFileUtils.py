@@ -94,7 +94,7 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data), startFrame, timeDelta))
 
     for aVol in enumerate(volume_data) :
-        outFile = open("%s.%d" % (os.path.join(path, corner_filestem), aVol['frameNum'], 'w')
+        outFile = open("%s.%d" % (os.path.join(path, corner_filestem), aVol['frameNum']), 'w')
         for strmCell in aVol['stormCells'] :
             outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
                           + ' '.join(['0'] * 25) + ' '
