@@ -20,18 +20,18 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
     # to the data without modifying the input data.
     currStrms = nprf.append_fields(volume_Data['stormCells'],
                                    ('frameNums', 'types', 'trackID'),
-                                   ([volume_Data['volTime']] * strmCnt,
+                                   ([volume_Data['frameNum']] * strmCnt,
                                     ['F'] * strmCnt,
                                     [-1] * strmCnt),
                                    usemask=False)
  
-    BestLocs(stateHist, infoTracks, volume_Data['volTime'])
-    Correl_Storms(strmAdap, currStrms, volume_Data['volTime'], stateHist, strmTracks, infoTracks)
+    BestLocs(stateHist, infoTracks, volume_Data['frameNum'])
+    Correl_Storms(strmAdap, currStrms, volume_Data['frameNum'], stateHist, strmTracks, infoTracks)
     Compute_Speed(currStrms, strmTracks, infoTracks)
     EndTracks(stateHist, strmTracks, currStrms)
 
 
-    stateHist.append({'volTime': volume_Data['volTime'],
+    stateHist.append({'volTime': volume_Data['frameNum'],
                       'stormCells': currStrms})
 
 def EndTracks(stateHist, strmTracks, currStrms=None) :
