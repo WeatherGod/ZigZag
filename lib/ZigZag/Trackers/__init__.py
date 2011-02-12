@@ -1,7 +1,7 @@
-import scit
+
 import ZigZag.TrackFileUtils as TrackFileUtils
 import ZigZag.TrackUtils as TrackUtils
-import os
+import os.path
 
 
 trackerList = {}
@@ -18,8 +18,9 @@ def _register_tracker(tracker, name, param_conf) :
 
 
 def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
-    dirName = path + os.sep + simParams['simName']
-    cornerInfo = TrackFileUtils.ReadCorners(dirName + os.sep + simParams['inputDataFile'], path=dirName)
+    import scit
+    dirName = os.path.join(path, simParams['simName'])
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
     speedThresh = float(trackParams['speedThresh'])
 
     if simParams['frameCnt'] <= 1 :
@@ -38,7 +39,7 @@ def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
 
     falarms = []
     TrackUtils.CleanupTracks(strmTracks, falarms)
-    TrackFileUtils.SaveTracks(dirName + os.sep + simParams['result_file'] + "_" + trackRun,
+    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
                               strmTracks, falarms)
 
     if returnResults :
@@ -53,9 +54,9 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     paramFile = trackParams.pop("ParamFile")
     # Temporary popping...
     trackParams.pop("algorithm")
-    dirName = path + os.sep + simParams['simName']
+    dirName = os.path.join(path, simParams['simName'])
 
-    paramArgs = "python %smakeparams.py %s" % (progDir, dirName + os.sep + paramFile)
+    paramArgs = "python %smakeparams.py %s" % (progDir, os.path.join(dirName, paramFile))
     for key, val in trackParams.items() :
         paramArgs += " --%s %s" % (key, val)
 
@@ -66,10 +67,10 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
         
 
     theCommand = "%strackCorners -o %s -p %s -i %s -d %s > /dev/null" % (progDir,
-                                            dirName + os.sep + simParams['result_file'] + "_" + trackRun,
-                                            dirName + os.sep + paramFile,
-                                            dirName + os.sep + simParams['inputDataFile'],
-                                            dirName)
+                                os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
+                                os.path.join(dirName, paramFile),
+                                os.path.join(dirName, simParams['inputDataFile']),
+                                dirName)
     
     print theCommand
     # TODO: Temporary until I fix this to use Popen()
@@ -77,7 +78,7 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
         raise Exception("MHT tracker failed!")
 
     if returnResults :
-        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(dirName + os.sep + trackParams['result_file'] + "_" + trackRun))
+        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(os.path.join(dirName, trackParams['result_file'] + "_" + trackRun)))
 
 _register_tracker(MHT_Track, "MHT", dict(varx="float(min=0.0, default=1.0)",
                                          vary="float(min=0.0, default=1.0)",
