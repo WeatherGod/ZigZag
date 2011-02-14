@@ -70,7 +70,7 @@ def DownsampleTracks(skipCnt, simName, newName, simParams, origTracks, tracks, p
 
 def main(args) :
     dirName = os.path.join(args.directory, args.simName)
-    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf')
+    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
     origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['simTrackFile'])))
     noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
 
