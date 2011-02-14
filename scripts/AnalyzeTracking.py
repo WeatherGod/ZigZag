@@ -3,7 +3,7 @@
 import os.path
 from ZigZag.TrackUtils import *
 from ZigZag.TrackFileUtils import *
-import numpy
+import numpy as np
 import ZigZag.Analyzers as Analyzers
 from la import larry        # Labeled arrays
 
@@ -18,7 +18,7 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     before calling this function, you will need to reset it.
     """
 
-    numpy.set_string_function(lambda x: '\n'.join(['  '.join(["% 11.8f" % val for val in row])
+    np.set_string_function(lambda x: '\n'.join(['  '.join(["% 11.8f" % val for val in row])
                                                                               for row in x]),
                               repr=True)
 
@@ -31,7 +31,7 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     print "-" * (11*skillScores.shape[1] + 2*(skillScores.shape[1] - 1))
 
     # Resetting back to how it was
-    numpy.set_string_function(None, repr=True)
+    np.set_string_function(None, repr=True)
 
 
 def AnalyzeTrackings(simName, simParams, skillNames,
@@ -44,8 +44,8 @@ def AnalyzeTrackings(simName, simParams, skillNames,
 
     # Initializing the analysis data, which will hold a table of analysis results for
     # this simulation
-    analysis = numpy.empty((len(skillNames),
-                            len(trackRuns)))
+    analysis = np.empty((len(skillNames),
+                         len(trackRuns)))
     labels = [skillNames, trackRuns]
     
 
@@ -76,7 +76,7 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
         # Do a numpy-style subtraction (for broadcasting reasons)
         scoreDiffs = skillscores.x - theOthers.x
         # Sort score differences for each tracker 
-        indices = numpy.argsort(scoreDiffs, axis=0)
+        indices = np.argsort(scoreDiffs, axis=0)
 
         print "\n Against: ", '  '.join(["%7s" % tracker for tracker in theOthers.label[1]])
         if doFindBest :

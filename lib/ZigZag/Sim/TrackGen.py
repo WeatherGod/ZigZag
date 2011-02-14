@@ -1,5 +1,5 @@
 import ZigZag.TrackUtils as TrackUtils
-import numpy
+import numpy as np
 
 gen_modelList = {}
 
@@ -24,7 +24,7 @@ class TrackGenerator(object) :
                                         self._motionModel, *makerParams)
 
             cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
+            theTracks.append(np.sort(newTrack, 0, order=['frameNums']))
 
         return theTracks, theFAlarms, cornerID
 
@@ -54,13 +54,13 @@ class SplitGenerator(TrackGenerator) :
         theTracks = []
         theFAlarms = []
         # Now, split/merge some of those tracks
-        validTracks, = numpy.nonzero(numpy.array(simState['theTrackLens']) >= 3)
+        validTracks, = np.nonzero(np.array(simState['theTrackLens']) >= 3)
 
         # Generate a list of tracks that will have a split/merge
         # Currently, we are sampling without replacement.
         #   Each track can only split at most once in its life.
         tracksToSplit = [simState['theTracks'][validTracks[anIndex]] for anIndex in
-                          numpy.random.rand(len(validTracks)).argsort()[:trackCnt]]
+                          np.random.rand(len(validTracks)).argsort()[:trackCnt]]
 
         for choosenTrack in tracksToSplit :
             # Merges has self._trackSort == -1,
@@ -71,13 +71,13 @@ class SplitGenerator(TrackGenerator) :
             # Choose a frame to initiate a split.
             # Note, I want a frame like how I want my sliced bread,
             #       no end-pieces!
-            frameIndex = numpy.random.random_integers(1, len(choosenTrack) - 2)
+            frameIndex = np.random.random_integers(1, len(choosenTrack) - 2)
             self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
                                                    choosenTrack[frameIndex]['xLocs'],
                                                    choosenTrack[frameIndex]['yLocs'])
             newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
             cornerID += len(newTrack)
-            theTracks.append(numpy.sort(newTrack, 0, order=['frameNums']))
+            theTracks.append(np.sort(newTrack, 0, order=['frameNums']))
 
         return theTracks, theFAlarms, cornerID
 

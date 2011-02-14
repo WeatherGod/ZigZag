@@ -2,13 +2,13 @@
 
 import os.path
 from TrackSim import SingleSimulation, SaveSimulation
-import numpy
+from numpy import random
 import ZigZag.ParamUtils as ParamUtils
 
 def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
     # Seed the PRNG
-    numpy.random.seed(multiParams['globalSeed'])
+    random.seed(multiParams['globalSeed'])
 
     multiDir = os.path.join(path, multiParams['simName'])
 
@@ -20,7 +20,7 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
                                     multiParams)
 
     # Get the seeds that will be used for each sub-simulation
-    theSimSeeds = numpy.random.random_integers(9999999, size=multiParams['simCnt'])
+    theSimSeeds = random.random_integers(9999999, size=multiParams['simCnt'])
 
     for index, seed in enumerate(theSimSeeds) :
         subSim = "%.3d" % index

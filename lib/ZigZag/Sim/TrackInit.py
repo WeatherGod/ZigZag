@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 init_modelList = {}
 
@@ -21,8 +21,8 @@ class InitModel(object) :
 
     def __call__(self) :
         return (self._initFrame, self._initXPos, self._initYPos,
-                                 self._initSpeed * numpy.cos(self._initHeading),
-                                 self._initSpeed * numpy.sin(self._initHeading))
+                                 self._initSpeed * np.cos(self._initHeading),
+                                 self._initSpeed * np.sin(self._initHeading))
 
 
 class SplitInit(InitModel) :
@@ -49,13 +49,13 @@ class SplitInit(InitModel) :
         self._initFrame = frameNums
         self._initXPos = xLocs
         self._initYPos = yLocs
-        xDiffs = numpy.diff(parentTrack['xLocs'])
-        yDiffs = numpy.diff(parentTrack['yLocs'])
-        tDiffs = numpy.diff(parentTrack['frameNums'])
-        angles = numpy.arctan2(yDiffs, xDiffs)
-        self._initSpeed = numpy.mean(numpy.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + self._speedOff
-        self._initHeading = numpy.arctan2(numpy.sum(numpy.sin(angles)),
-                                          numpy.sum(numpy.cos(angles))) + (self._headOff * numpy.pi / 180.0)
+        xDiffs = np.diff(parentTrack['xLocs'])
+        yDiffs = np.diff(parentTrack['yLocs'])
+        tDiffs = np.diff(parentTrack['frameNums'])
+        angles = np.arctan2(yDiffs, xDiffs)
+        self._initSpeed = np.mean(np.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + self._speedOff
+        self._initHeading = np.arctan2(np.sum(np.sin(angles)),
+                                       np.sum(np.cos(angles))) + (self._headOff * np.pi / 180.0)
 
     def __call__(self) :
         return InitModel.__call__(self)
@@ -102,11 +102,11 @@ class NormalInit(InitModel) :
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
-        self._initXPos = self.xScale * numpy.random.randn(1) + self.xPos
-        self._initYPos = self.yScale * numpy.random.randn(1) + self.yPos
-        self._initSpeed = numpy.random.uniform(*self.speedLims)
-        self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
+        self._initFrame = np.random.randint(*self.tLims)
+        self._initXPos = self.xScale * np.random.randn(1) + self.xPos
+        self._initYPos = self.yScale * np.random.randn(1) + self.yPos
+        self._initSpeed = np.random.uniform(*self.speedLims)
+        self._initHeading = np.random.uniform(*self.headingLims) * (np.pi / 180.0)
 
         return InitModel.__call__(self)
 
@@ -156,11 +156,11 @@ class UniformInit(InitModel) :
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
-        self._initXPos = numpy.random.uniform(*self.xPosLims)
-        self._initYPos = numpy.random.uniform(*self.yPosLims)
-        self._initSpeed = numpy.random.uniform(*self.speedLims)
-        self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
+        self._initFrame = np.random.randint(*self.tLims)
+        self._initXPos = np.random.uniform(*self.xPosLims)
+        self._initYPos = np.random.uniform(*self.yPosLims)
+        self._initSpeed = np.random.uniform(*self.speedLims)
+        self._initHeading = np.random.uniform(*self.headingLims) * (np.pi / 180.0)
 
 
         return InitModel.__call__(self)
@@ -221,41 +221,40 @@ class UniformEllipse(InitModel) :
         self.tLims = (min(tLims), max(tLims))
         self.a = a
         self.b = b
-        self.orient = orient * (numpy.pi / 180.0)
-        self.rotMatrix = numpy.array([[numpy.cos(self.orient), -numpy.sin(self.orient)],
-                                      [numpy.sin(self.orient), numpy.cos(self.orient)]])
+        self.orient = orient * (np.pi / 180.0)
+        self.rotMatrix = np.array([[np.cos(self.orient), -np.sin(self.orient)],
+                                   [np.sin(self.orient), np.cos(self.orient)]])
         self.speedLims = speedLims
         self.headingLims = headingLims
         self.xOffset = xOffset
         self.yOffset = yOffset
-        self.offsetHeading = offsetHeading * (numpy.pi / 180.0)
+        self.offsetHeading = offsetHeading * (np.pi / 180.0)
         self.offsetSpeed = offsetSpeed
 
     def __call__(self) :
-        self._initFrame = numpy.random.randint(*self.tLims)
-        self._initSpeed = numpy.random.uniform(*self.speedLims)
-        self._initHeading = numpy.random.uniform(*self.headingLims) * (numpy.pi / 180.0)
-        r = numpy.random.uniform(0.0, 1.0)
-        phi = numpy.random.uniform(0.0, 1.0) * 2.0 * numpy.pi
+        self._initFrame = np.random.randint(*self.tLims)
+        self._initSpeed = np.random.uniform(*self.speedLims)
+        self._initHeading = np.random.uniform(*self.headingLims) * (np.pi / 180.0)
+        r = np.random.uniform(0.0, 1.0)
+        phi = np.random.uniform(0.0, 1.0) * 2.0 * np.pi
         # Create a random point within a uniform circle.
         # Note the sqrt(r), which ensures that the distribution
         # of points is uniform. Just using r would cause
         # a bias towards the origin
-        coords = numpy.sqrt(r) * numpy.array([numpy.cos(phi),
-                                              numpy.sin(phi)])
+        coords = np.sqrt(r) * np.array([np.cos(phi),
+                                        np.sin(phi)])
 
         # Scale the unit circle to be like an ellipse
-        # NOTE: I know this is incorrect, but it is good enough!
-        coords *= numpy.array([self.a, self.b])
+        coords *= np.array([self.a, self.b])
 
         # Rotate the ellipse
-        coords = numpy.dot(self.rotMatrix, coords)
+        coords = np.dot(self.rotMatrix, coords)
 
         # Translate the ellipse a distance depending on the time
-        coords += (numpy.array([self.xOffset, self.yOffset])
+        coords += (np.array([self.xOffset, self.yOffset])
                    + (self.offsetSpeed * (self._initFrame - self.tLims[0])
-                      * numpy.array([numpy.cos(self.offsetHeading),
-                                     numpy.sin(self.offsetHeading)])))
+                      * np.array([np.cos(self.offsetHeading),
+                                  np.sin(self.offsetHeading)])))
 
         self._initXPos, self._initYPos = coords
 

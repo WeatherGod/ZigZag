@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 motion_modelList = {}
 
@@ -41,8 +41,8 @@ class ConstVel_Model(MotionModel) :
     def __call__(self, deltaT, xSpeed, ySpeed) :
         dx = self.deltaFrame * deltaT * xSpeed
         dy = self.deltaFrame * deltaT * ySpeed
-        dVelx = numpy.random.uniform(-self.velModify, self.velModify)
-        dVely = numpy.random.uniform(-self.velModify, self.velModify)
+        dVelx = np.random.uniform(-self.velModify, self.velModify)
+        dVely = np.random.uniform(-self.velModify, self.velModify)
         return self.deltaFrame, dx, dy, dVelx, dVely
 
 _motion_register(ConstVel_Model, 'ConstVel_Model', dict(deltaFrame="integer",

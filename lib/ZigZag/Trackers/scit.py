@@ -1,5 +1,5 @@
 import math                                 # for abs(), sqrt()
-import numpy
+import numpy as np
 import numpy.lib.recfunctions as nprf       # for append_fields()
 from ZigZag.TrackUtils import volume_dtype
 
@@ -122,7 +122,7 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
             infoTracks[trackID]['distErrs'].append(math.sqrt(bestMatch['dist']))
             infoTracks[trackID]['dists'].append(math.sqrt(CalcDistSqrd(newCell, matchedStorm)))
             # Adding a new point to the established storm track
-            strmTracks[trackID] = numpy.hstack((strmTracks[trackID], newCell))
+            strmTracks[trackID] = np.hstack((strmTracks[trackID], newCell))
 
         else :
             # We did not find a suitable match, so we create a new track.
@@ -133,7 +133,7 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
                                'fcasts': [],
                                'speed_x': [],
                                'speed_y': []})
-            strmTracks.append(numpy.array([newCell], dtype=volume_dtype))
+            strmTracks.append(np.array([newCell], dtype=volume_dtype))
 
 
 def CalcDistSqrd(cellA, cellB) :
@@ -179,9 +179,9 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
         #trackLen = len(theTrackInfo['track'])
 
         if len(aTrack) > 1 :
-            xAvg = numpy.mean(aTrack['xLocs'][-10:])
-            yAvg = numpy.mean(aTrack['yLocs'][-10:])
-            tAvg = numpy.mean(aTrack['frameNums'][-10:])
+            xAvg = np.mean(aTrack['xLocs'][-10:])
+            yAvg = np.mean(aTrack['yLocs'][-10:])
+            tAvg = np.mean(aTrack['frameNums'][-10:])
 
             #xtVar = sum([(xLoc - xAvg) * (trackTime - tAvg)
             #	         for (xLoc, trackTime) in zip(aTrack['xLocs'], aTrack['frameNums'])])
@@ -191,9 +191,9 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
             #	         for trackTime in aTrack['frameNums']])
 
             tDev = aTrack['frameNums'][-10:] - tAvg
-            xtVar = numpy.sum((aTrack['xLocs'][-10:] - xAvg) * tDev)
-            ytVar = numpy.sum((aTrack['yLocs'][-10:] - yAvg) * tDev)
-            ttVar = numpy.sum(tDev**2)
+            xtVar = np.sum((aTrack['xLocs'][-10:] - xAvg) * tDev)
+            ytVar = np.sum((aTrack['yLocs'][-10:] - yAvg) * tDev)
+            ttVar = np.sum(tDev**2)
 
             tot_x_spd += (xtVar / ttVar)
             tot_y_spd += (ytVar / ttVar)

@@ -1,4 +1,4 @@
-import numpy.random
+from numpy import random
 
 #############################
 #   Track Making
@@ -70,7 +70,7 @@ class TrackPoint(object) :
             self._useInitState = False
         else :
             if (not self._isFirstCall and
-                (numpy.random.uniform(0.0, 1.0) <= self.trackDeathProb
+                (random.uniform(0.0, 1.0) <= self.trackDeathProb
                  or self._framesRemain <= 0)) :
                 raise StopIteration
 

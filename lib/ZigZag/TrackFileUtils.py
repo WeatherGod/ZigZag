@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import TrackUtils
 import os.path
 
@@ -53,25 +53,25 @@ def ReadTracks(fileName) :
             trackID = int(tempList[0])
             trackLen = int(tempList[1])
 
-	    tracks.append(numpy.empty(trackLen, dtype=TrackUtils.track_dtype))
-	    continue
+            tracks.append(np.empty(trackLen, dtype=TrackUtils.track_dtype))
+            continue
 
         if contourCnt > 0 and centroidCnt < trackLen :
             #print "Reading Track Element   contourCnt: %d   curTrackLen: %d    trackLen: %d" % (contourCnt, len(tracks['tracks'][-1]['types']), tracks['lens'][-1])
             tracks[-1]['types'][centroidCnt] = tempList[0]
-	    tracks[-1]['xLocs'][centroidCnt] = float(tempList[1])
-	    tracks[-1]['yLocs'][centroidCnt] = float(tempList[2])
-	    tracks[-1]['frameNums'][centroidCnt] = int(tempList[7])
+            tracks[-1]['xLocs'][centroidCnt] = float(tempList[1])
+            tracks[-1]['yLocs'][centroidCnt] = float(tempList[2])
+            tracks[-1]['frameNums'][centroidCnt] = int(tempList[7])
             tracks[-1]['cornerIDs'][centroidCnt] = int(tempList[10])
             centroidCnt += 1
             if centroidCnt == trackLen :
-		trackCounter += 1
-	    continue
+                trackCounter += 1
+                continue
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
-	    falseAlarms.append(numpy.array([(float(tempList[0]), float(tempList[1]), int(tempList[3]), int(tempList[2]), 'F')],
-					   dtype=TrackUtils.track_dtype))
+            falseAlarms.append(np.array([(float(tempList[0]), float(tempList[1]), int(tempList[3]), int(tempList[2]), 'F')],
+                                        dtype=TrackUtils.track_dtype))
 
     #print "\n\n\n"
 
@@ -177,22 +177,22 @@ def ReadCorners(inputDataFile, path='.') :
             # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
             #       Using loadtxt() on a single-line file will return a file with fewer dimensions
             #       than expected.
-            cornerData = numpy.atleast_1d(numpy.loadtxt(filename,
-                                                        dtype=TrackUtils.corner_dtype,
-                                                        usecols=(0, 1, 27)))
+            cornerData = np.atleast_1d(np.loadtxt(filename,
+                                                  dtype=TrackUtils.corner_dtype,
+                                                  usecols=(0, 1, 27)))
         except IOError as anError :
             if anError.args == ('End-of-file reached before encountering data.',) :
                 # This is a corner case of dealing with an empty (but existant!) file.
                 # I want these to be treated as empty arrays.
-                cornerData = numpy.array([[]], dtype=TrackUtils.corner_dtype)
+                cornerData = np.array([[]], dtype=TrackUtils.corner_dtype)
             else :
                 # Some other IOError occurred...
                 raise
 
         return cornerData
 
-    frames = numpy.arange(startFrame, startFrame + frameCnt)
-    volTimes = numpy.linspace(0.0, (frameCnt - 1)*timeDelta, num=frameCnt)
+    frames = np.arange(startFrame, startFrame + frameCnt)
+    volTimes = np.linspace(0.0, (frameCnt - 1)*timeDelta, num=frameCnt)
 
     volume_data = [{'volTime': volTime,
                     'frameNum': frameNum,

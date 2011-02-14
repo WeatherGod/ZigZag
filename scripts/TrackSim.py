@@ -2,7 +2,7 @@
 
 
 import ZigZag.TrackUtils as TrackUtils			# for ClipTracks(), CreateVolData(), CleanupTracks(), track_dtype
-import numpy				# for Numpy
+import numpy as np				# for Numpy
 import os				# for os.makedirs(), os.path.exists()
 
 import ZigZag.Sim as Sim
@@ -17,7 +17,7 @@ trackMakers = {}
 def MakeTrack(cornerID, initModel, motionModel, deltaT, probTrackEnds, maxLen) :
     aPoint = Sim.TrackPoint(cornerID, probTrackEnds, deltaT,
                             initModel, motionModel, maxLen)
-    return numpy.fromiter(aPoint, TrackUtils.track_dtype)
+    return np.fromiter(aPoint, TrackUtils.track_dtype)
 
 trackMakers['MakeTrack'] = MakeTrack
 ###################################################################################
@@ -173,9 +173,9 @@ def TrackSim(simConfs, frameCnt, tLims,
 def SingleSimulation(simConfs, frameCnt,
                      xLims, yLims, tLims,
                      seed, **simParams) :
-    frames = numpy.arange(frameCnt) + 1
+    frames = np.arange(frameCnt) + 1
     # Seed the PRNG
-    numpy.random.seed(seed)
+    np.random.seed(seed)
 
     true_tracks, true_falarms = TrackSim(simConfs, frameCnt, tLims, **simParams)
 

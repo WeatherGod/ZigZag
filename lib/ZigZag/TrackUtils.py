@@ -1,5 +1,5 @@
 import math
-import numpy
+import numpy as np
 import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 from scipy.spatial import KDTree
 
@@ -26,9 +26,9 @@ def Tracks2Cells(tracks, falarms = []) :
                       for trackIndex, aTrack in enumerate(falarms)]
 
     if len(tmpTracks) != 0 or len(tmpFalarms) != 0 :
-        allCells = numpy.hstack(tmpTracks + tmpFalarms)
+        allCells = np.hstack(tmpTracks + tmpFalarms)
     else :
-        allCells = numpy.array([], dtype=track_dtype)
+        allCells = np.array([], dtype=track_dtype)
 
     return allCells
 
@@ -40,12 +40,12 @@ def Cells2Tracks(strmCells) :
 
     This can be reversed with Tracks2Cells().
     """
-    trackIDs = numpy.unique(strmCells['trackID'][strmCells['trackID'] >= 0])
-    tracks = [numpy.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
+    trackIDs = np.unique(strmCells['trackID'][strmCells['trackID'] >= 0])
+    tracks = [np.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
                 for id in trackIDs]
 
-    falarmIDs = numpy.unique(strmCells['trackID'][strmCells['trackID'] < 0])    
-    falarms = [numpy.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
+    falarmIDs = np.unique(strmCells['trackID'][strmCells['trackID'] < 0])    
+    falarms = [np.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
                 for id in trackIDs]
 
     return tracks, falarms
@@ -65,19 +65,19 @@ def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
 
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
-    domainMask = numpy.logical_and(allCells['xLocs'] >= min(xLims),
-                 numpy.logical_and(allCells['xLocs'] <= max(xLims),
-                 numpy.logical_and(allCells['yLocs'] >= min(yLims),
-                                   allCells['yLocs'] <= max(yLims))))
+    domainMask = np.logical_and(allCells['xLocs'] >= min(xLims),
+                 np.logical_and(allCells['xLocs'] <= max(xLims),
+                 np.logical_and(allCells['yLocs'] >= min(yLims),
+                                allCells['yLocs'] <= max(yLims))))
 
-    times = numpy.linspace(min(tLims), max(tLims), len(frames))
+    times = np.linspace(min(tLims), max(tLims), len(frames))
 
     for volTime, frameIndex in zip(times, frames) :
         # Again, this mask is opposite from numpy masked array.
         tMask = (allCells['frameNums'] == frameIndex)
         volData.append({'volTime': volTime,
                         'frameNum': frameIndex,
-                        'stormCells': allCells[numpy.logical_and(domainMask, tMask)]})
+                        'stormCells': allCells[np.logical_and(domainMask, tMask)]})
 
     return(volData)
 
@@ -99,17 +99,19 @@ def ClipTracks(tracks, falarms, xLims, yLims, frameLims) :
     return clippedTracks, clippedFAlarms
 
 def ClipTrack(track, xLims, yLims, frameLims) :
-    domainMask = numpy.logical_and(track['xLocs'] >= min(xLims),
-                 numpy.logical_and(track['xLocs'] <= max(xLims),
-                 numpy.logical_and(track['yLocs'] >= min(yLims),
-                 numpy.logical_and(track['yLocs'] <= max(yLims),
-                 numpy.logical_and(track['frameNums'] >= min(frameLims),
-                                   track['frameNums'] <= max(frameLims))))))
+    domainMask = np.logical_and(track['xLocs'] >= min(xLims),
+                 np.logical_and(track['xLocs'] <= max(xLims),
+                 np.logical_and(track['yLocs'] >= min(yLims),
+                 np.logical_and(track['yLocs'] <= max(yLims),
+                 np.logical_and(track['frameNums'] >= min(frameLims),
+                                track['frameNums'] <= max(frameLims))))))
 
     return track[domainMask]
 
 def FilterTrack(track, frames) :
-    mask = numpy.array([(aFrame['frameNums'] in frames) for aFrame in track], dtype=bool)
+    mask = np.array([(aFrame['frameNums'] in frames)
+                     for aFrame in track],
+                    dtype=bool)
     return track[mask]
 
 def CleanupTracks(tracks, falarms) :
@@ -145,8 +147,8 @@ def CreateSegments(tracks) :
     for aTrack in tracks :
         trackLen = len(aTrack)
         if trackLen > 1 :
-            segs.extend([numpy.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
-                                                            aTrack[1:trackLen])])
+            segs.extend([np.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
+                                                         aTrack[1:trackLen])])
         elif trackLen == 1 :
             segs.append(aTrack)
 
@@ -338,7 +340,7 @@ def DomainFromTracks(tracks, falarms = []) :
 
     # FIXME: This will fail if both arrays are empty, but in which case,
     #        what should the return values be anyway?
-    allPoints = numpy.hstack(tracks + falarms)
+    allPoints = np.hstack(tracks + falarms)
     
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
@@ -351,7 +353,7 @@ def DomainFromVolumes(volumes) :
     """
     # FIXME: This will fail if volumes is empty, but in which case,
     #        what should the return values be anyway?
-    allPoints = numpy.hstack([volData['stormCells'] for volData in volumes])
+    allPoints = np.hstack([volData['stormCells'] for volData in volumes])
     allTimes = [volData['volTime'] for volData in volumes]
 
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
@@ -373,7 +375,7 @@ def is_eq(seg1, seg2) :
     Maybe tag storm cells with id numbers and get the trackers to carry those tags through?
     """
 #    return int(round(val1 * 1000., 1)) == int(round(val2 * 1000., 1))
-#    return numpy.all(numpy.hstack((numpy.abs(seg1['xLocs'] - seg2['xLocs']) < 0.00000001,
-#                                   numpy.abs(seg1['yLocs'] - seg2['yLocs']) < 0.00000001,
+#    return np.all(np.hstack((np.abs(seg1['xLocs'] - seg2['xLocs']) < 0.00000001,
+#                                   np.abs(seg1['yLocs'] - seg2['yLocs']) < 0.00000001,
 #                                   seg1['frameNums'] == seg2['frameNums'])))
-    return numpy.all(seg1['cornerIDs'] == seg2['cornerIDs'])
+    return np.all(seg1['cornerIDs'] == seg2['cornerIDs'])

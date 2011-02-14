@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 #import numpy.lib.recfunctions as nprf   # for .append_fields()
 from scipy.spatial import KDTree
 from ZigZag.TrackUtils import Tracks2Cells
@@ -27,8 +27,8 @@ class TrackNoise(NoiseModel) :
 
     def __call__(self, tracks, falarms) :
         for aTrack in tracks :
-            aTrack['xLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
-            aTrack['yLocs'] += self._loc_variance * numpy.random.randn(len(aTrack))
+            aTrack['xLocs'] += self._loc_variance * np.random.randn(len(aTrack))
+            aTrack['yLocs'] += self._loc_variance * np.random.randn(len(aTrack))
 
 _noise_register(TrackNoise, "PosNoise", dict(loc_variance="float(min=0)"))
 
@@ -51,7 +51,7 @@ class FalseMerge(NoiseModel) :
         # between tracks.  False Alarms are not included.
         trackStrms = Tracks2Cells(tracks)
 
-        frames = numpy.arange(trackStrms['frameNums'].min(),
+        frames = np.arange(trackStrms['frameNums'].min(),
                               trackStrms['frameNums'].max() + 1)
 
         # Go frame by frame to see which storms could be occluded.
@@ -78,9 +78,9 @@ class FalseMerge(NoiseModel) :
 
                 if (len(tracks[strm1TrackID]) > 3
                     and len(tracks[strm2TrackID]) > 2
-                    and (numpy.random.uniform(0.1, 1.0) *
-                         numpy.hypot(strm1Cell['xLocs'] - strm2Cell['xLocs'],
-                                     strm1Cell['yLocs'] - strm2Cell['yLocs'])
+                    and (np.random.uniform(0.1, 1.0) *
+                         np.hypot(strm1Cell['xLocs'] - strm2Cell['xLocs'],
+                                  strm1Cell['yLocs'] - strm2Cell['yLocs'])
                          / self._false_merge_dist < self._false_merge_prob)) :
                     # If the tracks are long enough, and the PRNG determines that a false
                     #   merger should occur, then add this point to the list and then
@@ -100,7 +100,7 @@ class DropOut(NoiseModel) :
     def __call__(self, tracks, falarms) :
         for trackIndex in range(len(tracks)) :
             trackLen = len(tracks[trackIndex])
-            stormsToKeep = numpy.random.random_sample(trackLen) >= self._dropout_prob
+            stormsToKeep = np.random.random_sample(trackLen) >= self._dropout_prob
             tracks[trackIndex] = tracks[trackIndex][stormsToKeep]
 
 _noise_register(DropOut, 'DropOut', dict(dropout_prob="float(min=0, max=1)"))
