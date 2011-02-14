@@ -66,7 +66,8 @@ def ReadTracks(fileName) :
             centroidCnt += 1
             if centroidCnt == trackLen :
                 trackCounter += 1
-                continue
+
+            continue
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
