@@ -365,6 +365,10 @@ _zigargs['ShowTracks'] = [
 
 
 _zigargs['ShowAnims'] = [
+    (("trackFiles",),
+     dict(nargs='*',
+          help="TRACKFILEs to use for display",
+          metavar="TRACKFILE", default=[])),
     (("-t", "--truth"), 
      dict(dest="truthTrackFile",
           help="Use TRUTHFILE for true track data",
