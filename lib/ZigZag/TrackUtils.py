@@ -8,13 +8,16 @@ track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
 volume_dtype = track_dtype + [('trackID', 'i4')]
 #storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
 
-def Tracks2Cells(tracks, falarms = []) :
+def Tracks2Cells(tracks, falarms=None) :
     """
     Convert lists of tracks (and falarms) into a single recarray of storm cells
     with track IDs.
 
     This can be reversed with Cells2Tracks().
     """
+    if falarms is None :
+        falarms = []
+
     tmpTracks = [nprf.append_fields(aTrack, 'trackID',
                                     [trackIndex] * len(aTrack),
                                     usemask=False)
@@ -331,12 +334,14 @@ def FilterMHTTracks(origTracks, origFalarms) :
     return tracks, falarms
 
 
-def DomainFromTracks(tracks, falarms = []) :
+def DomainFromTracks(tracks, falarms=None) :
     """
     Calculate the spatial and temporal domain of the tracks and false alarms.
     Note that this assumes that bad points are non-existant or has been
     masked out.
     """
+    if falarms is None :
+        falarms = []
 
     # FIXME: This will fail if both arrays are empty, but in which case,
     #        what should the return values be anyway?
