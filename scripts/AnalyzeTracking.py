@@ -86,7 +86,7 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
             print "Worst Run:", '  '.join(["%7d" % index for index in indices[0]])
 
 
- def main(args) :
+def main(args) :
     import ZigZag.ParamUtils as ParamUtils
     from ListRuns import ExpandTrackRuns
 
