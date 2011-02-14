@@ -19,6 +19,9 @@ setup(
                'scripts/MultiTracking.py', 'scripts/ParamSearch.py',
                'scripts/ShowAnims.py', 'scripts/ShowCorners.py',
                'scripts/ShowOcclusions.py', 'scripts/ShowTracks.py',
+                # Temporary scripts slated to replace previous plotters
+               'scripts/ShowTracks2.py', 'scripts/ShowCorners2.py', 'scripts/ShowCompare2.py',
+
                'scripts/TrackReports.py', 'scripts/TrackSim.py',
                'scripts/ZigZag']
     )
