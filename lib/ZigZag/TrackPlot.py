@@ -90,10 +90,6 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
         if aVol['volTime'] >= min(tLims) and aVol['volTime'] <= max(tLims) :
             corners.append(axis.scatter(aVol['stormCells']['xLocs'],
                                         aVol['stormCells']['yLocs'], s=1, **kwargs))
-        else :
-            # an empty circle collection
-            corners.append(mcoll.CircleCollection([], offsets=zip([], [])))
-
     return corners
 
 class CornerAnimation(FuncAnimation) :

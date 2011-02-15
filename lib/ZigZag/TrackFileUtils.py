@@ -185,7 +185,7 @@ def ReadCorners(inputDataFile, path='.') :
             if anError.args == ('End-of-file reached before encountering data.',) :
                 # This is a corner case of dealing with an empty (but existant!) file.
                 # I want these to be treated as empty arrays.
-                cornerData = np.array([[]], dtype=TrackUtils.corner_dtype)
+                cornerData = np.array([], dtype=TrackUtils.corner_dtype)
             else :
                 # Some other IOError occurred...
                 raise

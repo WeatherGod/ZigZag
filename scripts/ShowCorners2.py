@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ZigZag.TrackPlot import PlotCorners
+from ZigZag.TrackPlot import PlotCorners, CornerAnimation
 from ZigZag.TrackFileUtils import ReadCorners
 from ZigZag.TrackUtils import DomainFromVolumes
 
@@ -9,21 +9,24 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 
 def MakeCornerPlots(fig, grid, cornerVolumes, titles) :
     volumes = []
-    for aVol in cornerVolumes :
-        volumes.extend(aVol)
+    frameCnts = []
+    for volData in cornerVolumes :
+        frameCnts.append(len(volData))
+        volumes.extend(volData)
 
-    # TODO: Really should be getting the tlims...
-    xLims, yLims, frameLims = DomainFromVolumes(volumes)
+    # the info in frameLims is completely useless because we
+    # can't assume that each cornerVolumes has the same frame reference.
+    xLims, yLims, tLims, frameLims = DomainFromVolumes(volumes)
 
-    theAnim = CornerAnimation(fig, frameLims[1] - frameLims[0] + 1,
+    theAnim = CornerAnimation(fig, max(frameCnts),
                               interval=250, blit=True)
 
     for ax, volData, title in zip(grid, cornerVolumes, titles) :
-        corners = PlotCorners(volData, frameLims, axis=ax)
+        corners = PlotCorners(volData, tLims, axis=ax)
 
-        curAxis.set_title(title)
-        curAxis.set_xlabel("X (km)")
-        curAxis.set_ylabel("Y (km)")
+        ax.set_title(title)
+        ax.set_xlabel("X (km)")
+        ax.set_ylabel("Y (km)")
 
         theAnim.AddCornerVolume(corners)
 

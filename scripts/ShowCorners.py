@@ -52,7 +52,7 @@ def main(args) :
         volumes = []
         for aVol in cornerVolumes :
             volumes.extend(aVol)
-        (xLims, yLims, frameLims) = DomainFromVolumes(volumes)
+        (xLims, yLims, tLims, frameLims) = DomainFromVolumes(volumes)
 
     theAnim = CornerAnimation(theFig, frameLims[1] - frameLims[0] + 1,
                               interval=250, blit=True)

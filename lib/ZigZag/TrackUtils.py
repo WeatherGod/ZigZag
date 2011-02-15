@@ -359,11 +359,13 @@ def DomainFromVolumes(volumes) :
     # FIXME: This will fail if volumes is empty, but in which case,
     #        what should the return values be anyway?
     allPoints = np.hstack([volData['stormCells'] for volData in volumes])
+    allFrames = [volData['frameNum'] for volData in volumes]
     allTimes = [volData['volTime'] for volData in volumes]
 
     return ((allPoints['xLocs'].min(), allPoints['xLocs'].max()),
             (allPoints['yLocs'].min(), allPoints['yLocs'].max()),
-            (min(allTimes), max(allTimes)))
+            (min(allTimes), max(allTimes)),
+            (min(allFrames), max(allFrames)))
 
 
 def is_eq(seg1, seg2) :
