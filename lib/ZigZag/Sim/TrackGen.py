@@ -50,7 +50,7 @@ class SplitGenerator(TrackGenerator) :
         self._trackSort = 1
 
 
-    def __call__(self, cornerID, trackCnt, simState, *makerParams) :
+    def __call__(self, cornerID, trackCnt, simState, deltaT, *makerParams) :
         theTracks = []
         theFAlarms = []
         # Now, split/merge some of those tracks
@@ -72,10 +72,11 @@ class SplitGenerator(TrackGenerator) :
             # Note, I want a frame like how I want my sliced bread,
             #       no end-pieces!
             frameIndex = np.random.random_integers(1, len(choosenTrack) - 2)
-            self._initModel.setsplit(choosenTrack, choosenTrack[frameIndex]['frameNums'],
+            self._initModel.setsplit(choosenTrack, deltaT,
+                                                   choosenTrack[frameIndex]['frameNums'],
                                                    choosenTrack[frameIndex]['xLocs'],
                                                    choosenTrack[frameIndex]['yLocs'])
-            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, *makerParams)
+            newTrack = self._trackMaker(cornerID, self._initModel, self._motionModel, deltaT, *makerParams)
             cornerID += len(newTrack)
             theTracks.append(np.sort(newTrack, 0, order=['frameNums']))
 

@@ -37,7 +37,7 @@ class SplitInit(InitModel) :
         self._speedOff = speedOff
         self._headOff = headOff
 
-    def setsplit(self, parentTrack, frameNums, xLocs, yLocs) :
+    def setsplit(self, parentTrack, deltaT, frameNums, xLocs, yLocs) :
         """
         frameNum, xPos, yPos specifies the initial position of the
         track that splits off.  Note that this position will not be
@@ -51,7 +51,7 @@ class SplitInit(InitModel) :
         self._initYPos = yLocs
         xDiffs = np.diff(parentTrack['xLocs'])
         yDiffs = np.diff(parentTrack['yLocs'])
-        tDiffs = np.diff(parentTrack['frameNums'])
+        tDiffs = np.diff(parentTrack['frameNums']) * deltaT
         angles = np.arctan2(yDiffs, xDiffs)
         self._initSpeed = np.mean(np.sqrt(xDiffs**2 + yDiffs**2)/tDiffs) + self._speedOff
         self._initHeading = np.arctan2(np.sum(np.sin(angles)),
