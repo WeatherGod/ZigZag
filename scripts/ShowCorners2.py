@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-from ZigZag.TrackPlot import PlotCorners, CornerAnimation
+from ZigZag.TrackPlot import PlotCorners
 from ZigZag.TrackFileUtils import ReadCorners
 from ZigZag.TrackUtils import DomainFromVolumes
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
+from matplotlib.animation import ArtistAnimation
 
 def MakeCornerPlots(fig, grid, cornerVolumes, titles) :
     volumes = []
@@ -18,8 +19,10 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles) :
     # can't assume that each cornerVolumes has the same frame reference.
     xLims, yLims, tLims, frameLims = DomainFromVolumes(volumes)
 
-    theAnim = CornerAnimation(fig, max(frameCnts),
-                              interval=250, blit=True)
+    syncedTimer = fig.canvas.new_timer()
+    anims = []
+#    theAnim = CornerAnimation(fig, max(frameCnts),
+#                              interval=250, blit=True)
 
     for ax, volData, title in zip(grid, cornerVolumes, titles) :
         corners = PlotCorners(volData, tLims, axis=ax)
@@ -28,9 +31,9 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles) :
         ax.set_xlabel("X (km)")
         ax.set_ylabel("Y (km)")
 
-        theAnim.AddCornerVolume(corners)
+        anims.append(ArtistAnimation(fig, [corners], interval=200*max(frameCnts)/len(corners), event_source=syncedTimer))
 
-    return theAnim
+    return anims
 
 def main(args) :
     import os.path
@@ -55,8 +58,8 @@ def main(args) :
 
     theAnim = MakeCornerPlots(theFig, grid, cornerVolumes, args.trackTitles)
 
-    if args.saveImgFile is not None :
-        theAnim.save(args.saveImgFile)
+#    if args.saveImgFile is not None :
+#        theAnim.save(args.saveImgFile)
 
     if args.doShow :
         plt.show()
