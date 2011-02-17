@@ -17,7 +17,7 @@ def main(args) :
         flatDists = np.hypot(*flatSegs)
         flatWeights = flatDists / flatDists.max()
 
-        dists = [np.sum(np.hypot(*np.diff(segs))) for segs in trackSegs]
+        dists = [np.sum(np.hypot(*segs)) for segs in trackSegs]
         lens = [np.ptp(aTrack['frameNums']) + 1 for aTrack in tracks]
         startFrames = [np.min(aTrack['frameNums']) for aTrack in tracks]
         endFrames = [np.max(aTrack['frameNums']) for aTrack in tracks]
