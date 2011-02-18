@@ -155,52 +155,70 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 ###################################################
 #		Track Plotting                            #
 ###################################################
-def PlotTrack(tracks, tLims, axis=None, **kwargs) :
+def PrepareFrameLims1(f) :
+    def wrapf(tracks1, startFrame=None, endFrame=None, **kwargs) :
+        if startFrame is None or endFrame is None :
+            trackFrames = [aTrack['frameNums'] for aTrack in tracks1]
+            if startFrame is None : startFrame = min([min(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+            if endFrame is None : endFrame = max([max(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+
+        return f(tracks1, startFrame, endFrame, **kwargs)
+    return wrapf
+            
+def PrepareFrameLims2(f) :
+    def wrapf(tracks1, tracks2, startFrame=None, endFrame=None, **kwargs) :
+        if startFrame is None or endFrame is None :
+            trackFrames = [aTrack['frameNums'] for aTrack in tracks1 + tracks2]
+            if startFrame is None : startFrame = min([min(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+            if endFrame is None : endFrame = max([max(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+
+        return f(tracks1, tracks2, startFrame, endFrame, **kwargs)
+    return wrapf
+ 
+
+@PrepareFrameLims1
+def PlotTrack(tracks, startFrame=None, endFrame=None, axis=None, **kwargs) :
     if axis is None :
         axis = plt.gca()
-
-    startFrame = min(tLims)
-    endFrame = max(tLims)
 
     lines = []
     for aTrack in tracks :
         mask = np.logical_and(aTrack['frameNums'] <= endFrame,
                               aTrack['frameNums'] >= startFrame)
         lines.append(axis.plot(aTrack['xLocs'][mask], aTrack['yLocs'][mask],
-			       **kwargs)[0])
+                     **kwargs)[0])
 
     return lines
 
 
+           
 
-def PlotTracks(true_tracks, model_tracks, tLims, startFrame=None, endFrame=None,
-	       axis=None, animated=False) :
+@PrepareFrameLims2
+def PlotTracks(true_tracks, model_tracks, startFrame=None, endFrame=None,
+               axis=None, animated=False) :
     if axis is None :
         axis = plt.gca()
 
-    if startFrame is None : startFrame = min(tLims)
-    if endFrame is None : endFrame = max(tLims)
-
-    trueLines = PlotTrack(true_tracks, tLims,
+    trueLines = PlotTrack(true_tracks, startFrame, endFrame,
                           marker='.', markersize=9.0,
                           color='grey', linewidth=2.5, linestyle=':', 
                           animated=False, zorder=1, axis=axis)
-    modelLines = PlotTrack(model_tracks, (startFrame, endFrame), 
+    modelLines = PlotTrack(model_tracks, startFrame, endFrame, 
                            marker='.', markersize=8.0, 
                            color='r', linewidth=2.5, alpha=0.55, 
                            zorder=2, animated=animated, axis=axis)
     return {'trueLines': trueLines, 'modelLines': modelLines}
 
-def PlotPlainTracks(tracks, falarms, tLims, startFrame=None, endFrame=None, axis=None, animated=False) :
+@PrepareFrameLims2
+def PlotPlainTracks(tracks, falarms,
+                    startFrame=None, endFrame=None,
+                    axis=None, animated=False) :
     if axis is None :
         axis = plt.gca()
 
-    if startFrame is None : startFrame = min(tLims)
-    if endFrame is None : endFrame = max(tLims)
-
-    trackLines = PlotTrack(tracks, tLims, axis=axis, marker='.', markersize=6.0,
+    trackLines = PlotTrack(tracks, startFrame, endFrame, axis=axis, marker='.', markersize=6.0,
                            color='k', linewidth=1.5, animated=animated)
-    falarmLines = PlotTrack(falarms, tLims, axis=axis, marker='.', markersize=6.0,
+    falarmLines = PlotTrack(falarms, startFrame, endFrame, axis=axis, marker='.', markersize=6.0,
                             linestyle=' ', color='r', animated=animated)
 
     return {'trackLines': trackLines, 'falarmLines': falarmLines}
@@ -219,8 +237,8 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
     endFrame = max(tLims)
 
     # create the initial lines    
-    theLines = PlotTracks(true_tracks, model_tracks, tLims, 
-                          startFrame, endFrame, axis=axis, animated=True)
+    theLines = PlotTracks(true_tracks, model_tracks, startFrame, endFrame, 
+                          axis=axis, animated=True)
 
     return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
                         true_tracks + model_tracks, startFrame, endFrame,
@@ -239,10 +257,11 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
     endFrame = max(tLims)
 
     # Create the initial lines
-    theLines = PlotPlainTracks(tracks, falarms, tLims,
-                               startFrame, endFrame, axis=axis, animated=True)
+    theLines = PlotPlainTracks(tracks, falarms, startFrame, endFrame,
+                               axis=axis, animated=True)
 
     return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-                        tracks + falarms, startFrame, endFrame, axis=axis, figure=figure, event_source=event_source, **kwargs)
+                        tracks + falarms, startFrame, endFrame,
+                        axis=axis, figure=figure, event_source=event_source, **kwargs)
 
 

@@ -85,7 +85,7 @@ def main(args) :
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
             PlotSegments(truthtable, frameLims, axis=curAxis)
         else :
-            PlotPlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis)
+            PlotPlainTracks(aTracker[0], aTracker[1], frameLims[0], frameLims[1], axis=curAxis)
 
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)

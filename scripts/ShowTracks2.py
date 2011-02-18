@@ -15,7 +15,7 @@ def MakeTrackPlots(grid, trackData, titles) :
     (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
     for ax, aTracker, title in zip(grid, trackData, titles) :
-        PlotPlainTracks(aTracker[0], aTracker[1], frameLims, axis=ax)
+        PlotPlainTracks(aTracker[0], aTracker[1], frameLims[0], frameLims[1], axis=ax)
 
         ax.set_title(title)
         ax.set_xlabel("X (km)")
