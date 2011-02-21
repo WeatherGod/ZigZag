@@ -19,7 +19,7 @@ def MultiTrack(multiSim, trackConfs, path='.') :
         # A copy of trackConfs is used here because the tracker calls could
         # modify the contents of trackConfs, and we don't want those changes
         # to propagate to subsequent calls to SingleTracking()
-        SingleTracking(paramFile, simParams, trackConfs.copy(), path=multiDir)
+        SingleTracking(paramFile, simName, simParams, trackConfs.copy(), path=multiDir)
 
 
 def main(args) :

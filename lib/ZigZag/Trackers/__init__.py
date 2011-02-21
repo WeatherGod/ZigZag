@@ -19,7 +19,7 @@ def _register_tracker(tracker, name, param_conf) :
 
 def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     import scit
-    dirName = os.path.join(path, simParams['simName'])
+    dirName = path
     cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
     speedThresh = float(trackParams['speedThresh'])
 
@@ -54,7 +54,7 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     paramFile = trackParams.pop("ParamFile")
     # Temporary popping...
     trackParams.pop("algorithm")
-    dirName = os.path.join(path, simParams['simName'])
+    dirName = path
 
     paramArgs = "python %smakeparams.py %s" % (progDir, os.path.join(dirName, paramFile))
     for key, val in trackParams.items() :

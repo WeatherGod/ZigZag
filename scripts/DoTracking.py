@@ -5,10 +5,11 @@ import ZigZag.ParamUtils as ParamUtils	  # for reading simParams files
 import os.path
 
 
-def SingleTracking(simFile, simParams, trackConfs, path='.') :
+def SingleTracking(simFile, simName, simParams, trackConfs, path='.') :
     #simParams['trackers'] = trackConfs.keys()
+    simDir = os.path.join(path, simName, '')
 
-    storedConfFile = os.path.join(path, simParams['simName'], simParams['trackerparams'])
+    storedConfFile = os.path.join(simDir, simParams['trackerparams'])
     if not os.path.exists(storedConfFile) :
         # Initialize an empty config file
         ParamUtils.SaveConfigFile(storedConfFile, {})
@@ -19,7 +20,7 @@ def SingleTracking(simFile, simParams, trackConfs, path='.') :
     for trackRun in trackConfs :
         tracker = trackConfs[trackRun]['algorithm']
         Trackers.trackerList[tracker](trackRun, simParams.copy(), trackConfs[trackRun].copy(),
-                                      returnResults=False, path=path)
+                                      returnResults=False, path=simDir)
 
         # We want this simulation to know which trackers they used,
         # so we will update the file after each successful tracking operation.
@@ -45,7 +46,7 @@ def main(args) :
     trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)
     trackrunConfs = dict([(runName, trackConfs[runName]) for runName in trackRuns])
 
-    SingleTracking(simFile, simParams, trackrunConfs, path=args.directory)
+    SingleTracking(simFile, args.simName, simParams, trackrunConfs, path=args.directory)
 
 
 
