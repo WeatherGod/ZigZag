@@ -56,7 +56,8 @@ def AnalyzeTrackings(simName, simParams, skillNames,
 
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](tracks=finalTracks, falarms=finalFAlarms,
-                                                                  truthTable=truthTable)
+                                                                    truthTable=truthTable,
+                                                                    true_tracks=true_tracks, true_falarms=true_falarms)
 
     return larry(analysis, labels)
 

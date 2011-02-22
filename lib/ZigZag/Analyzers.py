@@ -161,6 +161,12 @@ _register_trackskill(Skill_LineErr, "Line")
 
 
 
-    
+def TrackCoherency(true_tracks, tracks, truthTable, **kwargs) :
+    """
+    Determine the average percent correct of a track
+    """
+    pass
+
+_register_trackskill(TrackCoherency, "Coherent")
 
 
