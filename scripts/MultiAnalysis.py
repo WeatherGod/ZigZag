@@ -74,13 +74,14 @@ def main(args) :
     #    missingRuns = set(trackRuns).difference(commonTrackRuns)
     #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
 
-    shortNames = [runname[-11:] for runname in trackRuns]
+    shortNames = args.labels if args.labels is not None else [runname[-11:] for runname in trackRuns]
     #xlab = 'SCIT: Speed Threshold'
+    plotTitles = args.titles if args.titles is not None else args.skillNames
 
     completeAnalysis = MultiAnalyze(simNames, args.multiSim, args.skillNames,
                                     trackRuns=trackRuns, path=args.directory)
 
-    for skillname in args.skillNames :
+    for skillname, title in zip(args.skillNames, plotTitles) :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
                         compareTo=args.compareTo)
@@ -97,7 +98,7 @@ def main(args) :
         ax.set_xlim(0.0, len(shortNames))
         #ax.set_xlabel(xlab)
         ax.set_ylabel('Skill Score')
-        ax.set_title(skillname)
+        ax.set_title(title)
 
         if args.saveImgFile is not None :
             fig.savefig("%s_%s.%s" % (args.saveImgFile, skillname, args.imageType))

@@ -27,7 +27,7 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
 
     return skillMeans, means_ci_upper, means_ci_lower
 
-def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims, 
+def DisplayMultiSceneAnalysis(skillNames, shortNames, tickLabels, 
                               meanSkills, skills_ci_upper, skills_ci_lower,
                               figsize=None) :
     figs = [None] * len(skillNames)
@@ -44,12 +44,12 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, multiSims,
                                 ax, startLoc=(runIndex + 1)/(len(shortNames) + 1.0),
                                 label=trackRun)
 
-    for figIndex, aFig in enumerate(figs) :
+    for aFig in figs :
         ax = aFig.gca()
-        ax.set_xticks(np.arange(len(multiSims)) + 0.5)
-        ax.set_xticklabels(multiSims)
-        ax.set_xlim((0.0, len(multiSims)))
-        ax.set_title(skillNames[figIndex])
+        ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
+        ax.set_xticklabels(tickLabels)
+        ax.set_xlim((0.0, len(tickLabels)))
+        ax.set_ylabel("Skill Score")
         ax.legend(numpoints=1, loc='lower left', bbox_to_anchor=(0.95, 0.9))
 
     return figs
@@ -77,13 +77,17 @@ def main(args) :
 
     if not args.cacheOnly :
         shortNames = [runname[-11:] for runname in trackRuns]
+        plotTitles = args.titles if args.titles is not None else args.skillNames
+        tickLabels = args.labels if args.labels is not None else args.multiSims
 
-        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, args.multiSims,
+        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, tickLabels,
                                          meanSkills, skills_ci_upper, skills_ci_lower,
                                          figsize=args.figsize)
 
-        if args.saveImgFile is not None :
-            for aFig, skillName in zip(figs, args.skillNames) :
+
+        for aFig, skillName, title in zip(figs, args.skillNames, plotTitles) :
+            aFig.gca().set_title(title)
+            if args.saveImgFile is not None :
                 aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
 
         if args.doShow :
