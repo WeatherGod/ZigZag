@@ -190,14 +190,18 @@ def MakeTruthTable(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     """
     # Do comparisons between the real track segments and
     # the predicted segments.
-    assocs_Correct, assocs_Wrong = _compare_segs(realSegs, predSegs)
+    (assocs_Correct, assocs_Wrong,
+     assocs_Correct_indices, assocs_Wrong_indices) = _compare_segs(realSegs, predSegs)
 
     # Now, do comparisons between the real false alarms and the
     # predicted false alarms.
-    falarms_Correct, falarms_Wrong = _compare_segs(realFAlarmSegs, predFAlarmSegs)
+    (falarms_Correct, falarms_Wrong,
+     falarms_Correct_indices, falarms_Wrong_indices) = _compare_segs(realFAlarmSegs, predFAlarmSegs)
 
     return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct,
+            'correct_indices': assocs_Correct_indices + falarms_Correct_indices,
+            'wrong_indices': assocs_Wrong_indices + falarms_Wrong_indices}
     
 
 def _compare_segs(realSegs, predSegs) :
@@ -211,7 +215,10 @@ def _compare_segs(realSegs, predSegs) :
     realData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
 
     correct = []
+    correct_indices = []
     wrong = []
+    wrong_indices = []
+
 
     if len(predData) > 0 and len(realData) > 0 :
         predTree = KDTree(predData)
@@ -222,18 +229,21 @@ def _compare_segs(realSegs, predSegs) :
         dists, closestIndicies = predTree.query(realData)
 
         # Now, see if the closest point matches the real point
-        for predIndex, realPoint in zip(closestIndicies, realSegs) :
+        for realIndex, (predIndex, realPoint) in enumerate(zip(closestIndicies, realSegs)) :
             if is_eq(realPoint, predSegs[predIndex]) :
                 correct.append(realPoint)
+                correct_indices.append(realIndex)
             else :
                 wrong.append(realPoint)
+                wrong_indices.append(realIndex)
     else :
         # For whatever reason (no real data, or no predicted data),
         # we can't make any comparisons.  But, this does mean that any
         # real trackings that existed were completely missed.
         wrong = [aSeg for aSeg in realSegs]
+        wrong_indices = range(len(realSegs))
 
-    return correct, wrong
+    return correct, wrong, correct_indices, wrong_indices
 
 
 
