@@ -1,5 +1,6 @@
 import numpy as np
-import scipy
+from scipy import polyfit, polyval
+from TrackUtils import Segs2Tracks
 
 skillcalcs = {}
 def _register_trackskill(func, name) : 
@@ -150,8 +151,8 @@ def Skill_LineErr(tracks, **kwargs) :
     for aTrack in tracks :
         if len(aTrack) < 3 :
             continue
-        a, b = scipy.polyfit(aTrack['xLocs'], aTrack['yLocs'], 1)
-        y_fit = scipy.polyval([a, b], aTrack['xLocs'])
+        a, b = polyfit(aTrack['xLocs'], aTrack['yLocs'], 1)
+        y_fit = polyval([a, b], aTrack['xLocs'])
         fiterr.append(np.sqrt(np.mean((aTrack['yLocs'] - y_fit)**2)))
     return np.mean(fiterr)
 
@@ -161,11 +162,18 @@ _register_trackskill(Skill_LineErr, "Line")
 
 
 
-def TrackCoherency(true_tracks, tracks, truthTable, **kwargs) :
+def TrackCoherency(truthTable, track_indices, falarm_indices, **kwargs) :
     """
     Determine the average percent correct of a track
     """
-    pass
+    segs2tracks = Segs2Tracks(truthTable, track_indices, falarm_indices)
+    trackCnt = max(track_indices) + 1
+    corr_lens = np.bincount(segs2tracks['corr2tracks'], minlength=trackCnt)
+    wrng_lens = np.bincount(segs2tracks['wrng2tracks'], minlength=trackCnt)
+
+    totAssocs = (corr_lens + wrng_lens).astype(np.float)
+    return np.average(corr_lens / totAssocs,
+                      weights=totAssocs/totAssocs.max())
 
 _register_trackskill(TrackCoherency, "Coherent")
 

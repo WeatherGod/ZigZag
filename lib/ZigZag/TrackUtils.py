@@ -141,21 +141,56 @@ def CleanupTracks(tracks, falarms) :
 
 
 
-def CreateSegments(tracks) :
+def CreateSegments(tracks, retindices=False) :
     """
     Breaks up a list of the tracks (or falarms) into an array of segments.
     Each element in the arrays represents the start and end point of a segment.
     """
     segs = []
-    for aTrack in tracks :
+    indices = []
+    for trackID, aTrack in enumerate(tracks) :
         trackLen = len(aTrack)
         if trackLen > 1 :
-            segs.extend([np.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
-                                                         aTrack[1:trackLen])])
+            tmpSegs = [np.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
+                                                       aTrack[1:trackLen])]
+            segs.extend(tmpSegs)
+            indices.extend([trackID] * len(tmpSegs))
+
         elif trackLen == 1 :
             segs.append(aTrack)
+            indices.append(trackID)
 
-    return segs
+    if retindices :
+        return segs, indices
+    else :
+        return segs
+
+def Segs2Tracks(truthTable, trackIndices, falarmIndices) :
+    """
+    From the truth table data structure, and the indices from CreateSegments,
+    we have the technology to rebuild the tracks, make it better, faster.
+
+    (well, maybe not faster...)
+
+    The function returns an index list for each bin in the truthTable
+    that maps a segment to the track/falarm it came from
+    """
+    corrAssocsLen = len(truthTable['assocs_Correct'])
+
+    corr_segs2tracks = [trackIndices[segIndex] for segIndex in
+                        truthTable['correct_indices'][0:corrAssocsLen]]
+    corr_segs2falarms = [falarmIndices[segIndex] for segIndex in
+                         truthTable['correct_indices'][corrAssocsLen:]]
+
+    wrngAssocsLen = len(truthTable['assocs_Wrong'])
+    wrng_segs2tracks = [trackIndices[segIndex] for segIndex in
+                        truthTable['wrong_indices'][0:wrngAssocsLen]]
+    wrng_segs2falarms = [falarmIndices[segIndex] for segIndex in
+                         truthTable['wrong_indices'][wrngAssocsLen:]]
+
+    return {'corr2tracks': corr_segs2tracks, 'corr2falarms': corr_segs2falarms,
+            'wrng2tracks': wrng_segs2tracks, 'wrng2falarms': wrng_segs2falarms}
+
 
 
 def PrintTruthTable(truthTable) :

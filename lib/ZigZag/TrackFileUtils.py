@@ -113,8 +113,8 @@ def SaveTruthTable(trackrun, filestem, truthTable) :
     SaveTracks(filestem + "_" + trackrun + "_Wrong.segs",
                truthTable['assocs_Wrong'],
                truthTable['falarms_Wrong'])
-    np.savetxt(filestem + '_' + trackrun + "_Correct.ind", truthTable['correct_indices'])
-    np.savetxt(filestem + '_' + trackrun + "_Wrong.ind", truthTable['wrong_indices'])
+    np.savetxt(filestem + '_' + trackrun + "_Correct.ind", truthTable['correct_indices'], fmt='%d')
+    np.savetxt(filestem + '_' + trackrun + "_Wrong.ind", truthTable['wrong_indices'], fmt='%d')
 
 
 def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
@@ -154,8 +154,8 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
         # cached truth table segments files are valid. So load the cache.
         assocs_Correct, falarms_Correct = TrackUtils.FilterMHTTracks(*ReadTracks(correctFilename))
         assocs_Wrong, falarms_Wrong = TrackUtils.FilterMHTTracks(*ReadTracks(wrongFilename))
-        correct_indices = np.loadtxt(corrIndsFilename).tolist()
-        wrong_indices = np.loadtxt(wrongIndsFilename).tolist()
+        correct_indices = np.atleast_1d(np.loadtxt(corrIndsFilename, dtype=np.int)).tolist()
+        wrong_indices = np.atleast_1d(np.loadtxt(wrongIndsFilename, dtype=np.int)).tolist()
         
 
         truthTable = {'assocs_Correct': assocs_Correct, 'falarms_Correct': falarms_Correct,

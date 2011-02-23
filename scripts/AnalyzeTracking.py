@@ -39,8 +39,8 @@ def AnalyzeTrackings(simName, simParams, skillNames,
 
     dirName = os.path.join(path, simName)
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
-    true_AssocSegs = CreateSegments(true_tracks)
-    true_FAlarmSegs = CreateSegments(true_falarms)
+    true_AssocSegs, trackIndices = CreateSegments(true_tracks, retindices=True)
+    true_FAlarmSegs, falarmIndices = CreateSegments(true_falarms, retindices=True)
 
     # Initializing the analysis data, which will hold a table of analysis results for
     # this simulation
@@ -50,14 +50,18 @@ def AnalyzeTrackings(simName, simParams, skillNames,
     
 
     for trackerIndex, tracker in enumerate(trackRuns) :
-        truthTable, finalTracks, finalFAlarms = ReadTruthTable(tracker, simParams, true_AssocSegs, true_FAlarmSegs, path=dirName)
+        (truthTable,
+         finalTracks, finalFAlarms) = ReadTruthTable(tracker, simParams,
+                                                     true_AssocSegs, true_FAlarmSegs, path=dirName)
 
         print "Margin Sums:", len(truthTable['assocs_Correct']) + len(truthTable['assocs_Wrong']) + len(truthTable['falarms_Wrong']) + len(truthTable['falarms_Correct'])
 
         for skillIndex, skill in enumerate(skillNames) :
-            analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](tracks=finalTracks, falarms=finalFAlarms,
-                                                                    truthTable=truthTable,
-                                                                    true_tracks=true_tracks, true_falarms=true_falarms)
+            analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](
+                                                                tracks=finalTracks, falarms=finalFAlarms,
+                                                                truthTable=truthTable,
+                                                                true_tracks=true_tracks, true_falarms=true_falarms,
+                                                                track_indices=trackIndices, falarm_indices=falarmIndices)
 
     return larry(analysis, labels)
 
