@@ -116,6 +116,33 @@ def SaveTruthTable(trackrun, filestem, truthTable) :
     np.savetxt(filestem + '_' + trackrun + "_Correct.ind", truthTable['correct_indices'], fmt='%d')
     np.savetxt(filestem + '_' + trackrun + "_Wrong.ind", truthTable['wrong_indices'], fmt='%d')
 
+def _loadtxtfile(filename, loadkwargs, arraykwargs) :
+    """
+    Stupid wrapper to deal with stupid numpy loadtxt bug where it
+    throws an exception if the file is valid, but empty...
+
+    Also, it makes sure that the data isn't squeezed to oblivion...
+    """
+    # Merge the two dictionaries for the loadtxt kwargs.
+    tempdict = dict()
+    tempdict.update(loadkwargs, **arraykwargs)
+    try :
+        # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
+        #       Using loadtxt() on a single-line file will return a file with fewer dimensions
+        #       than expected.
+        data = np.atleast_1d(np.loadtxt(filename, **tempdict))
+
+    except IOError as anError :
+        if anError.args == ('End-of-file reached before encountering data.',) :
+            # This is a corner case of dealing with an empty (but existant!) file.
+            # I want these to be treated as empty arrays.
+            data = np.array([], **arraykwargs)
+        else :
+            # Some other IOError occurred...
+            raise
+
+    return data
+
 
 def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
     """
@@ -154,8 +181,8 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
         # cached truth table segments files are valid. So load the cache.
         assocs_Correct, falarms_Correct = TrackUtils.FilterMHTTracks(*ReadTracks(correctFilename))
         assocs_Wrong, falarms_Wrong = TrackUtils.FilterMHTTracks(*ReadTracks(wrongFilename))
-        correct_indices = np.atleast_1d(np.loadtxt(corrIndsFilename, dtype=np.int)).tolist()
-        wrong_indices = np.atleast_1d(np.loadtxt(wrongIndsFilename, dtype=np.int)).tolist()
+        correct_indices = _loadtxtfile(corrIndsFilename, dict(), dict(dtype=np.int)).tolist()
+        wrong_indices = _loadtxtfile(wrongIndsFilename, dict(), dict(dtype=np.int)).tolist()
         
 
         truthTable = {'assocs_Correct': assocs_Correct, 'falarms_Correct': falarms_Correct,
@@ -188,31 +215,13 @@ def ReadCorners(inputDataFile, path='.') :
     volume_data = []
     dataFile.close()
 
-    def LoadCorner(filename) :
-        try :
-            # NOTE: .atleast_1d() is used to deal with the edge-case of a single-line file.
-            #       Using loadtxt() on a single-line file will return a file with fewer dimensions
-            #       than expected.
-            cornerData = np.atleast_1d(np.loadtxt(filename,
-                                                  dtype=TrackUtils.corner_dtype,
-                                                  usecols=(0, 1, 27)))
-        except IOError as anError :
-            if anError.args == ('End-of-file reached before encountering data.',) :
-                # This is a corner case of dealing with an empty (but existant!) file.
-                # I want these to be treated as empty arrays.
-                cornerData = np.array([], dtype=TrackUtils.corner_dtype)
-            else :
-                # Some other IOError occurred...
-                raise
-
-        return cornerData
-
     frames = np.arange(startFrame, startFrame + frameCnt)
     volTimes = np.linspace(0.0, (frameCnt - 1)*timeDelta, num=frameCnt)
 
     volume_data = [{'volTime': volTime,
                     'frameNum': frameNum,
-                    'stormCells': LoadCorner("%s.%d" % (os.path.join(path, corner_filestem), frameNum))}
+                    'stormCells': _loadtxtfile("%s.%d" % (os.path.join(path, corner_filestem), frameNum),
+                                               dict(usecols=(0, 1, 27)), dict(dtype=TrackUtils.corner_dtype))}
                    for volTime, frameNum in zip(volTimes, frames)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
