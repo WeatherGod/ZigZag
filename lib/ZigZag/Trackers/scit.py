@@ -28,11 +28,14 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
     BestLocs(stateHist, strmTracks, infoTracks, volume_Data['frameNum'])
     Correl_Storms(strmAdap, currStrms, volume_Data['frameNum'], stateHist, strmTracks, infoTracks)
     Compute_Speed(currStrms, strmTracks, infoTracks)
-    EndTracks(stateHist, strmTracks, currStrms)
+    tracksToEnd, tracksToKeep, tracksToAdd = EndTracks(stateHist, strmTracks, currStrms)
 
 
-    stateHist.append({'volTime': volume_Data['frameNum'],
+    stateHist.append({'volTime': volume_Data['volTime'],
+                      'frameNum': volume_Data['frameNum'],
                       'stormCells': currStrms})
+
+    return tracksToEnd, tracksToKeep, tracksToAdd
 
 def EndTracks(stateHist, strmTracks, currStrms=None) :
     """
@@ -43,36 +46,45 @@ def EndTracks(stateHist, strmTracks, currStrms=None) :
     Call this function without a currStrms argument when you are finished tracking and
     want to finalize the tracks.
     """
-    if len(stateHist) == 0 :
-        # Ah, there is no history, therefore, there are no established tracks
-        return
-
-    # build list of track ids for the stormcells in the previous frame
-    prevTracks = set([aCell['trackID'] for aCell in stateHist[-1]['stormCells'] if aCell['trackID'] >= 0])
-
     if currStrms is not None :
         currTracks = set(currStrms['trackID'])
     else :
         currTracks = set([])
 
+    if len(stateHist) == 0 :
+        # Ah, there is no history, therefore, there are no established tracks
+        return set([]), set([]), currTracks
+
+    # build list of track ids for the stormcells in the previous frame
+    prevTracks = set([aCell['trackID'] for aCell in stateHist[-1]['stormCells'] if aCell['trackID'] >= 0])
+
 
     # Find the set difference of the list of tracks.
     # The difference would be whatever tracks that existed in the previous
     # frame, but not in the current frame.
-    unmatchedTrackIDs = prevTracks - currTracks
+    tracksToEnd = prevTracks - currTracks
+
+    # Now the opposite set difference.  These would be tracks
+    # That exists in the current tracks, but not in the previous.
+    tracksToAdd = currTracks - prevTracks
+
+    # And now to see what remained the same.
+    tracksToKeep = currTracks & prevTracks
 
     # Now end those tracks
     #    - Any tracks that are of length 2 or longer have
     #          their last storm cell marked as 'M' because
     #          it belonged to a track.
     #  Maybe some other tasks?
-    for aTrackID in unmatchedTrackIDs :
+    for aTrackID in tracksToEnd :
         if len(strmTracks[aTrackID]) > 1 :
             # Mark the last storm cell in the track as "matched"
             strmTracks[aTrackID]['types'][-1] = 'M'
         else :
             # Mark a length-1 track as a False alarm.
             strmTracks[aTrackID]['types'][-1] = 'F'
+
+    return tracksToEnd, tracksToKeep, tracksToAdd
 
 
 def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTracks) :
@@ -167,7 +179,7 @@ def BestLocs(stateHist, strmTracks, infoTracks, volTime) :
     """
     # Need to do a forecast if the history is empty
     if len(stateHist) > 0 :
-        deltaTime = volTime - stateHist[-1]['volTime']
+        deltaTime = volTime - stateHist[-1]['frameNum']
 
         trackIDs = set([stormCell['trackID'] for stormCell in stateHist[-1]['stormCells'] if stormCell['trackID'] >= 0])
         for index in trackIDs :
