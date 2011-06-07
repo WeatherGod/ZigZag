@@ -98,3 +98,36 @@ _register_tracker(MHT_Track, "MHT", dict(varx="float(min=0.0, default=1.0)",
                                          frames="integer(min=1, default=999999)",
                                          ParamFile="string(default='Parameters')"))
 
+def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
+    import titan
+    dirName = path
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
+    speedThresh = float(trackParams['speedThresh'])
+
+    if simParams['frameCnt'] <= 1 :
+        raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
+
+    tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
+    trackerParams = {'distThresh': speedThresh * tDelta}
+    stateHist = []
+    strmTracks = []
+    prevStorms = {}
+
+    for aVol in cornerInfo['volume_data'] :
+        results = titan.TrackStep_TITAN(trackerParams, stateHist, strmTracks,
+                                        aVol, prevStorms)
+        prevStorms = results[1].copy()
+        prevStorms.update(results[2])
+
+    # Tidy up tracks because there won't be any more data
+    titan.update_tracks(strmTracks, None, None, prevStorms, {}, {})
+
+    falarms = []
+    TrackUtils.CleanupTracks(strmTracks, falarms)
+    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
+                              strmTracks, falarms)
+
+    if returnResults :
+        return strmTracks, falarms
+
+_register_tracker(TITAN_Track, "TITAN", dict(speedThresh="float(min=0.0)"))
