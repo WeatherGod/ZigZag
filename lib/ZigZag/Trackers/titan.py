@@ -3,127 +3,165 @@ import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
 from scikits.learn.utils.hungarian import hungarian
 
-bad_cost = 9999999.0
-bad_thresh = 5.0
+class TITAN(object) :
+    """
+    An object for performing the tracking portion of the TITAN algorithm
+    originally designed by Mike Dixon.
 
-def calc_cost(t0_strms, t1_strms) :
-    x0 = t0_strms['xLocs']
-    x1 = t1_strms['xLocs']
+    This implementation is currently incomplete.  In particular, the
+    volume of the stormcell is not included, even though one could set
+    a weight for the volume part of the cost matrix.
+    """
+    def __init__(self, distWeight=1.0, volWeight=1.0, costThresh=5.0) :
+        self.distWeight = distWeight
+        self.volWeight = volWeight
+        self.costThresh = costThresh
+        self._highCost = None
 
-    y0 = t0_strms['yLocs']
-    y1 = t1_strms['yLocs']
+        self.reinit_tracker()
 
-    C = np.hypot(x0[:, np.newaxis] - x1[np.newaxis, :],
-                 y0[:, np.newaxis] - y1[np.newaxis, :])
+    def reinit_tracker(self) :
+        """
+        Reinitialize the TITAN tracker for a new set of storm cells
+        to track.
+        """
+        self.stateHist = []
+        self.tracks = []
+        self.prevStorms = {}
 
-    return np.where(C > bad_thresh, bad_cost, C)
+    def _calc_cost(self, t0_strms, t1_strms) :
+        x0 = t0_strms['xLocs']
+        x1 = t1_strms['xLocs']
 
-def reject_assoc(cost_val) :
-    # Reject this association because they were too far apart
-    return cost_val >= bad_thresh
+        y0 = t0_strms['yLocs']
+        y1 = t1_strms['yLocs']
 
-def process_assocs(assocs, cost, currStrmCnt, prevStorms) :
-    strms_end = {}
-    strms_start = {}
-    strms_keep = {}
+        C = np.hypot(x0[:, np.newaxis] - x1[np.newaxis, :],
+                     y0[:, np.newaxis] - y1[np.newaxis, :])
 
-    for t0_index, t1_index in enumerate(assocs) :
-        if reject_assoc(cost[t0_index, t1_index]) :
-            # Because of the rejection, split this
-            # association into the termination of
-            # one track and the start of a new track
-            strms_end[t0_index] = prevStorms[t0_index]
-            # TrackID will be assigned when the track is created
-            strms_start[t1_index] = None
+        # Make sure the highcost is gonna be high enough
+        # The total cost is going to be the sum of costs over
+        # the assignments.  Since there will be at most min(C.shape)
+        # assignments, then multiplying the number of possible assignments
+        # by the maximum assignment cost should guarantee a high enough cost.
+        # Multiplying by 10 is just for extra measure.
+        self._highCost = (10 * (min(C.shape) * C.max())) if C.size > 0 else 999999
+
+        # Just double-checking that _highCost will pass the reject_assoc() later.
+        if not self._reject_assoc(self._highCost) :
+            # TODO: Need better safety here... I would likely prefer np.inf, maybe
+            # Because that wasn't good enough to satisfy _reject_assoc(),
+            #   go back to the fall-back of 999999.
+            self._highCost = 999999.0
+
+        return np.where(self._reject_assoc(C), self._highCost, C)
+
+    def _reject_assoc(self, cost_val) :
+        """ Reject this association because they were too far apart """
+        return cost_val >= self.costThresh
+
+    def _process_assocs(self, assocs, cost, currStrmCnt) :
+        strms_end = {}
+        strms_start = {}
+        strms_keep = {}
+
+        for t0_index, t1_index in enumerate(assocs) :
+            if self._reject_assoc(cost[t0_index, t1_index]) :
+                # Because of the rejection, split this
+                # association into the termination of
+                # one track and the start of a new track
+                strms_end[t0_index] = self.prevStorms[t0_index]
+                # TrackID will be assigned when the track is created
+                strms_start[t1_index] = None
+            else :
+                strms_keep[t1_index] = self.prevStorms[t0_index]
+
+        # Determine which other current storms were not associated
+        # This happens when there are more current storms than previous storms
+        newstorms = set(range(currStrmCnt)) - set(assocs)
+        strms_start.update(zip(newstorms, [None]*len(newstorms)))
+
+        return strms_end, strms_keep, strms_start
+
+    def _update_tracks(self, currStrms, currFrame, strms_end, strms_keep, strms_start) :
+
+        # Only need to do the following if I and adding or extending
+        # existing tracks
+        if len(strms_keep) > 0 or len(strms_start) > 0 :
+            # The volume data has only xLocs and yLocs,
+            # so we need to add some track-relevant fields
+            # to the data without modifying the input data.
+            strmCnt = len(currStrms)
+            currStrms = nprf.append_fields(currStrms,
+                                           ('frameNums', 'types', 'trackID'),
+                                           ([currFrame] * strmCnt,
+                                            ['U'] * strmCnt,
+                                            [-1] * strmCnt),
+                                           usemask=False)
+
+
+        for strmID, trackID in strms_keep.iteritems() :
+            # A poor-man's append for numpy arrays...
+            #currStrms[strmID]['types'] = 'M'
+            currStrms[strmID]['trackID'] = trackID
+            # Update the last storm cell listed in the track as matched
+            self.tracks[trackID]['types'][-1] = 'M'
+            self.tracks[trackID] = np.hstack((self.tracks[trackID], currStrms[strmID]))
+
+        for strmID in strms_start.keys() :
+            trackID = len(self.tracks)
+            strms_start[strmID] = trackID
+            #currStrms[strmID]['types'] = 'M'
+            currStrms[strmID]['trackID'] = trackID
+            self.tracks.append(np.array([currStrms[strmID]], dtype=volume_dtype))
+
+        # Mark any length-1 tracks for strms_end as False Alarms
+        for trackID in strms_end.values() :
+            if len(self.tracks[trackID]) == 1 :
+                self.tracks[trackID]['types'][-1] = 'F'
+            else :
+                self.tracks[trackID]['types'][-1] = 'M'
+
+    def TrackStep(self, volume_data) :
+        if len(self.stateHist) > 0 :
+            prevCells = self.stateHist[-1]['stormCells']
         else :
-            strms_keep[t1_index] = prevStorms[t0_index]
-    
-    # Determine which other current storms were not associated
-    # This happens when there are more current storms than previous storms
-    newstorms = set(range(currStrmCnt)) - set(assocs)
-    strms_start.update(zip(newstorms, [None]*len(newstorms)))
+            prevCells = np.array([], dtype=volume_dtype)
 
-    #currTracks = set(strms_keep.values())
-    #prevTracks = set(prevStrms.values())
-    #tracks_end = prevTracks - currTracks
-    #tracks_start = currTracks - prevTracks
-    #tracks_keep = currTracks & prevTracks
+        currCells = volume_data['stormCells']
+        frameNum = volume_data['frameNum']
 
-    return strms_end, strms_keep, strms_start
+        C = self._calc_cost(prevCells, currCells)
+        assocs = hungarian(C)
 
-def update_tracks(tracks, currStrms, currFrame, strms_end, strms_keep, strms_start) :
+        # Return the storms organized by their status.
+        # strms_end  :  dict of storm indices for storms at index-1 with value trackID
+        # strms_keep :  dict of storm indices for storms at index with value trackID
+        # strms_start:  dict of storm indices for storms at index with value trackID
+        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(currCells))
 
-    # Only need to do the following if I and adding or extending
-    # existing tracks
-    if len(strms_keep) > 0 or len(strms_start) > 0 :
-        # The volume data has only xLocs and yLocs,
-        # so we need to add some track-relevant fields
-        # to the data without modifying the input data.
-        strmCnt = len(currStrms)
-        currStrms = nprf.append_fields(currStrms,
-                                       ('frameNums', 'types', 'trackID'),
-                                       ([currFrame] * strmCnt,
-                                        ['U'] * strmCnt,
-                                        [-1] * strmCnt),
-                                       usemask=False)
+        self._update_tracks(currCells, frameNum,
+                            strms_end, strms_keep, strms_start)
 
+        # The union of tracks that were kept and started for the next loop iteration.
+        self.prevStorms = strms_keep.copy()
+        self.prevStorms.update(strms_start)
 
-    for strmID, trackID in strms_keep.iteritems() :
-        # A poor-man's append for numpy arrays...
-        #currStrms[strmID]['types'] = 'M'
-        currStrms[strmID]['trackID'] = trackID
-        # Update the last storm cell listed in the track as matched
-        tracks[trackID]['types'][-1] = 'M'
-        tracks[trackID] = np.hstack((tracks[trackID], currStrms[strmID]))
+        self.stateHist.append({'volTime': volume_data['volTime'],
+                               'frameNum': volume_data['frameNum'],
+                               'stormCells': volume_data['stormCells']})
 
-    for strmID in strms_start.keys() :
-        trackID = len(tracks)
-        strms_start[strmID] = trackID
-        #currStrms[strmID]['types'] = 'M'
-        currStrms[strmID]['trackID'] = trackID
-        tracks.append(np.array([currStrms[strmID]], dtype=volume_dtype))
+        return strms_end, strms_keep, strms_start
 
-    # Mark any length-1 tracks for strms_end as False Alarms
-    for trackID in strms_end.values() :
-        if len(tracks[trackID]) == 1 :
-            tracks[trackID]['types'][-1] = 'F'
-        else :
-            tracks[trackID]['types'][-1] = 'M'
+    def finalize(self) :
+        """
+        Used to finalize the track data when there are no more
+        frames to process.
 
-def TrackStep_TITAN(trackerParams, stateHist, strmTracks, volume_data, prevStorms) :
-    bad_cost = trackerParams['distThresh']
-
-    if len(stateHist) > 0 :
-        prevCells = stateHist[-1]['stormCells']
-    else :
-        prevCells = np.array([], dtype=volume_dtype)
-
-    currCells = volume_data['stormCells']
-    frameNum = volume_data['frameNum']
-
-    C = calc_cost(prevCells, currCells)
-    assocs = hungarian(C)
-    
-    # Maybe something for infoTracks?
-
-    # Return the storms organized by their status.
-    # strms_end  :  dict of storm indices for storms at index-1 with value trackID
-    # strms_keep :  dict of storm indices for storms at index with value trackID
-    # strms_start:  dict of storm indices for storms at index with value trackID
-    strms_end, strms_keep, strms_start = process_assocs(assocs, C, len(currCells), prevStorms)
-
-    update_tracks(strmTracks, currCells, frameNum,
-                  strms_end, strms_keep, strms_start)
-
-    # The union of tracks that were kept and started for the next loop iteration.
-    prevStorms = strms_keep.copy()
-    prevStorms.update(strms_start)
-
-    stateHist.append({'volTime': volume_data['volTime'],
-                      'frameNum': volume_data['frameNum'],
-                      'stormCells': volume_data['stormCells']})
-
-    return strms_end, strms_keep, strms_start
+        You can always view the self.track data member, but this
+        function will perform any last tidying up.
+        """
+        self._update_tracks(None, None, self.prevStorms, {}, {})
 
 
 if __name__ == '__main__' :
@@ -143,29 +181,24 @@ if __name__ == '__main__' :
 
     true_tracks, true_falarms = FilterMHTTracks(*ReadTracks(dirPath + os.path.sep + "noise_tracks"))
 
-    tracks = []
-    prevStorms = {}
-    trackParams = {'distThresh': 5}
-    stateHist = []
-
     frameLims = (0, len(cornerVol))
     print frameLims[1]
 
+    t = TITAN(costThresh=5)
+
     for aVol in cornerVol :
-        results = TrackStep_TITAN(trackParams, stateHist, tracks, aVol, prevStorms)
-        prevStorms = results[1].copy()
-        prevStorms.update(results[2])
+        t.TrackStep(aVol)
 
-    # Finalize tracks
-    update_tracks(tracks, None, None, prevStorms, {}, {})
+    t.finalize()
 
+    tracks = t.tracks
     falarms = []
     CleanupTracks(tracks, falarms)
 
 
     # Compare with "truth data"
     segs = [CreateSegments(trackData) for trackData in (true_tracks, true_falarms,
-                                                    tracks, falarms)]
+                                                        tracks, falarms)]
     truthtable = CompareSegments(*segs)
 
 

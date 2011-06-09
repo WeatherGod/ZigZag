@@ -108,26 +108,21 @@ def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') 
         raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
 
     tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
-    trackerParams = {'distThresh': speedThresh * tDelta}
-    stateHist = []
-    strmTracks = []
-    prevStorms = {}
 
+    t = titan.TITAN(costThresh=speedThresh*tDelta)
     for aVol in cornerInfo['volume_data'] :
-        results = titan.TrackStep_TITAN(trackerParams, stateHist, strmTracks,
-                                        aVol, prevStorms)
-        prevStorms = results[1].copy()
-        prevStorms.update(results[2])
+        t.TrackStep(aVol)
 
     # Tidy up tracks because there won't be any more data
-    titan.update_tracks(strmTracks, None, None, prevStorms, {}, {})
+    t.finalize()
 
+    tracks = t.tracks
     falarms = []
-    TrackUtils.CleanupTracks(strmTracks, falarms)
+    TrackUtils.CleanupTracks(tracks, falarms)
     TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
-                              strmTracks, falarms)
+                              tracks, falarms)
 
     if returnResults :
-        return strmTracks, falarms
+        return tracks, falarms
 
 _register_tracker(TITAN_Track, "TITAN", dict(speedThresh="float(min=0.0)"))
