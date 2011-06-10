@@ -5,12 +5,41 @@ def main(args) :
     import numpy as np
     from configobj import ConfigObj
 
+    autoFormatter = []
+
     # Quickly fix any scalars to be a one-element list
     # Scalars are defined to be any non-sequencable item.
-    for index, val in enumerate(args.paramSpecs) :
+    for index, (val, name) in enumerate(zip(args.paramSpecs, args.parameters)) :
         if isinstance(val, (type(None),int,float,str,bool,dict)) :
             args.paramSpecs[index] = [val]
 
+        # Skip finding formatting if it is a silent parameter
+        if name in args.silentParams :
+            continue
+
+        # Check the first item's type to see what it is for formatting
+        if isinstance(args.paramSpecs[index][0], int) :
+            temp = np.asarray(args.paramSpecs[index])
+            maxlen = int(np.floor(np.log10(np.abs(temp))).max()) + 1
+            if np.any(temp < 0) :
+                # Need extra spot for negative sign
+                maxlen += 1
+            autoFormatter.append("%0." + str(maxlen) + "d")
+        elif isinstance(args.paramSpecs[index][0], float) :
+            temp = np.asarray(args.paramSpecs[index])
+            # At least one spot for the zero
+            max_intpart = max(int(np.floor(np.log10(np.abs(temp))).max()) + 1, 1)
+            if np.any(temp < 0) :
+                max_intpart += 1
+            decipoints = int(np.floor(np.log10(np.abs(temp))).min())
+            max_floatpart = (abs(decipoints) + 1) if decipoints <= 0 else 1
+            autoFormatter.append("%0" + str(max_intpart + max_floatpart + 1) +
+                                 "." + str(max_floatpart) + "f")
+        elif isinstance(args.paramSpecs[index][0], str) :
+            maxlen = max([len(aVal) for aVal in args.paramSpecs[index]])
+            autoFormatter.append("%" + str(maxlen) + "s")
+        else :
+            autoFormatter.append("%s")
 
     print "Output File:", args.paramFile, "  Tracker:", args.tracker
 
@@ -33,7 +62,8 @@ def main(args) :
     paramSpecs = map(np.ravel, np.broadcast_arrays(*np.ix_(*args.paramSpecs)))
 
     for vals in zip(*paramSpecs) :
-        trackrun = '_'.join("%s_%s" % (name, val) for name, val in zip(args.parameters, vals) if name not in args.silentParams)
+        trackrun = '_'.join(("%s_" + form) % (name, val) for name, val, form in
+                            zip(args.parameters, vals, autoFormatter) if name not in args.silentParams)
         aConf = {'algorithm': args.tracker}
         aConf.update(zip(args.parameters, vals))
         trackConfs[args.tracker + '_' + trackrun] = aConf
@@ -45,6 +75,7 @@ def main(args) :
 
 
 if __name__ == '__main__' :
+    import numpy as np
 
     import argparse
 
