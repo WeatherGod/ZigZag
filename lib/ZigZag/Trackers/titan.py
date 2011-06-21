@@ -1,4 +1,4 @@
-from ZigZag.TrackUtils import volume_dtype
+from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
 from scikits.learn.utils.hungarian import hungarian
@@ -97,6 +97,9 @@ class TITAN(object) :
                                            ([currFrame] * strmCnt,
                                             ['U'] * strmCnt,
                                             [-1] * strmCnt),
+                                           dtypes=[dtype[1] for dtype in
+                                                   (tracking_dtype +
+                                                    identifier_dtype)],
                                            usemask=False)
 
 

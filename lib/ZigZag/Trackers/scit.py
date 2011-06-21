@@ -1,7 +1,7 @@
 import math                                 # for abs(), sqrt()
 import numpy as np
 import numpy.lib.recfunctions as nprf       # for append_fields()
-from ZigZag.TrackUtils import volume_dtype
+from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 
 
 
@@ -23,6 +23,9 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
                                    ([volume_Data['frameNum']] * strmCnt,
                                     ['U'] * strmCnt,
                                     [-1] * strmCnt),
+                                   dtypes=[dtype[1] for dtype in
+                                           (tracking_dtype +
+                                            identifier_dtype)],
                                    usemask=False)
 
     BestLocs(stateHist, strmTracks, infoTracks, volume_Data['frameNum'])

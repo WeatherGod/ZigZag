@@ -4,9 +4,11 @@ import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 from scipy.spatial import KDTree
 
 corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4'), ('cornerIDs', 'i4')]
-track_dtype = corner_dtype + [('frameNums', 'i4'), ('types', 'a1')]
-volume_dtype = track_dtype + [('trackID', 'i4')]
-#storm_dtype = track_dtype + [('types', 'a1'), ('frameNums', 'i4'), ('trackID', 'i4')]
+tracking_dtype = [('frameNums', 'i4'), ('types', 'a1')]
+identifier_dtype = [('trackID', 'i4')]
+
+track_dtype = corner_dtype + tracking_dtype
+volume_dtype = track_dtype + identifier_dtype
 
 def Tracks2Cells(tracks, falarms=None) :
     """
