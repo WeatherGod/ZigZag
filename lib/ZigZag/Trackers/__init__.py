@@ -98,3 +98,31 @@ _register_tracker(MHT_Track, "MHT", dict(varx="float(min=0.0, default=1.0)",
                                          frames="integer(min=1, default=999999)",
                                          ParamFile="string(default='Parameters')"))
 
+def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
+    import titan
+    dirName = path
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
+    speedThresh = float(trackParams['speedThresh'])
+
+    if simParams['frameCnt'] <= 1 :
+        raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
+
+    tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
+
+    t = titan.TITAN(costThresh=speedThresh*tDelta)
+    for aVol in cornerInfo['volume_data'] :
+        t.TrackStep(aVol)
+
+    # Tidy up tracks because there won't be any more data
+    t.finalize()
+
+    tracks = t.tracks
+    falarms = []
+    TrackUtils.CleanupTracks(tracks, falarms)
+    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
+                              tracks, falarms)
+
+    if returnResults :
+        return tracks, falarms
+
+_register_tracker(TITAN_Track, "TITAN", dict(speedThresh="float(min=0.0)"))
