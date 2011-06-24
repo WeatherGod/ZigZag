@@ -2,6 +2,9 @@ import numpy as np
 import TrackUtils
 import os.path
 
+# A dictionary indicating what each column in a corner file represents
+corner_cols = {'xLocs': 0, 'yLocs': 1, 'sizes':2, 'cornerIDs':27}
+
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
     
@@ -94,11 +97,12 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     dataFile = open(inputDataFile, 'w')
     dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data), startFrame, timeDelta))
 
+    # FIXME: Make this more robust and future-proof with respect to texture data.
     for volIndex, aVol in enumerate(volume_data) :
         outFile = open("%s.%d" % (os.path.join(path, corner_filestem), startFrame + volIndex), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
-                          + ' '.join(['0'] * 25) + ' '
+            outFile.write(("%(xLocs).10f %(yLocs).10f %(sizes).2f" % (strmCell))
+                          + ' '.join(['0'] * 24) + ' '
                           + str(strmCell['cornerIDs']) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
@@ -221,7 +225,9 @@ def ReadCorners(inputDataFile, path='.') :
     volume_data = [{'volTime': volTime,
                     'frameNum': frameNum,
                     'stormCells': _loadtxtfile("%s.%d" % (os.path.join(path, corner_filestem), frameNum),
-                                               dict(usecols=(0, 1, 27)), dict(dtype=TrackUtils.corner_dtype))}
+                                               dict(usecols=[corner_cols[colname] for colname, typecode in
+                                                    TrackUtils.corner_dtype]),
+                                               dict(dtype=TrackUtils.corner_dtype))}
                    for volTime, frameNum in zip(volTimes, frames)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}

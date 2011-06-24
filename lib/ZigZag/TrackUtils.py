@@ -3,10 +3,30 @@ import numpy as np
 import numpy.lib.recfunctions as nprf		# for .stack_arrays(), .append_fields()
 from scipy.spatial import KDTree
 
-corner_dtype = [('xLocs', 'f4'), ('yLocs', 'f4'), ('cornerIDs', 'i4')]
+# The following are used to specify the dtype of various
+# numpy record arrays.
+
+# The position of a centroid
+pos_dtype = [('xLocs', 'f4'), ('yLocs', 'f4')]
+
+# "Texture" data -- extra information about the object
+# represented by the centroid.  Currently, we have "sizes"
+# which is the size of the stormcell in volume units.
+texture_dtype = [('sizes', 'f4')]
+
+# A (hopefully) unique identifier for each detected feature
+cornerID_dtype = [('cornerIDs', 'i4')]
+
+# "frameNums" is the 'time' of the detected feature in units
+# of the frame index. "type" indicates what status the feature
+# was given by the tracker (or simulator).
 tracking_dtype = [('frameNums', 'i4'), ('types', 'a1')]
+
+# A (hopefully) unique track identifier for each determined track
+# Note that -1 indicates that the feature is not a track.
 identifier_dtype = [('trackID', 'i4')]
 
+corner_dtype = pos_dtype + texture_dtype + cornerID_dtype
 track_dtype = corner_dtype + tracking_dtype
 volume_dtype = track_dtype + identifier_dtype
 
