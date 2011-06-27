@@ -27,6 +27,7 @@ tracking_dtype = [('frameNums', 'i4'), ('types', 'a1')]
 identifier_dtype = [('trackID', 'i4')]
 
 corner_dtype = pos_dtype + texture_dtype + cornerID_dtype
+base_track_dtype = pos_dtype + cornerID_dtype + tracking_dtype
 track_dtype = corner_dtype + tracking_dtype
 volume_dtype = track_dtype + identifier_dtype
 
