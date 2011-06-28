@@ -1,7 +1,7 @@
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
-from scikits.learn.utils.hungarian import hungarian
+from scikits.learn.utils.hungarian import _Hungarian
 
 class TITAN(object) :
     """
@@ -12,11 +12,17 @@ class TITAN(object) :
     volume of the stormcell is not included, even though one could set
     a weight for the volume part of the cost matrix.
     """
+    _fallback_cost = 999999.0
+
     def __init__(self, distWeight=1.0, volWeight=1.0, costThresh=5.0) :
         self.distWeight = distWeight
         self.volWeight = volWeight
         self.costThresh = costThresh
         self._highCost = None
+
+        # If the cost threshold is set larger than
+        # the fallback cost, then nothing works right
+        assert(costThresh < TITAN._fallback_cost)
 
         self.reinit_tracker()
 
@@ -52,7 +58,7 @@ class TITAN(object) :
             # TODO: Need better safety here... I would likely prefer np.inf, maybe
             # Because that wasn't good enough to satisfy _reject_assoc(),
             #   go back to the fall-back of 999999.
-            self._highCost = 999999.0
+            self._highCost = TITAN._fallback_cost
 
         return np.where(self._reject_assoc(C), self._highCost, C)
 
@@ -60,12 +66,12 @@ class TITAN(object) :
         """ Reject this association because they were too far apart """
         return cost_val >= self.costThresh
 
-    def _process_assocs(self, assocs, cost, currStrmCnt) :
+    def _process_assocs(self, assocs, cost, prevStrmCnt, currStrmCnt) :
         strms_end = {}
         strms_start = {}
         strms_keep = {}
 
-        for t0_index, t1_index in enumerate(assocs) :
+        for t0_index, t1_index in assocs :
             if self._reject_assoc(cost[t0_index, t1_index]) :
                 # Because of the rejection, split this
                 # association into the termination of
@@ -78,8 +84,17 @@ class TITAN(object) :
 
         # Determine which other current storms were not associated
         # This happens when there are more current storms than previous storms
-        newstorms = set(range(currStrmCnt)) - set(assocs)
+        newstorms = set(range(currStrmCnt)) - (set(strms_start.keys()) |
+                                               set(strms_keep.keys()))
         strms_start.update(zip(newstorms, [None]*len(newstorms)))
+
+        # Determine which other previous storms were not associated
+        # This happens when there are more previous storms than current storms
+        print prevStrmCnt, len(assocs), currStrmCnt
+        deadstorms = (set(range(prevStrmCnt)) -
+                      set([t0_index for t0_index, t1_index in assocs]))
+        strms_end.update([(t0_index, self.prevStorms[t0_index]) for
+                          t0_index in deadstorms])
 
         return strms_end, strms_keep, strms_start
 
@@ -135,13 +150,15 @@ class TITAN(object) :
         frameNum = volume_data['frameNum']
 
         C = self._calc_cost(prevCells, currCells)
-        assocs = hungarian(C)
+        H = _Hungarian()
+        # Returns a list of (row, col) tuples
+        assocs = H.compute(C)
 
         # Return the storms organized by their status.
         # strms_end  :  dict of storm indices for storms at index-1 with value trackID
         # strms_keep :  dict of storm indices for storms at index with value trackID
         # strms_start:  dict of storm indices for storms at index with value trackID
-        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(currCells))
+        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(prevCells), len(currCells))
 
         self._update_tracks(currCells, frameNum,
                             strms_end, strms_keep, strms_start)
@@ -197,7 +214,6 @@ if __name__ == '__main__' :
     tracks = t.tracks
     falarms = []
     CleanupTracks(tracks, falarms)
-
 
     # Compare with "truth data"
     segs = [CreateSegments(trackData) for trackData in (true_tracks, true_falarms,
