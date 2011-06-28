@@ -90,7 +90,6 @@ class TITAN(object) :
 
         # Determine which other previous storms were not associated
         # This happens when there are more previous storms than current storms
-        print prevStrmCnt, len(assocs), currStrmCnt
         deadstorms = (set(range(prevStrmCnt)) -
                       set([t0_index for t0_index, t1_index in assocs]))
         strms_end.update([(t0_index, self.prevStorms[t0_index]) for
