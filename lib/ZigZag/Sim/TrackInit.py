@@ -66,9 +66,9 @@ _init_register(SplitInit, 'SplitInit', dict(speedOff="float(min=0.0)",
 class NormalInit(InitModel) :
     useInitState = True
 
-    def __init__(self, tLims, xPos, yPos, xScale, yScale, speedLims, headingLims) :
+    def __init__(self, frameLims, xPos, yPos, xScale, yScale, speedLims, headingLims) :
         """
-        tLims : tuple of ints
+        frameLims : tuple of ints
             Start and end frames  E.g., (5, 12)
 
         xPos, yPos : floats
@@ -93,7 +93,7 @@ class NormalInit(InitModel) :
             Ex: (5.0, 25.0)
         """
         InitModel.__init__(self)
-        self.tLims = (min(tLims), max(tLims))
+        self.frameLims = (min(frameLims), max(frameLims))
         self.xPos = xPos
         self.yPos = yPos
         self.xScale = xScale
@@ -102,7 +102,7 @@ class NormalInit(InitModel) :
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = np.random.randint(*self.tLims)
+        self._initFrame = np.random.randint(*self.frameLims)
         self._initXPos = self.xScale * np.random.randn(1) + self.xPos
         self._initYPos = self.yScale * np.random.randn(1) + self.yPos
         self._initSpeed = np.random.uniform(*self.speedLims)
@@ -110,7 +110,7 @@ class NormalInit(InitModel) :
 
         return InitModel.__call__(self)
 
-_init_register(NormalInit, 'NormalInit', dict(tLims="float_list(min=2, max=2)",
+_init_register(NormalInit, 'NormalInit', dict(frameLims="int_list(min=2, max=2)",
                                               xPos="float", yPos="float",
                                               xScale="float(min=0.0)", yScale="float(min=0.0)",
                                               speedLims="float_list(min=2, max=2)",
@@ -120,9 +120,9 @@ _init_register(NormalInit, 'NormalInit', dict(tLims="float_list(min=2, max=2)",
 class UniformInit(InitModel) :
     useInitState = True
 
-    def __init__(self, tLims, xLims, yLims, speedLims, headingLims) :
+    def __init__(self, frameLims, xLims, yLims, speedLims, headingLims) :
         """
-        tLims : tuple of ints
+        frameLims : tuple of ints
             Start and end frames  E.g., (5, 12)
 
         xLims, yLims : tuple of floats
@@ -149,14 +149,14 @@ class UniformInit(InitModel) :
 
         """
         InitModel.__init__(self)
-        self.tLims = (min(tLims), max(tLims))
+        self.frameLims = (min(frameLims), max(frameLims))
         self.xPosLims = (min(xLims), max(xLims))
         self.yPosLims = (min(yLims), max(yLims))
         self.speedLims = (min(speedLims), max(speedLims))
         self.headingLims = (min(headingLims), max(headingLims))
 
     def __call__(self) :
-        self._initFrame = np.random.randint(*self.tLims)
+        self._initFrame = np.random.randint(*self.frameLims)
         self._initXPos = np.random.uniform(*self.xPosLims)
         self._initYPos = np.random.uniform(*self.yPosLims)
         self._initSpeed = np.random.uniform(*self.speedLims)
@@ -165,7 +165,7 @@ class UniformInit(InitModel) :
 
         return InitModel.__call__(self)
 
-_init_register(UniformInit, 'UniformInit', dict(tLims="float_list(min=2, max=2)",
+_init_register(UniformInit, 'UniformInit', dict(frameLims="int_list(min=2, max=2)",
                                                 xLims="float_list(min=2, max=2)",
                                                 yLims="float_list(min=2, max=2)",
                                                 speedLims="float_list(min=2, max=2)",
@@ -174,9 +174,9 @@ _init_register(UniformInit, 'UniformInit', dict(tLims="float_list(min=2, max=2)"
 class UniformEllipse(InitModel) :
     useInitState = True
 
-    def __init__(self, tLims, a, b, orient, speedLims, headingLims, xOffset, yOffset, offsetHeading, offsetSpeed) :
+    def __init__(self, frameLims, a, b, orient, speedLims, headingLims, xOffset, yOffset, offsetHeading, offsetSpeed) :
         """
-        tLims : tuple of ints
+        frameLims : tuple of ints
             Start and end frames  E.g., (5, 12)
 
         a, b : floats
@@ -187,7 +187,7 @@ class UniformEllipse(InitModel) :
             The orientation of the ellipse in degrees
             relative to the x-axis.
 
-         headingLims : tuple of floats
+        headingLims : tuple of floats
             The limits of the initial angle that a track may move.
             The units is in degrees and is using math coordinates.
             I.E., 0.0 degrees is East, 90.0 degrees is North.
@@ -218,7 +218,7 @@ class UniformEllipse(InitModel) :
 
         """
         InitModel.__init__(self)
-        self.tLims = (min(tLims), max(tLims))
+        self.frameLims = (min(frameLims), max(frameLims))
         self.a = a
         self.b = b
         self.orient = orient * (np.pi / 180.0)
@@ -232,7 +232,7 @@ class UniformEllipse(InitModel) :
         self.offsetSpeed = offsetSpeed
 
     def __call__(self) :
-        self._initFrame = np.random.randint(*self.tLims)
+        self._initFrame = np.random.randint(*self.frameLims)
         self._initSpeed = np.random.uniform(*self.speedLims)
         self._initHeading = np.random.uniform(*self.headingLims) * (np.pi / 180.0)
         r = np.random.uniform(0.0, 1.0)
@@ -252,7 +252,7 @@ class UniformEllipse(InitModel) :
 
         # Translate the ellipse a distance depending on the time
         coords += (np.array([self.xOffset, self.yOffset])
-                   + (self.offsetSpeed * (self._initFrame - self.tLims[0])
+                   + (self.offsetSpeed * (self._initFrame - self.frameLims[0])
                       * np.array([np.cos(self.offsetHeading),
                                   np.sin(self.offsetHeading)])))
 
@@ -260,7 +260,7 @@ class UniformEllipse(InitModel) :
 
         return InitModel.__call__(self)
 
-_init_register(UniformEllipse, 'EllipseUni', dict(tLims="float_list(min=2, max=2)",
+_init_register(UniformEllipse, 'EllipseUni', dict(frameLims="int_list(min=2, max=2)",
                                               a="float", b="float",
                                               orient="float(min=-360.0, max=360.0)",
                                               xOffset="float", yOffset="float",
