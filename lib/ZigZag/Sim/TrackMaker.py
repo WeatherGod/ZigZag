@@ -47,6 +47,9 @@ class TrackPoint(object) :
         self._framesRemain = maxLen
         self.deltaT = deltaT
 
+        # Just a stub for now...
+        self.strm_size = 0.
+
         # These are the internal state variables that will change
         # subsequent calls will update the state.
         self.frameNum, self.xLoc, self.yLoc, self.xSpeed, self.ySpeed = initModel()
@@ -85,4 +88,4 @@ class TrackPoint(object) :
 
         self._framesRemain -= 1
         self._isFirstCall = False
-        return self.xLoc, self.yLoc, self.cornerID, self.frameNum, 'M'
+        return self.xLoc, self.yLoc, self.strm_size, self.cornerID, self.frameNum, 'M'
