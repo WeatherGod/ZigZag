@@ -54,7 +54,7 @@ def Tracks2Cells(tracks, falarms=None) :
     if len(tmpTracks) != 0 or len(tmpFalarms) != 0 :
         allCells = np.hstack(tmpTracks + tmpFalarms)
     else :
-        allCells = np.array([], dtype=track_dtype)
+        allCells = np.array([], dtype=volume_dtype)
 
     return allCells
 

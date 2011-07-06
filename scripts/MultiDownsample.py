@@ -20,11 +20,14 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     for simName in simNames :
         dirName = os.path.join(multiDir, simName)
         simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
+        volData = ReadCorners(os.path.join(dirName, simParams['inputDataFile']),
+                              path=dirName)['volume_data'] 
         origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['simTrackFile'])))
         noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
 
         DownsampleTracks(skipCnt, simName, simName, simParams,
-                         origTrackData, noisyTrackData, path=newDir)
+                         origTrackData, noisyTrackData, volData,
+                         path=newDir)
 
         print "Sim:", simName
 
