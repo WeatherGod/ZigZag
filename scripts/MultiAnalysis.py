@@ -8,25 +8,41 @@ import numpy as np
 import ZigZag.bootstrap as btstrp
 from ListRuns import CommonTrackRuns, Sims_of_MultiSim
 
+from multiprocessing import Pool
+
+def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
+    dirName = os.path.join(multiDir, simName)
+    print "Sim:", simName
+    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
+                                                             "simParams.conf"))
+
+    analysis = AnalyzeTrackings(simName, simParams, skillNames,
+                                trackRuns=trackRuns, path=multiDir)
+    analysis = analysis.insertaxis(axis=1, label=simName)
+    return analysis
+   
+
 def MultiAnalyze(simNames, multiSim, skillNames,
                  trackRuns, path='.') :
     completeAnalysis = None
     multiDir = os.path.join(path, multiSim)
 
+    p = Pool()
            
     # Now, go through each simulation and analyze them.
-    for simName in simNames :
-        dirName = os.path.join(multiDir, simName)
-        print "Sim:", simName
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
+    results = [p.apply_async(_analyze_trackings, (simName, multiSim, skillNames,
+                                                  trackRuns, multiDir)) for
+               simName in simNames]
 
-        analysis = AnalyzeTrackings(simName, simParams, skillNames,
-                                    trackRuns=trackRuns, path=multiDir)
-        analysis = analysis.insertaxis(axis=1, label=simName)
+    p.close()
+    p.join()
+
+    # FIXME: With the update larrys, this can probably be improved.
+    for res in results :
         if completeAnalysis is None :
-            completeAnalysis = analysis
+            completeAnalysis = res.get()
         else :
-            completeAnalysis = completeAnalysis.merge(analysis)
+            completeAnalysis = completeAnalysis.merge(res.get())
 
     return completeAnalysis
 
