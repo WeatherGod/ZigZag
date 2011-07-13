@@ -74,7 +74,7 @@ def main(args) :
     #    missingRuns = set(trackRuns).difference(commonTrackRuns)
     #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
 
-    shortNames = args.labels if args.labels is not None else [runname[-11:] for runname in trackRuns]
+    shortNames = args.ticklabels if args.ticklabels is not None else [runname[-11:] for runname in trackRuns]
     #xlab = 'SCIT: Speed Threshold'
     plotTitles = args.titles if args.titles is not None else args.skillNames
 
