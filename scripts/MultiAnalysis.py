@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from AnalyzeTracking import *
+from ZigZag.AnalyzeTracking import *
 import ZigZag.ParamUtils as ParamUtils
 import la
 import os.path
