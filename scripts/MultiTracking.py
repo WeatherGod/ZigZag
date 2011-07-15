@@ -5,7 +5,7 @@ import ZigZag.Trackers as Trackers
 from DoTracking import SingleTracking
 import ZigZag.ParamUtils as ParamUtils     # for reading simParams files
 
-from ListRuns import Sims_of_MultiSim
+from ZigZag.ListRuns import Sims_of_MultiSim
 
 def MultiTrack(multiSim, trackConfs, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)
@@ -23,7 +23,7 @@ def MultiTrack(multiSim, trackConfs, path='.') :
 
 
 def main(args) :
-    from ListRuns import ExpandTrackRuns
+    from ZigZag.ListRuns import ExpandTrackRuns
     trackConfs = ParamUtils.LoadTrackerParams(args.trackconfs)
 
     trackRuns = ExpandTrackRuns(trackConfs.keys(), args.trackRuns)

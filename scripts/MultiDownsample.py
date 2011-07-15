@@ -5,7 +5,7 @@ from ZigZag.TrackFileUtils import *
 from ZigZag.TrackUtils import *
 import ZigZag.ParamUtils as ParamUtils
 import os.path
-from ListRuns import Sims_of_MultiSim
+from ZigZag.ListRuns import Sims_of_MultiSim
 
 def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)

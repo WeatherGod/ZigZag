@@ -36,7 +36,7 @@ def SingleTracking(simFile, simName, simParams, trackConfs, path='.') :
         ParamUtils.SaveConfigFile(storedConfFile, storedTrackConfs)
 
 def main(args) :
-    from ListRuns import ExpandTrackRuns
+    from ZigZag.ListRuns import ExpandTrackRuns
 
     dirName = os.path.join(args.directory, args.simName)
     simFile = os.path.join(dirName, "simParams.conf")

@@ -4,7 +4,7 @@ import MultiAnalysis as manal
 import ZigZag.ParamUtils as ParamUtils
 import os
 import numpy as np
-from ListRuns import Sims_of_MultiSim
+from ZigZag.ListRuns import Sims_of_MultiSim
 import matplotlib.pyplot as plt
 
 def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
@@ -56,7 +56,7 @@ def DisplayMultiSceneAnalysis(skillNames, shortNames, tickLabels,
 
 
 def main(args) :
-    from ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
+    from ZigZag.ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
 
     n_boot = 100
     ci_alpha = 0.05

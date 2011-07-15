@@ -93,7 +93,7 @@ def DisplayAnalysis(analysis, skillName, doFindBest=True, doFindWorst=True, comp
 
 def main(args) :
     import ZigZag.ParamUtils as ParamUtils
-    from ListRuns import ExpandTrackRuns
+    from ZigZag.ListRuns import ExpandTrackRuns
 
     if args.cacheOnly :
         args.skillNames = []
