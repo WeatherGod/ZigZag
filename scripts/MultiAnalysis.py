@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from AnalyzeTracking import *
+from ZigZag.AnalyzeTracking import *
 import ZigZag.ParamUtils as ParamUtils
 import la
 import os.path
 import numpy as np
 import ZigZag.bootstrap as btstrp
-from ListRuns import CommonTrackRuns, Sims_of_MultiSim
+from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
 
 def MultiAnalyze(simNames, multiSim, skillNames,
                  trackRuns, path='.') :
@@ -52,7 +52,7 @@ def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
 
  
 def main(args) :
-    from ListRuns import ExpandTrackRuns
+    from ZigZag.ListRuns import ExpandTrackRuns
 
     n_boot = 100
     ci_alpha = 0.05

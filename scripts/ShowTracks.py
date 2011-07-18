@@ -4,7 +4,7 @@ from ZigZag.TrackPlot import *			# for plotting tracks
 from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 import ZigZag.ParamUtils as ParamUtils		# for ReadSimulationParams()
-from ListRuns import ExpandTrackRuns
+from ZigZag.ListRuns import ExpandTrackRuns
 
 def main(args) :
     import os.path
