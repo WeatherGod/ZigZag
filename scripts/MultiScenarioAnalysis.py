@@ -27,30 +27,32 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
 
     return skillMeans, means_ci_upper, means_ci_lower
 
-def DisplayMultiSceneAnalysis(skillNames, shortNames, tickLabels, 
+def DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
                               meanSkills, skills_ci_upper, skills_ci_lower,
                               figsize=None) :
-    figs = [None] * len(skillNames)
-    for runIndex, trackRun in enumerate(shortNames) :
-        for skillIndex, skillName in enumerate(skillNames) :
-            if figs[skillIndex] is None :
-                figs[skillIndex] = plt.figure(figsize=figsize)
-
+    figs = [plt.figure(figsize=figsize) for title in figTitles]
+    for runIndex, trackRun in enumerate(runLabels) :
+        for skillIndex in range(len(figTitles)) :
             ax = figs[skillIndex].gca()
 
             manal.MakeErrorBars(meanSkills[:, skillIndex, runIndex],
                                 (skills_ci_upper[:, skillIndex, runIndex],
                                  skills_ci_lower[:, skillIndex, runIndex]),
-                                ax, startLoc=(runIndex + 1)/(len(shortNames) + 1.0),
+                                ax, startLoc=(runIndex + 1)/(len(runLabels) + 1.0),
                                 label=trackRun)
 
-    for aFig in figs :
+    for aFig, title in zip(figs, figTitles) :
         ax = aFig.gca()
         ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
         ax.set_xticklabels(tickLabels)
         ax.set_xlim((0.0, len(tickLabels)))
         ax.set_ylabel("Skill Score")
-        ax.legend(numpoints=1, loc='lower left', bbox_to_anchor=(0.95, 0.9))
+        ax.set_title(title)
+        # We want the upper-right corner of the legend to be
+        # in the figure's upper right corner.
+        ax.legend(numpoints=1, loc='upper right',
+                  bbox_transform=aFig.transFigure,
+                  bbox_to_anchor=(0.99, 0.99))
 
     return figs
 
@@ -76,17 +78,16 @@ def main(args) :
                                                                         n_boot, ci_alpha, path=args.directory)
 
     if not args.cacheOnly :
-        shortNames = [runname[-11:] for runname in trackRuns]
-        plotTitles = args.titles if args.titles is not None else args.skillNames
-        tickLabels = args.labels if args.labels is not None else args.multiSims
+        tickLabels = args.ticklabels if args.ticklabels is not None else args.multiSims
+        figTitles = args.titles if args.titles is not None else args.skillNames
+        runLabels = args.plotlabels if args.plotlabels is not None else trackRuns
 
-        figs = DisplayMultiSceneAnalysis(args.skillNames, shortNames, tickLabels,
+        figs = DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
                                          meanSkills, skills_ci_upper, skills_ci_lower,
                                          figsize=args.figsize)
 
 
-        for aFig, skillName, title in zip(figs, args.skillNames, plotTitles) :
-            aFig.gca().set_title(title)
+        for aFig, skillName in zip(figs, args.skillNames) :
             if args.saveImgFile is not None :
                 aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
 

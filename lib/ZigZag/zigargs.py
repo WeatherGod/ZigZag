@@ -166,8 +166,8 @@ _zigargs['MultiAnalysis'] = [
      dict(dest="titles",
           nargs="+", help="Titles for the plots.  Default is to use the skill score name",
           metavar="TITLE", default=None)),
-    (("--labels",),
-     dict(dest="labels",
+    (("--ticklabels",),
+     dict(dest="ticklabels",
           nargs="+", help="Tick labels.  Default is to use the run names.",
           metavar="LABEL", default=None)),
 
@@ -227,9 +227,14 @@ _zigargs['MultiScenarioAnalysis'] = [
      dict(dest="titles",
           nargs="+", help="Titles for the plots.  Default is to use the skill score name",
           metavar="TITLE", default=None)),
-    (("--labels",),
-     dict(dest="labels",
+    (("--ticklabels",),
+     dict(dest="ticklabels",
           nargs="+", help="Tick labels.  Default is to use the sim names",
+          metavar="LABEL", default=None)),
+
+    (("--plotlabels",),
+     dict(dest="plotlabels",
+          nargs="+", help="TrackRun Labels.  Default is to use the run names",
           metavar="LABEL", default=None)),
 
     (("--cache",), 
