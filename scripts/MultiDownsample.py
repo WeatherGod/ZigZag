@@ -7,6 +7,26 @@ import ZigZag.ParamUtils as ParamUtils
 import os.path
 from ZigZag.ListRuns import Sims_of_MultiSim
 
+from multiprocessing import Pool
+
+def _prepare_and_down(simName, skipCnt, multiSim, multiDir, newDir) :
+    dirName = os.path.join(multiDir, simName)
+    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
+    volData = ReadCorners(os.path.join(dirName, simParams['inputDataFile']),
+                          path=dirName)['volume_data'] 
+    origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
+                                                             simParams['simTrackFile'])))
+    noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
+                                                              simParams['noisyTrackFile'])))
+
+    DownsampleTracks(skipCnt, simName, simName, simParams,
+                     origTrackData, noisyTrackData, volData,
+                     path=newDir)
+
+    print "Sim:", simName
+
+
+
 def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)
 
@@ -17,16 +37,13 @@ def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
     if multiDir == newDir :
         raise ValueError("The new downsampled directory is the same as the current!")
 
+    p = Pool()
+
     for simName in simNames :
-        dirName = os.path.join(multiDir, simName)
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
-        origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['simTrackFile'])))
-        noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
+        p.apply_async(_prepare_and_down, (simName, skipCnt, multiSim, multiDir, newDir))
 
-        DownsampleTracks(skipCnt, simName, simName, simParams,
-                         origTrackData, noisyTrackData, path=newDir)
-
-        print "Sim:", simName
+    p.close()
+    p.join()
 
     multiParams['simName'] = newMulti
     ParamUtils.Save_MultiSim_Params(os.path.join(newDir, "MultiSim.ini"),

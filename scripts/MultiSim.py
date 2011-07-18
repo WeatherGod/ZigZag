@@ -5,6 +5,16 @@ from TrackSim import SingleSimulation, SaveSimulation
 from numpy import random
 import ZigZag.ParamUtils as ParamUtils
 
+from multiprocessing import Pool
+
+def _produce_sim(index, seed, simConfs, simParams, multiDir) :
+    subSim = "%.3d" % index
+    simParams['simName'] = subSim
+    simParams['seed'] = seed
+
+    theSim = SingleSimulation(simConfs, **simParams)
+    SaveSimulation(theSim, simParams, simConfs, path=multiDir)
+
 def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 
     # Seed the PRNG
@@ -22,16 +32,14 @@ def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
     # Get the seeds that will be used for each sub-simulation
     theSimSeeds = random.random_integers(9999999, size=multiParams['simCnt'])
 
+    p = Pool()
+    
     for index, seed in enumerate(theSimSeeds) :
-        subSim = "%.3d" % index
-
-        simParams = globalSimParams.copy()
-        simParams['simName'] = subSim
-        simParams['seed'] = seed
-
-        theSim = SingleSimulation(simConfs, **simParams)
-        SaveSimulation(theSim, simParams, simConfs,
-                       path=multiDir)
+        p.apply_async(_produce_sim, (index, seed, simConfs,
+                                     globalSimParams.copy(),
+                                     multiDir))
+    p.close()
+    p.join()
 
 
 def main(args) :

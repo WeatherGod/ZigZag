@@ -2,6 +2,13 @@ import numpy as np
 import TrackUtils
 import os.path
 
+# A dictionary mapping a field name to the column in a corner file
+corner_cols = {'xLocs': 0, 'yLocs': 1, 'sizes':2, 'cornerIDs':27}
+
+# A dictionary mapping a field name to the column in a track file
+track_cols = {'xLocs': 1, 'yLocs': 2, 'frameNums': 7, 'cornerIDs': 10, 'types': 0}
+falarm_cols = {'xLocs': 0, 'yLocs': 1, 'frameNums': 2, 'cornerIDs': 3, 'types': -1}
+
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
     
@@ -32,6 +39,9 @@ def ReadTracks(fileName) :
     tracks = []
     falseAlarms = []
 
+    col_converter = {name : np.dtype(dtype) for name, dtype in
+                     TrackUtils.base_track_dtype}
+
     for line in open(fileName) :
         line = line.strip()
 
@@ -53,16 +63,20 @@ def ReadTracks(fileName) :
             trackID = int(tempList[0])
             trackLen = int(tempList[1])
 
-            tracks.append(np.empty(trackLen, dtype=TrackUtils.track_dtype))
+            tracks.append(np.empty(trackLen, dtype=TrackUtils.base_track_dtype))
             continue
 
         if contourCnt > 0 and centroidCnt < trackLen :
             #print "Reading Track Element   contourCnt: %d   curTrackLen: %d    trackLen: %d" % (contourCnt, len(tracks['tracks'][-1]['types']), tracks['lens'][-1])
-            tracks[-1]['types'][centroidCnt] = tempList[0]
-            tracks[-1]['xLocs'][centroidCnt] = float(tempList[1])
-            tracks[-1]['yLocs'][centroidCnt] = float(tempList[2])
-            tracks[-1]['frameNums'][centroidCnt] = int(tempList[7])
-            tracks[-1]['cornerIDs'][centroidCnt] = int(tempList[10])
+            tracks[-1][centroidCnt] = tuple([col_converter[name].type(tempList[track_cols[name]]) for
+                                             name, typespec in TrackUtils.base_track_dtype])
+            #for name, dtype in col_converter.items() :
+            #    tracks[-1][centroidCnt][name] = dtype.type(tempList[track_cols[name])
+            #tracks[-1]['types'][centroidCnt] = tempList[0]
+            #tracks[-1]['xLocs'][centroidCnt] = float(tempList[1])
+            #tracks[-1]['yLocs'][centroidCnt] = float(tempList[2])
+            #tracks[-1]['frameNums'][centroidCnt] = int(tempList[7])
+            #tracks[-1]['cornerIDs'][centroidCnt] = int(tempList[10])
             centroidCnt += 1
             if centroidCnt == trackLen :
                 trackCounter += 1
@@ -71,8 +85,12 @@ def ReadTracks(fileName) :
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
-            falseAlarms.append(np.array([(float(tempList[0]), float(tempList[1]), int(tempList[3]), int(tempList[2]), 'F')],
-                                        dtype=TrackUtils.track_dtype))
+            tempList.append('F')
+            newArray = np.array([tuple([col_converter[name].type(tempList[falarm_cols[name]]) for
+                                       name, typespec in TrackUtils.base_track_dtype])],
+                                dtype=TrackUtils.base_track_dtype)
+            
+            falseAlarms.append(newArray)
 
     #print "\n\n\n"
 
@@ -94,11 +112,12 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     dataFile = open(inputDataFile, 'w')
     dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data), startFrame, timeDelta))
 
+    # FIXME: Make this more robust and future-proof with respect to texture data.
     for volIndex, aVol in enumerate(volume_data) :
         outFile = open("%s.%d" % (os.path.join(path, corner_filestem), startFrame + volIndex), 'w')
         for strmCell in aVol['stormCells'] :
-            outFile.write(("%(xLocs).10f %(yLocs).10f " % (strmCell)) 
-                          + ' '.join(['0'] * 25) + ' '
+            outFile.write(("%(xLocs).10f %(yLocs).10f %(sizes).2f " % (strmCell))
+                          + ' '.join(['0'] * 24) + ' '
                           + str(strmCell['cornerIDs']) + '\n')
         outFile.close()
         dataFile.write(str(len(aVol['stormCells'])) + '\n')
@@ -221,7 +240,9 @@ def ReadCorners(inputDataFile, path='.') :
     volume_data = [{'volTime': volTime,
                     'frameNum': frameNum,
                     'stormCells': _loadtxtfile("%s.%d" % (os.path.join(path, corner_filestem), frameNum),
-                                               dict(usecols=(0, 1, 27)), dict(dtype=TrackUtils.corner_dtype))}
+                                               dict(usecols=[corner_cols[colname] for colname, typecode in
+                                                    TrackUtils.corner_dtype]),
+                                               dict(dtype=TrackUtils.corner_dtype))}
                    for volTime, frameNum in zip(volTimes, frames)]
 
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}

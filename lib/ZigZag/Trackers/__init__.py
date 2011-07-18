@@ -109,7 +109,7 @@ def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') 
 
     tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
 
-    t = titan.TITAN(costThresh=speedThresh*tDelta)
+    t = titan.TITAN(distThresh=speedThresh*tDelta)
     for aVol in cornerInfo['volume_data'] :
         t.TrackStep(aVol)
 

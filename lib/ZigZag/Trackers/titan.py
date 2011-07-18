@@ -8,23 +8,56 @@ class TITAN(object) :
     An object for performing the tracking portion of the TITAN algorithm
     originally designed by Mike Dixon.
 
-    This implementation is currently incomplete.  In particular, the
-    volume of the stormcell is not included, even though one could set
-    a weight for the volume part of the cost matrix.
+    *distWeight* is the weight to apply to the distance portion of the
+                 cost function. The default is to apply equal weight
+                 to both distance and volume.
+
+    *distThresh* is the maximum distance storms are expected to travel
+                 in the frame intervals.
     """
     _fallback_cost = 999999.0
 
-    def __init__(self, distWeight=1.0, volWeight=1.0, costThresh=5.0) :
+    def __init__(self, distWeight=0.5, distThresh=5.0) :
         self.distWeight = distWeight
-        self.volWeight = volWeight
-        self.costThresh = costThresh
+        self.distThresh = distThresh
         self._highCost = None
 
         # If the cost threshold is set larger than
         # the fallback cost, then nothing works right
-        assert(costThresh < TITAN._fallback_cost)
+        assert(distThresh < TITAN._fallback_cost)
 
         self.reinit_tracker()
+
+    @property
+    def distWeight(self) :
+        """
+        The weight to apply to the cost function with respect to
+        the centroid distances (as opposed to centroid volume).
+
+        0 <= *distWeight* <= 1.0
+        """
+        return self._distWeight
+
+    @distWeight.setter
+    def distWeight(self, w) :
+        if 0.0 <= w <= 1.0 :
+            self._distWeight = w
+        else :
+            raise ValueError("Weight must be between 0.0 and 1.0")
+
+    @property
+    def volWeight(self) :
+        """
+        The Weight to apply to the cost function with respect to
+        the centroid sizes (as opposed to centroid distances).
+
+        0 <= *volWeight* <= 1.0
+        """
+        return 1.0 - self._distWeight
+
+    @volWeight.setter
+    def volWeight(self, w) :
+        self.distWeight = 1.0 - w
 
     def reinit_tracker(self) :
         """
@@ -42,8 +75,15 @@ class TITAN(object) :
         y0 = t0_strms['yLocs']
         y1 = t1_strms['yLocs']
 
-        C = np.hypot(x0[:, np.newaxis] - x1[np.newaxis, :],
-                     y0[:, np.newaxis] - y1[np.newaxis, :])
+        dp = np.hypot(x0[:, np.newaxis] - x1[np.newaxis, :],
+                      y0[:, np.newaxis] - y1[np.newaxis, :])
+        # NOTE: Mike Dixon's implementation has storm volume data, while
+        #       ZigZag only has storm area.  Therefore, we will do a sqrt
+        #       instead of a cubed-root.
+        dv = np.abs(np.sqrt(t0_strms['sizes'][:, np.newaxis]) -
+                    np.sqrt(t1_strms['sizes'][np.newaxis, :]))
+
+        C = (self.distWeight * dp) + (self.volWeight * dv)
 
         # Make sure the highcost is gonna be high enough
         # The total cost is going to be the sum of costs over
@@ -51,7 +91,8 @@ class TITAN(object) :
         # assignments, then multiplying the number of possible assignments
         # by the maximum assignment cost should guarantee a high enough cost.
         # Multiplying by 10 is just for extra measure.
-        self._highCost = (10 * (min(C.shape) * C.max())) if C.size > 0 else 999999
+        self._highCost = ((10 * (min(C.shape) * C.max()))
+                          if C.size > 0 else TITAN._fallback_cost)
 
         # Just double-checking that _highCost will pass the reject_assoc() later.
         if not self._reject_assoc(self._highCost) :
@@ -60,19 +101,30 @@ class TITAN(object) :
             #   go back to the fall-back of 999999.
             self._highCost = TITAN._fallback_cost
 
-        return np.where(self._reject_assoc(C), self._highCost, C)
+        # For any possible association where the points are too far
+        # apart, then return a very large value.  Otherwise, return
+        # the calculated cost for that association.
+        return np.where(self._reject_assoc(dp), self._highCost, C)
 
-    def _reject_assoc(self, cost_val) :
+    def _reject_assoc(self, dist_val) :
         """ Reject this association because they were too far apart """
-        return cost_val >= self.costThresh
+        return dist_val >= self.distThresh
 
     def _process_assocs(self, assocs, cost, prevStrmCnt, currStrmCnt) :
         strms_end = {}
         strms_start = {}
         strms_keep = {}
 
+        # IMPORTANT: I am creating a mask rather than doing the comparison within
+        # the loop because of numpy-casting issues.  Because *cost* could have
+        # a dtype of "float" and self._highCost is a numpy float, the type casting
+        # is different if I do element-wise comparison versus direct element-based
+        # comparisons
+        mask = (cost == self._highCost)
+
         for t0_index, t1_index in assocs :
-            if self._reject_assoc(cost[t0_index, t1_index]) :
+            if mask[t0_index, t1_index] :
+            #if cost[t0_index, t1_index] == self._highCost :
                 # Because of the rejection, split this
                 # association into the termination of
                 # one track and the start of a new track
@@ -80,6 +132,8 @@ class TITAN(object) :
                 # TrackID will be assigned when the track is created
                 strms_start[t1_index] = None
             else :
+                if cost[t0_index, t1_index] > self._highCost :
+                    print "SHOULD HAVE BEEN REJECTED!", cost[t0_index, t1_index] - self._highCost
                 strms_keep[t1_index] = self.prevStorms[t0_index]
 
         # Determine which other current storms were not associated
@@ -203,7 +257,7 @@ if __name__ == '__main__' :
     frameLims = (0, len(cornerVol))
     print frameLims[1]
 
-    t = TITAN(costThresh=5)
+    t = TITAN(distThresh=5)
 
     for aVol in cornerVol :
         t.TrackStep(aVol)

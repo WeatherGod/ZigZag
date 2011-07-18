@@ -6,19 +6,29 @@ import ZigZag.ParamUtils as ParamUtils     # for reading simParams files
 
 from ZigZag.ListRuns import Sims_of_MultiSim
 
+from multiprocessing import Pool
+
+def _prepare_and_track(simName, trackConfs, multiDir) :
+    print "Sim:", simName
+    paramFile = os.path.join(multiDir, simName, "simParams.conf")
+    simParams = ParamUtils.ReadSimulationParams(paramFile)
+
+    SingleTracking(paramFile, simName, simParams, trackConfs, path=multiDir)
+
 def MultiTrack(multiSim, trackConfs, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)
     multiDir = os.path.join(path, multiSim)
 
-    for simName in simNames :
-        print "Sim:", simName
-        paramFile = os.path.join(multiDir, simName, "simParams.conf")
-        simParams = ParamUtils.ReadSimulationParams(paramFile)
+    p = Pool()
 
+    for simName in simNames :
         # A copy of trackConfs is used here because the tracker calls could
         # modify the contents of trackConfs, and we don't want those changes
         # to propagate to subsequent calls to SingleTracking()
-        SingleTracking(paramFile, simName, simParams, trackConfs.copy(), path=multiDir)
+        p.apply_async(_prepare_and_track, (simName, trackConfs.copy(), multiDir))
+
+    p.close()
+    p.join()
 
 
 def main(args) :
