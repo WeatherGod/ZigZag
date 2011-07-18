@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from DownsampleSim import DownsampleTracks
+from ZigZag.DownsampleUtils import DownsampleTracks
 from ZigZag.TrackFileUtils import *
 from ZigZag.TrackUtils import *
 import ZigZag.ParamUtils as ParamUtils
