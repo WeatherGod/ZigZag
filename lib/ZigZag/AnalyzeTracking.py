@@ -1,6 +1,8 @@
 import os.path
 from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments
 from ZigZag.TrackFileUtils import ReadTracks
+import ZigZag.Trackers as Trackers
+import ZigZag.ParamUtils as ParamUtils
 import numpy as np
 import ZigZag.Analyzers as Analyzers
 from la import larry        # Labeled arrays
@@ -92,4 +94,44 @@ def AnalyzeTrackings(simName, simParams, skillNames,
                                                                 true_tracks=true_tracks, true_falarms=true_falarms,
                                                                 track_indices=trackIndices, falarm_indices=falarmIndices)
     return larry(analysis, labels)
+
+
+def SingleTracking(simFile, simName, simParams, trackConfs, path='.') :
+    #simParams['trackers'] = trackConfs.keys()
+    simDir = os.path.join(path, simName, '')
+
+    storedConfFile = os.path.join(simDir, simParams['trackerparams'])
+    if not os.path.exists(storedConfFile) :
+        # Initialize an empty config file
+        ParamUtils.SaveConfigFile(storedConfFile, {})
+
+    # Now load that one file
+    storedTrackConfs = ParamUtils.LoadTrackerParams([storedConfFile])
+
+    for trackRun in trackConfs :
+        tracker = trackConfs[trackRun]['algorithm']
+        # This is where the tracking is performed!
+        # Trackers.trackerList is a dictionary of Tracker objects
+        Trackers.trackerList[tracker](trackRun, simParams.copy(),
+                                      trackConfs[trackRun].copy(),
+                                      returnResults=False, path=simDir)
+
+        # We want this simulation to know which trackers they used,
+        # so we will update the file after each successful tracking operation.
+        # Note that we still want an ordered, unique list, henced the use of
+        # set() and .sort()
+        simParams['trackers'].append(trackRun)
+        tempHold = list(set(simParams['trackers']))
+        tempHold.sort()
+        simParams['trackers'] = tempHold
+
+        # TODO: We could use some sort of 'with' clause here to restore
+        #       the original file if something goes wrong here.
+        ParamUtils.SaveSimulationParams(simFile, simParams)
+
+        # Add these tracker configurations to the sim's global
+        # tracker configuration file for record-keeping
+        storedTrackConfs[trackRun] = trackConfs[trackRun].copy()
+        ParamUtils.SaveConfigFile(storedConfFile, storedTrackConfs)
+
 
