@@ -1,6 +1,6 @@
 import os.path
 from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments
-from ZigZag.TrackFileUtils import ReadTracks
+from ZigZag.TrackFileUtils import ReadTracks, ReadTruthTable
 import ZigZag.Trackers as Trackers
 import ZigZag.ParamUtils as ParamUtils
 import numpy as np

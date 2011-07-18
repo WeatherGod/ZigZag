@@ -140,6 +140,19 @@ def FilterTrack(track, frames) :
                     dtype=bool)
     return track[mask]
 
+def ReplaceFrameInfo(tracks, replaceFrames) :
+    """
+    Replace the value of frameNums in the track with a new frame number
+    according to the mapping provided by the *replaceFrames* dictionary.
+
+    *tracks*        List of tracks
+    *replaceFrames* Dictionary keyed by the original framenumbers with
+                    replacement frame numbers set as the paired value.
+    """
+    for aTrack in tracks :
+        aTrack['frameNums'][:] = [replaceFrames[frame] for frame in
+                                  aTrack['frameNums']]
+
 def CleanupTracks(tracks, falarms) :
     """
     Moves tracks that were shortened to single length to the
@@ -435,6 +448,32 @@ def DomainFromVolumes(volumes) :
             (min(allTimes), max(allTimes)),
             (min(allFrames), max(allFrames)))
 
+def ForecastTracks(tracks) :
+    """
+    Experimental function that would allow a quick-n-dirty forecast
+    of feature position based upon supplied track data.
+
+    *tracks*        List of tracks
+    """
+    fcast_tracks = [None] * len(tracks)
+
+    for index, aTrack in enumerate(tracks) :
+        fcast = np.empty_like(aTrack)
+        # Persistance model
+        fcast[0:2] = aTrack[0]
+
+        if len(aTrack) < 3 :
+            fcast_tracks[index] = fcast
+            continue
+
+        dx = np.diff(zip(aTrack['xLocs'], aTrack['yLocs']), axis=0)
+        df = np.diff(aTrack['frameNums'], axis=0)
+
+        fcast['xLocs'][2:] = aTrack['xLocs'][1:-1] + (dx[:-1, 0] * df[:-1])
+        fcast['yLocs'][2:] = aTrack['yLocs'][1:-1] + (dx[:-1, 1] * df[:-1])
+        fcast_tracks[index] = fcast
+
+    return fcast_tracks
 
 def is_eq(seg1, seg2) :
     """

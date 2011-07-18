@@ -55,7 +55,7 @@ def DownsampleCorners(skipCnt, simName, newName, simParams, volData, path='.') :
 
 def DownsampleTracks(skipCnt, simName, newName, simParams,
                      origTracks, tracks, volData,
-                     path='.') :
+                     path='.', retain_framenums=False) :
 
     # Create the simulation directory.
     newPath = os.path.join(path, newName, '')
@@ -76,13 +76,36 @@ def DownsampleTracks(skipCnt, simName, newName, simParams,
     #                                       simParams['tLims'][0], simParams['tLims'][1])
 
     # Trying another approach...
-    newVols, newFrames, newTimes = _downsample(volData, simParams['tLims'], skipCnt)
+    newVols, newFrames, newTimes = _downsample(volData, simParams['tLims'],
+                                               skipCnt)
     tLims = (newTimes.min(), newTimes.max())
+    replaceFrames = {frame:(index + 1) for
+                      index, frame in enumerate(newFrames)}
 
-    newTracks = [FilterTrack(aTrack, newFrames) for aTrack in tracks[0]]
-    newFAlarms = [FilterTrack(aTrack, newFrames) for aTrack in tracks[1]]
+
+    newTracks = [FilterTrack(aTrack, newFrames) for
+                 aTrack in tracks[0]]
+    newFAlarms = [FilterTrack(aTrack, newFrames) for
+                  aTrack in tracks[1]]
+    origTracks_down = [FilterTrack(aTrack, newFrames) for
+                       aTrack in origTracks[0]]
+    origFAlarms_down = [FilterTrack(aTrack, newFrames) for
+                        aTrack in origTracks[1]]
+
+
+
+    if not retain_framenums :
+        ReplaceFrameInfo(newTracks, replaceFrames)
+        ReplaceFrameInfo(newFAlarms, replaceFrames)
+        ReplaceFrameInfo(origTracks_down, replaceFrames)
+        ReplaceFrameInfo(origFAlarms_down, replaceFrames)
 
     CleanupTracks(newTracks, newFAlarms)
+    # NOTE: I am wary of cleaning up original tracks, but
+    #       I don't know how well the file utilities will
+    #       handle empty tracks
+    CleanupTracks(origTracks_down, origFAlarms_down)
+
     # Maybe set if a new bbox is requested?
     #xLims, yLims, tLims = DomainFromTracks(newTracks, newFAlarms)
 
@@ -98,10 +121,13 @@ def DownsampleTracks(skipCnt, simName, newName, simParams,
     simParams['simName'] = newName
     simParams['trackers'] = []
 
+
     dirName = os.path.join(path, simParams['simName'])
     ParamUtils.SaveSimulationParams(os.path.join(dirName, "simParams.conf"), simParams)
-    SaveTracks(os.path.join(dirName, simParams['simTrackFile']), *origTracks)
-    SaveTracks(os.path.join(dirName, simParams['noisyTrackFile']), newTracks, newFAlarms)
+    SaveTracks(os.path.join(dirName, simParams['simTrackFile']), origTracks_down,
+                                                                 origFAlarms_down)
+    SaveTracks(os.path.join(dirName, simParams['noisyTrackFile']), newTracks,
+                                                                   newFAlarms)
     SaveCorners(os.path.join(dirName, simParams['inputDataFile']),
                 simParams['corner_file'], newVols, path=dirName)
 

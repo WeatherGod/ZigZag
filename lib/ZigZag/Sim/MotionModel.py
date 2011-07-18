@@ -32,17 +32,20 @@ class ConstVel_Model(MotionModel) :
         velModify : float
             The variance (+/-) of the uniform noise to apply to the x/y speed
             of the track point for each iteration of the track.
+            This should be in the same units as an acceleration term.
+            The name *velModify* is kept for backwards compatibility.
         """
         MotionModel.__init__(self)
 #        print type(deltaFrame), type(velModify)
         self.deltaFrame = deltaFrame
-        self.velModify = velModify
+        self.accelTerm = velModify
 
     def __call__(self, deltaT, xSpeed, ySpeed) :
         dx = self.deltaFrame * deltaT * xSpeed
         dy = self.deltaFrame * deltaT * ySpeed
-        dVelx = np.random.uniform(-self.velModify, self.velModify)
-        dVely = np.random.uniform(-self.velModify, self.velModify)
+        velModify = self.accelTerm * deltaT
+        dVelx = np.random.uniform(-velModify, velModify)
+        dVely = np.random.uniform(-velModify, velModify)
         return self.deltaFrame, dx, dy, dVelx, dVely
 
 _motion_register(ConstVel_Model, 'ConstVel_Model', dict(deltaFrame="integer",

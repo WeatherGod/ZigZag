@@ -1,4 +1,4 @@
-import os
+import os       # for os.path.isfile(), os.access(), os.R_OK
 import argparse
 from configobj import ConfigObj, flatten_errors
 from Sim import gen_modelList, noise_modelList, motion_modelList, init_modelList
@@ -51,6 +51,9 @@ def ArgValidator(config) :
             config[keyName] = map(float, config[keyName])
 
 def Read_MultiSim_Params(filename) :
+    if not (os.path.isfile(filename) and os.access(filename, os.R_OK)) :
+        raise Exception("Can not find or read config file: %s" % filename)
+
     config = ConfigObj(filename, interpolation=False)
 
     vdtor = Validator()
@@ -66,6 +69,8 @@ def Read_MultiSim_Params(filename) :
     return config
 
 def ReadSimulationParams(simParamName) :
+    if not (os.path.isfile(simParamName) and os.access(simParamName, os.R_OK)):
+        raise Exception("Can not find or read config file: %s" % simParamName)
     config = ConfigObj(simParamName, interpolation=False)
 
     vdtor = Validator()
@@ -128,6 +133,8 @@ def _ShowErrors(flatErrs, skipMissing=False) :
 def LoadTrackerParams(filenames, trackers=None) :
     trackConfs = ConfigObj(interpolation=False)
     for name in filenames :
+        if not (os.path.isfile(name) and os.access(name, os.R_OK)) :
+            raise Exception("Can not find or read config file: %s" % name)
         partConf = ConfigObj(name, interpolation=False)
         trackConfs.merge(partConf)
 
@@ -153,6 +160,8 @@ def LoadTrackerParams(filenames, trackers=None) :
 def LoadSimulatorConf(filenames) :
     simConfs = ConfigObj()
     for name in filenames :
+        if not (os.path.isfile(name) and os.access(name, os.R_OK)) :
+            raise Exception("Can not find or read config file: %s" % name)
         partConf = ConfigObj(name)
         simConfs.merge(partConf)
 
