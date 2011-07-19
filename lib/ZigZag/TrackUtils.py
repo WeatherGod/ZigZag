@@ -20,7 +20,10 @@ cornerID_dtype = [('cornerIDs', 'i4')]
 # "frameNums" is the 'time' of the detected feature in units
 # of the frame index. "type" indicates what status the feature
 # was given by the tracker (or simulator).
-tracking_dtype = [('frameNums', 'i4'), ('types', 'a1')]
+# 'st_xLocs' and 'st_yLocs' are for the state-estimated
+# x and y locations (estimated by the tracker).
+tracking_dtype = [('st_xLocs', 'f4'), ('st_yLocs', 'f4'),
+                  ('frameNums', 'i4'), ('types', 'a1')]
 
 # A (hopefully) unique track identifier for each determined track
 # Note that -1 indicates that the feature is not a track.
