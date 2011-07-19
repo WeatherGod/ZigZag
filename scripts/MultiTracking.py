@@ -9,11 +9,15 @@ from ZigZag.ListRuns import Sims_of_MultiSim
 from multiprocessing import Pool
 
 def _prepare_and_track(simName, trackConfs, multiDir) :
-    print "Sim:", simName
-    paramFile = os.path.join(multiDir, simName, "simParams.conf")
-    simParams = ParamUtils.ReadSimulationParams(paramFile)
+    try :
+        print "Sim:", simName
+        paramFile = os.path.join(multiDir, simName, "simParams.conf")
+        simParams = ParamUtils.ReadSimulationParams(paramFile)
 
-    SingleTracking(paramFile, simName, simParams, trackConfs, path=multiDir)
+        SingleTracking(paramFile, simName, simParams, trackConfs, path=multiDir)
+    except Exception as err :
+        print err
+        raise err
 
 def MultiTrack(multiSim, trackConfs, path='.') :
     simNames = Sims_of_MultiSim(multiSim, path)

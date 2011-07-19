@@ -11,14 +11,18 @@ from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
 from multiprocessing import Pool
 
 def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
-    dirName = os.path.join(multiDir, simName)
-    print "Sim:", simName
-    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
-                                                             "simParams.conf"))
+    try :
+        dirName = os.path.join(multiDir, simName)
+        print "Sim:", simName
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
+                                                                 "simParams.conf"))
 
-    analysis = AnalyzeTrackings(simName, simParams, skillNames,
-                                trackRuns=trackRuns, path=multiDir)
-    analysis = analysis.insertaxis(axis=1, label=simName)
+        analysis = AnalyzeTrackings(simName, simParams, skillNames,
+                                    trackRuns=trackRuns, path=multiDir)
+        analysis = analysis.insertaxis(axis=1, label=simName)
+    except Exception as err :
+        print err
+        raise err
     return analysis
    
 
