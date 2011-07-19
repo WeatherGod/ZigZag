@@ -19,8 +19,10 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
     # so we need to add some track-relevant fields
     # to the data without modifying the input data.
     currStrms = nprf.append_fields(volume_Data['stormCells'],
-                                   ('frameNums', 'types', 'trackID'),
-                                   ([volume_Data['frameNum']] * strmCnt,
+                                   ('st_xLocs', 'st_yLocs', 
+                                    'frameNums', 'types', 'trackID'),
+                                   ([np.nan] * strmCnt, [np.nan] * strmCnt,
+                                    [volume_Data['frameNum']] * strmCnt,
                                     ['U'] * strmCnt,
                                     [-1] * strmCnt),
                                    dtypes=[dtype[1] for dtype in
@@ -150,19 +152,29 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
 
     for newCell, bestMatch in contTracks :
         trackID = bestMatch['prevIndx']
-        # Assigning the current storm its track ID number
-        newCell['trackID'] = trackID
 
         track = strmTracks[trackID]
         infoTrack = infoTracks[trackID]
 
         infoTrack['distErrs'].append(math.sqrt(bestMatch['dist']))
-        infoTrack['dists'].append(math.sqrt(CalcDistSqrd(newCell, track[-1])))
+        infoTrack['dists'].append(math.sqrt(CalcDistSqrd(newCell, track[-1]))
+)
+        # Assigning the current storm its track ID number, and
+        # the state-estimated position
+        newCell['trackID'] = trackID
+        newCell['st_xLocs'] = infoTrack['fcasts'][-1]['xLocs']
+        newCell['st_yLocs'] = infoTrack['fcasts'][-1]['yLocs']
+
         # Adding a new point to the established storm track
         strmTracks[trackID] = np.hstack((track, newCell))
 
     for aTrack in newTracks :
+        # Assigning this track the next trackID number and
+        # state-estimated position
         aTrack['trackID'] = len(strmTracks)
+        aTrack['st_xLocs'] = aTrack['xLocs']
+        aTrack['st_yLocs'] = aTrack['yLocs']
+        # The forecast will be set later on.
         infoTracks.append({'distErrs': [0.0],
                            'dists': [0.0],
                            'fcasts': [],
@@ -180,17 +192,26 @@ def BestLocs(stateHist, strmTracks, infoTracks, volTime) :
     """
     Forecast where the active tracks will go.
     """
-    # Need to do a forecast if the history is empty
+    # No need to do a forecast if the history is empty
     if len(stateHist) > 0 :
-        deltaTime = volTime - stateHist[-1]['frameNum']
+        deltaFrame = volTime - stateHist[-1]['frameNum']
 
-        trackIDs = set([stormCell['trackID'] for stormCell in stateHist[-1]['stormCells'] if stormCell['trackID'] >= 0])
+        # Look over all the storm cells in the previous frame.
+        # Any storm cell that is part of an active track has a
+        # positive trackID value.
+        # Obtain unique set of active track IDs.
+        trackIDs = set([stormCell['trackID'] for stormCell in
+                        stateHist[-1]['stormCells'] if
+                        stormCell['trackID'] >= 0])
         for index in trackIDs :
             #print "BestLocs:", stormCell
-            theTrack = infoTracks[index]
+            info = infoTracks[index]
+            strm = strmTracks[index]
             #stormCell['corFlag'] = False
-            theTrack['fcasts'].append({'xLocs': strmTracks[index]['xLocs'][-1] + (theTrack['speed_x'][-1] * deltaTime),
-                                       'yLocs': strmTracks[index]['yLocs'][-1] + (theTrack['speed_y'][-1] * deltaTime)})
+            info['fcasts'].append({'xLocs': strm['xLocs'][-1] +
+                                           (info['speed_x'][-1] * deltaFrame),
+                                   'yLocs': strm['yLocs'][-1] +
+                                           (info['speed_y'][-1] * deltaFrame)})
 
 
 
@@ -207,7 +228,8 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
     # Gonna first calculate the track speed for all established tracks
     # in order to determine an overall average speed to use for initializing
     # the speed for un-established tracks.
-    trackIDs = set([stormCell['trackID'] for stormCell in currStorms if stormCell['trackID'] >= 0])
+    trackIDs = set([stormCell['trackID'] for stormCell in currStorms if
+                    stormCell['trackID'] >= 0])
     for index in trackIDs :
         #print "CurrStorm..."
 
@@ -218,7 +240,7 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
         if len(aTrack[-10:]) > 1 :
             xAvg = np.mean(aTrack['xLocs'][-10:])
             yAvg = np.mean(aTrack['yLocs'][-10:])
-            tAvg = np.mean(aTrack['frameNums'][-10:])
+            tAvg = np.mean(aTrack['frameNums'][-10:].astype(float))
 
             #xtVar = sum([(xLoc - xAvg) * (trackTime - tAvg)
             #	         for (xLoc, trackTime) in zip(aTrack['xLocs'], aTrack['frameNums'])])

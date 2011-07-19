@@ -1,4 +1,4 @@
-from numpy import random
+from numpy import random, nan
 
 #############################
 #   Track Making
@@ -88,4 +88,6 @@ class TrackPoint(object) :
 
         self._framesRemain -= 1
         self._isFirstCall = False
-        return self.xLoc, self.yLoc, self.strm_size, self.cornerID, self.frameNum, 'M'
+        # TODO: Maybe there is some way to get the noise-less version?
+        return (self.xLoc, self.yLoc, self.strm_size, self.cornerID,
+                nan, nan, self.frameNum, 'M')

@@ -161,8 +161,11 @@ class TITAN(object) :
             # to the data without modifying the input data.
             strmCnt = len(currStrms)
             currStrms = nprf.append_fields(currStrms,
-                                           ('frameNums', 'types', 'trackID'),
-                                           ([currFrame] * strmCnt,
+                                           ('st_xLocs', 'st_yLocs',
+                                            'frameNums', 'types', 'trackID'),
+                                           ([np.nan] * strmCnt,
+                                            [np.nan] * strmCnt,
+                                            [currFrame] * strmCnt,
                                             ['U'] * strmCnt,
                                             [-1] * strmCnt),
                                            dtypes=[dtype[1] for dtype in
@@ -172,18 +175,35 @@ class TITAN(object) :
 
 
         for strmID, trackID in strms_keep.iteritems() :
-            # A poor-man's append for numpy arrays...
-            #currStrms[strmID]['types'] = 'M'
             currStrms[strmID]['trackID'] = trackID
+            # The "state-estimated" position for this track will be the
+            # position that would result in a zero-cost for the position
+            # portion of the cost function (i.e., the last position in
+            # the track).
+            currStrms[strmID]['st_xLocs'] = self.tracks[trackID]['xLocs'][-1]
+            currStrms[strmID]['st_yLocs'] = self.tracks[trackID]['yLocs'][-1]
             # Update the last storm cell listed in the track as matched
             self.tracks[trackID]['types'][-1] = 'M'
-            self.tracks[trackID] = np.hstack((self.tracks[trackID], currStrms[strmID]))
+            # A poor-man's append for numpy arrays...
+            self.tracks[trackID] = np.hstack((self.tracks[trackID],
+                                              currStrms[strmID]))
 
         for strmID in strms_start.keys() :
+            # Get the next available track ID number
             trackID = len(self.tracks)
+
+            # Provide a trackID for the strms_start dictionary
+            # and the stormcell itself.
             strms_start[strmID] = trackID
-            #currStrms[strmID]['types'] = 'M'
             currStrms[strmID]['trackID'] = trackID
+
+            # Because it is a new track, there is no forecasted
+            # position.  Therefore, the state-estimated location
+            # will be the same as the reported location.
+            currStrms[strmID]['st_xLocs'] = currStrms[strmID]['xLocs']
+            currStrms[strmID]['st_yLocs'] = currStrms[strmID]['yLocs']
+
+            # Add this new track to the list.
             self.tracks.append(np.array([currStrms[strmID]], dtype=volume_dtype))
 
         # Mark any length-1 tracks for strms_end as False Alarms

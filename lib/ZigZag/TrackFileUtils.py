@@ -6,8 +6,12 @@ import os.path
 corner_cols = {'xLocs': 0, 'yLocs': 1, 'sizes':2, 'cornerIDs':27}
 
 # A dictionary mapping a field name to the column in a track file
-track_cols = {'xLocs': 1, 'yLocs': 2, 'frameNums': 7, 'cornerIDs': 10, 'types': 0}
-falarm_cols = {'xLocs': 0, 'yLocs': 1, 'frameNums': 2, 'cornerIDs': 3, 'types': -1}
+track_cols = {'xLocs': 1, 'yLocs': 2, 'st_xLocs': 3, 'st_yLocs': 4, 
+              'frameNums': 7, 'cornerIDs': 10, 'types': 0}
+falarm_cols = {'xLocs': 0, 'yLocs': 1, 'frameNums': 2, 'cornerIDs': 3,
+               # These three are not available through the file and are
+               # appended on with default values.
+               'st_xLocs': -2, 'st_yLocs': -2, 'types': -1}
 
 def SaveTracks(simTrackFile, tracks, falarms = []) :
     dataFile = open(simTrackFile, 'w')
@@ -18,7 +22,7 @@ def SaveTracks(simTrackFile, tracks, falarms = []) :
     for (index, track) in enumerate(tracks) :
         dataFile.write("%d %d\n" % (index, len(track)))
         for centroid in track :
-            dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f 0.0 0.0 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
+            dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f %(st_xLocs).10f %(st_yLocs).10f 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
                             centroid)
 
     for false_alarm in falarms :
@@ -85,7 +89,8 @@ def ReadTracks(fileName) :
 
         if len(falseAlarms) < falseAlarmCnt :
             #print "Reading FAlarm"
-            tempList.append('F')
+            # Adding on some default values for the last few pieces of data
+            tempList.extend(['nan', 'F'])
             newArray = np.array([tuple([col_converter[name].type(tempList[falarm_cols[name]]) for
                                        name, typespec in TrackUtils.base_track_dtype])],
                                 dtype=TrackUtils.base_track_dtype)
