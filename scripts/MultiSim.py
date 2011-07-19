@@ -8,12 +8,16 @@ import ZigZag.ParamUtils as ParamUtils
 from multiprocessing import Pool
 
 def _produce_sim(index, seed, simConfs, simParams, multiDir) :
-    subSim = "%.3d" % index
-    simParams['simName'] = subSim
-    simParams['seed'] = seed
+    try :
+        subSim = "%.3d" % index
+        simParams['simName'] = subSim
+        simParams['seed'] = seed
 
-    theSim = SingleSimulation(simConfs, **simParams)
-    SaveSimulation(theSim, simParams, simConfs, path=multiDir)
+        theSim = SingleSimulation(simConfs, **simParams)
+        SaveSimulation(theSim, simParams, simConfs, path=multiDir)
+    except Exception as err :
+        print err
+        raise err
 
 def MultiSimulation(multiParams, simConfs, globalSimParams, path='.') :
 

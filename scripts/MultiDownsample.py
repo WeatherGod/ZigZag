@@ -10,21 +10,24 @@ from ZigZag.ListRuns import Sims_of_MultiSim
 from multiprocessing import Pool
 
 def _prepare_and_down(simName, skipCnt, multiSim, multiDir, newDir) :
-    dirName = os.path.join(multiDir, simName)
-    simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
-    volData = ReadCorners(os.path.join(dirName, simParams['inputDataFile']),
-                          path=dirName)['volume_data'] 
-    origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
-                                                             simParams['simTrackFile'])))
-    noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
-                                                              simParams['noisyTrackFile'])))
+    try :
+        dirName = os.path.join(multiDir, simName)
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, 'simParams.conf'))
+        volData = ReadCorners(os.path.join(dirName, simParams['inputDataFile']),
+                              path=dirName)['volume_data'] 
+        origTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
+                                                                 simParams['simTrackFile'])))
+        noisyTrackData = FilterMHTTracks(*ReadTracks(os.path.join(dirName,
+                                                                  simParams['noisyTrackFile'])))
 
-    DownsampleTracks(skipCnt, simName, simName, simParams,
-                     origTrackData, noisyTrackData, volData,
-                     path=newDir)
+        DownsampleTracks(skipCnt, simName, simName, simParams,
+                         origTrackData, noisyTrackData, volData,
+                         path=newDir)
 
-    print "Sim:", simName
-
+        print "Sim:", simName
+    except Exception as err :
+        print err
+        raise err
 
 
 def Multi_DownsampleTracks(multiParams, skipCnt, multiSim, newMulti, path='.') :
