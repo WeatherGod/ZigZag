@@ -1,78 +1,15 @@
 #!/usr/bin/env python
 
-from ZigZag.AnalyzeTracking import *
+from MultiScenarioAnalysis import MultiAnalyze, DisplayAnalysis, \
+                                  Bootstrapping
+from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
-import la
 import os.path
 import numpy as np
-import ZigZag.bootstrap as btstrp
-from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
-
 from multiprocessing import Pool
 
-def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
-    try :
-        dirName = os.path.join(multiDir, simName)
-        print "Sim:", simName
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
-                                                                 "simParams.conf"))
-
-        analysis = AnalyzeTrackings(simName, simParams, skillNames,
-                                    trackRuns=trackRuns, path=multiDir)
-        analysis = analysis.insertaxis(axis=1, label=simName)
-    except Exception as err :
-        print err
-        raise err
-    return analysis
-   
-
-def MultiAnalyze(simNames, multiSim, skillNames,
-                 trackRuns, path='.') :
-    completeAnalysis = None
-    multiDir = os.path.join(path, multiSim)
-
-    p = Pool()
-           
-    # Now, go through each simulation and analyze them.
-    results = [p.apply_async(_analyze_trackings, (simName, multiSim, skillNames,
-                                                  trackRuns, multiDir)) for
-               simName in simNames]
-
-    p.close()
-    p.join()
-
-    # FIXME: With the update larrys, this can probably be improved.
-    for res in results :
-        if completeAnalysis is None :
-            completeAnalysis = res.get()
-        else :
-            completeAnalysis = completeAnalysis.merge(res.get())
-
-    return completeAnalysis
-
-def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
-    booting = btstrp.bootstrap(n_boot, np.mean, analysisInfo, axis=0)
-    btmean = booting.mean(axis=0)
-    btci = btstrp.bootci(n_boot, np.mean, analysisInfo, alpha=ci_alpha, axis=0)
-
-    return btmean, btci
-
-
-
-def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5) :
-    """
-    bootCIs[1] is the lower end of the confidence interval
-    while bootCIs[0] is the upper end of the confidence interval.
-    """
-    xlocs = np.arange(len(bootMeans)) + startLoc
-    ax.errorbar(xlocs,
-          bootMeans, yerr=(bootMeans - bootCIs[1],
-                           bootCIs[0] - bootMeans),
-                  fmt='.', elinewidth=3.0, capsize=5, markersize=14, mew=3.0, label=label)
-
- 
 def main(args) :
-    from ZigZag.ListRuns import ExpandTrackRuns
+    from ZigZag.ListRuns import ExpandTrackRuns, Sims_of_MultiSim, CommonTrackRuns
 
     n_boot = 100
     ci_alpha = 0.05
@@ -82,20 +19,14 @@ def main(args) :
     else :
         import matplotlib.pyplot as plt
 
+
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
     fullNames = [os.path.join(args.multiSim, aSim) for aSim in simNames]
     commonTrackRuns = CommonTrackRuns(fullNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
 
-    # Double-check that the generated trackRuns were all available
-    # NOTE: The following if-statement should now be obsolete with
-    #       the use of ExpandTrackRuns().
-    #if not set(commonTrackRuns).issuperset(trackRuns) :
-    #    missingRuns = set(trackRuns).difference(commonTrackRuns)
-    #    raise ValueError("Not all of the given trackruns were available: %s" % list(missingRuns))
-
-    shortNames = args.ticklabels if args.ticklabels is not None else [runname[-11:] for runname in trackRuns]
-    #xlab = 'SCIT: Speed Threshold'
+    shortNames = args.ticklabels if args.ticklabels is not None else \
+                        [runname[-11:] for runname in trackRuns]
     plotTitles = args.titles if args.titles is not None else args.skillNames
 
     completeAnalysis = MultiAnalyze(simNames, args.multiSim, args.skillNames,
@@ -130,9 +61,6 @@ def main(args) :
 if __name__ == "__main__" :
     import argparse     # Command-line parsing
     from ZigZag.zigargs import AddCommandParser
-
-
-
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple storm-track simulations')
     AddCommandParser('MultiAnalysis', parser)
