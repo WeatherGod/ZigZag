@@ -18,13 +18,15 @@ def DisplaySkillScores(skillScores, skillScoreName) :
     before calling this function, you will need to reset it.
     """
 
-    np.set_string_function(lambda x: '\n'.join(['  '.join(["% 11.8f" % val for val in row])
-                                                                              for row in x]),
-                              repr=True)
+    np.set_string_function(
+            lambda x: '\n'.join(['  '.join(["% 11.8f" % val for val in row])
+                                                            for row in x]),
+            repr=True)
 
     # Print the last eleven characters of each trackrun name for
     # the column labels.
-    print '  '.join(["%11.11s" % tracker[-11:] for tracker in skillScores.label[-1]])
+    print '  '.join(["%11.11s" % tracker[-11:] for
+                     tracker in skillScores.label[-1]])
 
     print repr(skillScores.x)
 
@@ -54,24 +56,29 @@ def DisplayAnalysis(analysis, skillName,
         # Sort score differences for each tracker 
         indices = np.argsort(scoreDiffs, axis=0)
 
-        print "\n Against: ", '  '.join(["%7s" % tracker for tracker in theOthers.label[1]])
+        print "\n Against: ", '  '.join(["%7s" % tracker for
+                                         tracker in theOthers.label[1]])
         if doFindBest :
-            print "Best Run: ", '  '.join(["%7d" % index for index in indices[-1]])
+            print "Best Run: ", '  '.join(["%7d" % index for
+                                           index in indices[-1]])
 
         if doFindWorst :
-            print "Worst Run:", '  '.join(["%7d" % index for index in indices[0]])
+            print "Worst Run:", '  '.join(["%7d" % index for
+                                           index in indices[0]])
 
 
 
-def AnalyzeTrackings(simName, simParams, skillNames,
-                     trackRuns, path='.') :
+def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
     dirName = os.path.join(path, simName)
-    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(os.path.join(dirName, simParams['noisyTrackFile'])))
-    true_AssocSegs, trackIndices = CreateSegments(true_tracks, retindices=True)
-    true_FAlarmSegs, falarmIndices = CreateSegments(true_falarms, retindices=True)
+    trackFile = os.path.join(dirName, simParams['noisyTrackFile'])
+    (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(trackFile))
+    true_AssocSegs, trackIndices = CreateSegments(true_tracks,
+                                                  retindices=True)
+    true_FAlarmSegs, falarmIndices = CreateSegments(true_falarms,
+                                                    retindices=True)
 
-    # Initializing the analysis data, which will hold a table of analysis results for
-    # this simulation
+    # Initializing the analysis data, which will hold a table of analysis
+    # results for this simulation
     analysis = np.empty((len(skillNames),
                          len(trackRuns)))
     labels = [skillNames, trackRuns]
@@ -79,7 +86,8 @@ def AnalyzeTrackings(simName, simParams, skillNames,
     for trackerIndex, tracker in enumerate(trackRuns) :
         (truthTable,
          finalTracks, finalFAlarms) = ReadTruthTable(tracker, simParams,
-                                                     true_AssocSegs, true_FAlarmSegs,
+                                                     true_AssocSegs,
+                                                     true_FAlarmSegs,
                                                      path=dirName)
 
         print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
@@ -88,11 +96,14 @@ def AnalyzeTrackings(simName, simParams, skillNames,
                                    len(truthTable['falarms_Correct']))
 
         for skillIndex, skill in enumerate(skillNames) :
-            analysis[skillIndex, trackerIndex] = Analyzers.skillcalcs[skill](
-                                                                tracks=finalTracks, falarms=finalFAlarms,
-                                                                truthTable=truthTable,
-                                                                true_tracks=true_tracks, true_falarms=true_falarms,
-                                                                track_indices=trackIndices, falarm_indices=falarmIndices)
+            analysis[skillIndex,
+                     trackerIndex] = Analyzers.skillcalcs[skill](
+                                       tracks=finalTracks, falarms=finalFAlarms,
+                                       truthTable=truthTable,
+                                       true_tracks=true_tracks,
+                                       true_falarms=true_falarms,
+                                       track_indices=trackIndices,
+                                       falarm_indices=falarmIndices)
     return larry(analysis, labels)
 
 
