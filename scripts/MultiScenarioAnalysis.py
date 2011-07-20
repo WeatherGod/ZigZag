@@ -5,7 +5,6 @@ import ZigZag.ParamUtils as ParamUtils
 import os
 import numpy as np
 from ZigZag.ListRuns import Sims_of_MultiSim
-import matplotlib.pyplot as plt
 
 def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
                          n_boot, ci_alpha, path='.') :
@@ -29,8 +28,8 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
 
 def DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
                               meanSkills, skills_ci_upper, skills_ci_lower,
-                              figsize=None) :
-    figs = [plt.figure(figsize=figsize) for title in figTitles]
+                              figs) :
+
     for runIndex, trackRun in enumerate(runLabels) :
         for skillIndex in range(len(figTitles)) :
             ax = figs[skillIndex].gca()
@@ -54,9 +53,6 @@ def DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
                   bbox_transform=aFig.transFigure,
                   bbox_to_anchor=(0.99, 0.99))
 
-    return figs
-
-
 def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, CommonTrackRuns, MultiSims2Sims
 
@@ -68,6 +64,8 @@ def main(args) :
 
     if args.cacheOnly :
         args.skillNames = []
+    else :
+        import matplotlib.pyplot as plt
 
 
     simNames = MultiSims2Sims(args.multiSims, args.directory)
@@ -82,9 +80,10 @@ def main(args) :
         figTitles = args.titles if args.titles is not None else args.skillNames
         runLabels = args.plotlabels if args.plotlabels is not None else trackRuns
 
-        figs = DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
-                                         meanSkills, skills_ci_upper, skills_ci_lower,
-                                         figsize=args.figsize)
+        figs = [plt.figure(figsize=args.figsize) for title in figTitles]
+        DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
+                                  meanSkills, skills_ci_upper, skills_ci_lower,
+                                  figs)
 
 
         for aFig, skillName in zip(figs, args.skillNames) :
