@@ -6,7 +6,6 @@ from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
 import os.path
 import numpy as np
-from multiprocessing import Pool
 
 def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, Sims_of_MultiSim, CommonTrackRuns

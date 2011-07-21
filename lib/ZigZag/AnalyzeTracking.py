@@ -8,6 +8,15 @@ import ZigZag.Analyzers as Analyzers
 from la import larry        # Labeled arrays
 
 
+# This library module contains two major sections.
+# The first section is comprised of functions related
+# to the analysis and display of tracking results
+# The second section is comprised of functions related
+# to the execution of tracking algorithms
+
+###########################################
+#     Tracking Analysis
+###########################################
 def DisplaySkillScores(skillScores, skillScoreName) :
     """
     Display the skill score results in a neat manner.
@@ -106,6 +115,10 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
                                        falarm_indices=falarmIndices)
     return larry(analysis, labels)
 
+
+###########################################
+#         Tracking
+###########################################
 
 def SingleTracking(simFile, simName, simParams, trackConfs, path='.') :
     #simParams['trackers'] = trackConfs.keys()

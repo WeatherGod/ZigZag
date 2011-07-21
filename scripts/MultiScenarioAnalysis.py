@@ -5,31 +5,11 @@ from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
 import os.path
 import numpy as np
+import la
 from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
 import ZigZag.bootstrap as btstrp
 
 from multiprocessing import Pool
-
-def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
-                         n_boot, ci_alpha, path='.') :
-
-    skillMeans = np.empty((len(multiSims), len(skillNames), len(trackRuns)))
-    means_ci_upper = np.empty_like(skillMeans)
-    means_ci_lower = np.empty_like(skillMeans)
-
-    for sceneIndex, aScenario in enumerate(multiSims) :
-        simNames = Sims_of_MultiSim(aScenario, path)
-        analysis = MultiAnalyze(simNames, aScenario, skillNames,
-                                trackRuns, path=path)
-
-        for skillIndex, skillName in enumerate(skillNames) :
-            btmean, btci = Bootstrapping(n_boot, ci_alpha, analysis.lix[[skillName]].x)
-            skillMeans[sceneIndex, skillIndex, :] = btmean
-            means_ci_upper[sceneIndex, skillIndex, :] = btci[0]
-            means_ci_lower[sceneIndex, skillIndex, :] = btci[1]
-
-    return skillMeans, means_ci_upper, means_ci_lower
-
 
 def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
     try :
@@ -71,6 +51,31 @@ def MultiAnalyze(simNames, multiSim, skillNames,
 
     return completeAnalysis
 
+
+
+def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
+                         n_boot, ci_alpha, path='.') :
+
+    skillMeans = np.empty((len(multiSims), len(skillNames), len(trackRuns)))
+    means_ci_upper = np.empty_like(skillMeans)
+    means_ci_lower = np.empty_like(skillMeans)
+
+    for sceneIndex, aScenario in enumerate(multiSims) :
+        simNames = Sims_of_MultiSim(aScenario, path)
+        # (Skills x Sims x TrackRuns)
+        analysis = MultiAnalyze(simNames, aScenario, skillNames,
+                                trackRuns, path=path)
+
+        # Perform averages over the simulations for each skillscore
+        for skillIndex, skillName in enumerate(skillNames) :
+            btmean, btci = Bootstrapping(n_boot, ci_alpha, analysis.lix[[skillName]].x)
+            skillMeans[sceneIndex, skillIndex, :] = btmean
+            means_ci_upper[sceneIndex, skillIndex, :] = btci[0]
+            means_ci_lower[sceneIndex, skillIndex, :] = btci[1]
+
+    return skillMeans, means_ci_upper, means_ci_lower
+
+
 def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
     booting = btstrp.bootstrap(n_boot, np.mean, analysisInfo, axis=0)
     btmean = booting.mean(axis=0)
@@ -79,20 +84,33 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
     return btmean, btci
 
 
+_dispFmt = {'cat' : '.',
+            'ordinal' : '-'}
 
-def DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
+
+def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                               meanSkills, skills_ci_upper, skills_ci_lower,
-                              figs) :
+                              figs, dispMode='cat') :
+    """
+    Display the error bars for the skill scores.
 
-    for runIndex, trackRun in enumerate(runLabels) :
-        for skillIndex in range(len(figTitles)) :
-            ax = figs[skillIndex].gca()
+    *dispMode*  ['cat' | 'ordinal']
+        Categorical or ordinal mode for the x-axis
+    """
+    fmt = _dispFmt[dispMode]
 
-            MakeErrorBars(meanSkills[:, skillIndex, runIndex],
-                          (skills_ci_upper[:, skillIndex, runIndex],
-                           skills_ci_lower[:, skillIndex, runIndex]),
-                          ax, startLoc=(runIndex + 1)/(len(runLabels) + 1.0),
-                          label=trackRun)
+    for plotIndex, label in enumerate(plotLabels) :
+        startLoc = 0.5 if dispMode == 'ordinal' else \
+                   ((plotIndex + 1) / (len(plotLabels) + 1.0))
+
+        for figIndex in range(len(figTitles)) :
+            ax = figs[figIndex].gca()
+
+            MakeErrorBars(meanSkills[:, figIndex, plotIndex],
+                          (skills_ci_upper[:, figIndex, plotIndex],
+                           skills_ci_lower[:, figIndex, plotIndex]),
+                          ax, startLoc=startLoc, label=label,
+                          fmt=fmt)
 
     for aFig, title in zip(figs, figTitles) :
         ax = aFig.gca()
@@ -106,6 +124,27 @@ def DisplayMultiSceneAnalysis(figTitles, runLabels, tickLabels,
         ax.legend(numpoints=1, loc='upper right',
                   bbox_transform=aFig.transFigure,
                   bbox_to_anchor=(0.99, 0.99))
+
+def Rearrange(display, *args) :
+    # Now we need to roll data axes around so that it matches with what the
+    # user wants to display.
+    dataAxes = {'scenarios' : 0,
+                'skills'    : 1,
+                'trackruns' : 2}
+
+    args = list(args)
+
+    increm = 0
+    # Only need to roll twice, as the last will fall into place
+    for destAxis, dispName in enumerate(['ticks', 'fig']) :
+        srcAxis = (dataAxes[display[dispName]] + increm) % len(dataAxes)
+        for index in range(len(args)) :
+            args[index] = np.rollaxis(args[index], srcAxis, destAxis)
+        if (srcAxis - destAxis) > 1 :
+            # other items had to shift, so we need to increment
+            increm += 1
+
+    return args
 
 def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, CommonTrackRuns, \
@@ -122,32 +161,56 @@ def main(args) :
     else :
         import matplotlib.pyplot as plt
 
+    # Validate the command-line arguments for display options
+    if (set(['skills', 'trackruns', 'scenarios']) !=
+        set([args.fig_disp, args.plot_disp, args.tick_disp])) :
+        raise ValueError("The '--fig', '--plot', and '--tick' options must each be unique: [fig: %s, plot: %s, tick: %s)" %
+                         (args.fig_disp, args.plot_disp, args.tick_disp))
 
 
     simNames = MultiSims2Sims(args.multiSims, args.directory)
     commonTrackRuns = CommonTrackRuns(simNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
 
+    # meanSkills, and the ci's are 3D (scenarios x skills x trackruns)
     (meanSkills,
      skills_ci_upper,
      skills_ci_lower) = MultiScenarioAnalyze(args.multiSims, args.skillNames,
                                              trackRuns, n_boot, ci_alpha,
                                              path=args.directory)
-
     if not args.cacheOnly :
-        tickLabels = args.ticklabels if args.ticklabels is not None else args.multiSims
-        figTitles = args.titles if args.titles is not None else args.skillNames
-        plotLabels = args.plotlabels if args.plotlabels is not None else trackRuns
+        display = {disp:data for disp, data in
+                    zip(['fig', 'plot', 'ticks'],
+                        [args.fig_disp, args.plot_disp, args.tick_disp])}
+
+        defaultLabels = {'skills' : args.skillNames,
+                         'trackruns' : trackRuns,
+                         'scenarios' : args.multiSims}
+
+        (meanSkills,
+         skills_ci_upper,
+         skills_ci_lower) = Rearrange(display, meanSkills, skills_ci_upper,
+                                                           skills_ci_lower)
+        
+
+
+        tickLabels = args.ticklabels if args.ticklabels is not None else \
+                     defaultLabels[display['ticks']]
+        figTitles = args.titles if args.titles is not None else \
+                    defaultLabels[display['fig']]
+        plotLabels = args.plotlabels if args.plotlabels is not None else \
+                     defaultLabels[display['plot']]
 
         figs = [plt.figure(figsize=args.figsize) for title in figTitles]
         DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                                   meanSkills, skills_ci_upper, skills_ci_lower,
-                                  figs)
+                                  figs, dispMode=args.dispMode)
 
 
-        for aFig, skillName in zip(figs, args.skillNames) :
+        for aFig, title in zip(figs, defaultLabels[display['fig']]) :
+            aFig.gca().set_xlabel(args.xlabel)
             if args.saveImgFile is not None :
-                aFig.savefig("%s_%s.%s" % (args.saveImgFile, skillName, args.imageType))
+                aFig.savefig("%s_%s.%s" % (args.saveImgFile, title, args.imageType))
 
         if args.doShow :
             plt.show()
@@ -161,6 +224,24 @@ if __name__ == '__main__' :
 
     parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple scenarios of multiple storm-track simulations')
     AddCommandParser('MultiScenarioAnalysis', parser)
+    parser.add_argument("--mode", dest="dispMode",
+                        help="Mode for x-axis (categorical (default) or ordinal). In categorical mode, error bars are unconnected and non-overlapping. In ordinal mode, the errorbars for each plot are connected, and are overlapping in the x-axis.",
+                        choices=['cat', 'ordinal'], default='cat')
+    parser.add_argument("--xlabel", dest="xlabel", type=str,
+                        help="Label for the x-axis.  Default: '%(default)s'",
+                        default='')
+    parser.add_argument("--fig", dest="fig_disp", type=str,
+                        help="Figures should be organized by... %(choices)s (Default: %(default)s)",
+                        choices=['skills', 'trackruns', 'scenarios'],
+                        default='skills')
+    parser.add_argument("--plot", dest="plot_disp", type=str,
+                        help="Plot errorbars by... %(choices)s (Default: %(default)s)",
+                        choices=['skills', 'trackruns', 'scenarios'],
+                        default='trackruns')
+    parser.add_argument("--tick", dest="tick_disp", type=str,
+                        help="Values for the x-axis are from... %(choices)s (Default: %(default)s)",
+                        choices=['skills', 'trackruns', 'scenarios'],
+                        default='scenarios')
     """
     parser.add_argument("multiSims",
                       help="Analyze tracks for MULTISIM",
