@@ -287,6 +287,33 @@ _zigargs['ListRuns'] = [
           metavar="DIRNAME", default='.'))
     ]
 
+_zigargs['MoveRuns'] = [
+    (("simNames",), 
+     dict(nargs='+',
+          help="Move track runs done for SIMNAME(s). Use common track runs for multiple sims",
+          metavar="SIMNAME")),
+    (("-o", "--old"),
+     dict(dest="old",
+          help="The pattern to match",
+          metavar="OLD", default=None)),
+    (("-n", "--new"),
+     dict(dest="new",
+          help="The string to replace the OLD pattern with.",
+          metavar="NEW", default=None)),
+    (("-t", "--trackruns"), 
+     dict(dest="trackRuns",
+          nargs="+", help="Trackruns to operate on.  List all runs if none are given.",
+          metavar="RUN", default=None)),
+    (("-m", "--multi"), 
+     dict(dest='isMulti',
+          help="Indicate that SIMNAME(s) is actually a Multi-Sim so that we can process correctly.",
+          default=False, action='store_true')),
+    (("-d", "--dir"), 
+     dict(dest="directory",
+          help="Base directory to find SIMNAME",
+          metavar="DIRNAME", default='.'))
+    ]
+
 _zigargs['ParamSearch'] = [
     (("paramFile",), 
      dict(help="The configuration file", metavar="FILE")),

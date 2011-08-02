@@ -14,6 +14,7 @@ setup(
     package_dir = {'': 'lib'},
     scripts = ['scripts/AnalyzeTracking.py', 'scripts/DoTracking.py',
                'scripts/DownsampleSim.py', 'scripts/ListRuns.py',
+               'scripts/MoveRuns.py',
                'scripts/MultiAnalysis.py', 'scripts/MultiDownsample.py',
                'scripts/MultiScenarioAnalysis.py', 'scripts/MultiSim.py',
                'scripts/MultiTracking.py', 'scripts/ParamSearch.py',
