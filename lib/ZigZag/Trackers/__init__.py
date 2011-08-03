@@ -2,6 +2,8 @@
 import ZigZag.TrackFileUtils as TrackFileUtils
 import ZigZag.TrackUtils as TrackUtils
 import os.path
+import tempfile
+import os
 
 
 trackerList = {}
@@ -48,37 +50,49 @@ def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
 _register_tracker(SCIT_Track, "SCIT", dict(speedThresh="float(min=0.0)"))
 
 def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
+    import mht
     progDir = "~/Programs/mht_tracking/tracking/"
+    dirName = path
     # Popping off the ParamFile key so that the rest of the available
     # configs can be used for making the MHT parameter file.
-    paramFile = trackParams.pop("ParamFile")
+#    paramDir, paramName = os.path.split(trackParams.pop("ParamFile"))
+#    file, paramFile = tempfile(prefix=paramName,
+#                               dir=os.path.join(dirName, paramDir)
+    paramFile, paramName = tempfile.mkstemp(text=True)
+    # Don't need it open, just pass the name along.
+    os.close(paramFile)
+
     # Temporary popping...
     trackParams.pop("algorithm")
-    dirName = path
 
-    paramArgs = "python %smakeparams.py %s" % (progDir, os.path.join(dirName, paramFile))
-    for key, val in trackParams.items() :
-        paramArgs += " --%s %s" % (key, val)
 
-    print paramArgs
-    # TODO: Temporary until I fix this to use Popen()
-    if os.system(paramArgs) != 0 :
-        raise Exception("MHT Param-maker failed!")
-        
+    mht.SaveMHTParams(paramName, trackParams)
+    resultFile = os.path.join(dirName, simParams['result_file'] + '_' + trackRun)
 
-    theCommand = "%strackCorners -o %s -p %s -i %s -d %s > /dev/null" % (progDir,
-                                os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
-                                os.path.join(dirName, paramFile),
-                                os.path.join(dirName, simParams['inputDataFile']),
-                                dirName)
+#    paramArgs = "python %smakeparams.py %s" % (progDir, os.path.join(dirName, paramFile))
+#    for key, val in trackParams.items() :
+#        paramArgs += " --%s %s" % (key, val)
+#
+#    print paramArgs
+#    # TODO: Temporary until I fix this to use Popen()
+#    if os.system(paramArgs) != 0 :
+#        raise Exception("MHT Param-maker failed!")
+
+    retcode = mht.track(resultFile, paramName,
+                        os.path.join(dirName, simParams['inputDataFile']),
+                        dirName)
     
-    print theCommand
     # TODO: Temporary until I fix this to use Popen()
-    if os.system(theCommand) != 0 :
-        raise Exception("MHT tracker failed!")
+    #if os.system(theCommand) != 0 :
+    #    raise Exception("MHT tracker failed!")
+    if retcode != 0 :
+        raise Exception("MHT Tracker failed! ResultFile: %s ParamFile: %s" %
+                        (resultFile, paramName))
+
+    os.remove(paramName)
 
     if returnResults :
-        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(os.path.join(dirName, trackParams['result_file'] + "_" + trackRun)))
+        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(resultFile))
 
 _register_tracker(MHT_Track, "MHT", dict(varx="float(min=0.0, default=1.0)",
                                          vary="float(min=0.0, default=1.0)",
