@@ -67,6 +67,8 @@ class TITAN(object) :
         self.stateHist = []
         self.tracks = []
         self.prevStorms = {}
+        self._currCells = []
+        self.ellipses = []
 
     def _calc_cost(self, t0_strms, t1_strms) :
         x0 = t0_strms['xLocs']
@@ -124,7 +126,6 @@ class TITAN(object) :
 
         for t0_index, t1_index in assocs :
             if mask[t0_index, t1_index] :
-            #if cost[t0_index, t1_index] == self._highCost :
                 # Because of the rejection, split this
                 # association into the termination of
                 # one track and the start of a new track
@@ -153,7 +154,7 @@ class TITAN(object) :
 
     def _update_tracks(self, currStrms, currFrame, strms_end, strms_keep, strms_start) :
 
-        # Only need to do the following if I and adding or extending
+        # Only need to do the following if adding or extending
         # existing tracks
         if len(strms_keep) > 0 or len(strms_start) > 0 :
             # The volume data has only xLocs and yLocs,
@@ -213,16 +214,32 @@ class TITAN(object) :
             else :
                 self.tracks[trackID]['types'][-1] = 'M'
 
-    def TrackStep(self, volume_data) :
+    def TrackStep(self, volume_data, ellipses=None) :
+        """
+        Perform tracking with a new frame of data.
+
+        *volume_data*       TODO
+
+        *ellipses*      A list of tuples of ellipse params
+                          [((h_0, k_0), a_0, b_0, t_0),
+                           ((h_1, k_1), a_1, b_1, t_1),
+                           ...
+                          ]
+                        for all current storms.
+        """
         if len(self.stateHist) > 0 :
             prevCells = self.stateHist[-1]['stormCells']
+            dT = volume_data['frameNum'] - self.stateHist[-1]['frameNum']
         else :
             prevCells = np.array([], dtype=volume_dtype)
+            dT = 0
 
-        currCells = volume_data['stormCells']
+        self._currCells = volume_data['stormCells']
+        self.ellipses.append([None]*len(self._currCells) if ellipses is None else
+                             ellipses)
         frameNum = volume_data['frameNum']
 
-        C = self._calc_cost(prevCells, currCells)
+        C = self._calc_cost(prevCells, self._currCells)
         H = _Hungarian()
         # Returns a list of (row, col) tuples
         assocs = H.compute(C)
@@ -231,14 +248,14 @@ class TITAN(object) :
         # strms_end  :  dict of storm indices for storms at index-1 with value trackID
         # strms_keep :  dict of storm indices for storms at index with value trackID
         # strms_start:  dict of storm indices for storms at index with value trackID
-        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(prevCells), len(currCells))
+        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(prevCells), len(self._currCells))
 
-        self._update_tracks(currCells, frameNum,
-                            strms_end, strms_keep, strms_start)
+        merge_into = self.find_merges(dT, strms_end, strms_keep, strms_start)
+        split_from = self.find_splits(dT, strms_end, strms_keep, strms_start)
+        self._update_tracks(self._currCells, frameNum, strms_end, strms_keep, strms_start)
 
         # The union of tracks that were kept and started for the next loop iteration.
-        self.prevStorms = strms_keep.copy()
-        self.prevStorms.update(strms_start)
+        self.prevStorms = dict(strms_keep, **strms_start)
 
         self.stateHist.append({'volTime': volume_data['volTime'],
                                'frameNum': volume_data['frameNum'],
@@ -295,14 +312,202 @@ class TITAN(object) :
                 for p in params :
                     s, b = self._double_exp_smoothing(x[p], dT, alpha, alpha)
                     tmp[p] = s + b*deltaT
-                fcasts[fIndex] = tmp
+                fcasts[fIndex] = np.array(tmp[0])
 
             elif len(track) == 1 :
                 # Do a persistence fcast
-                fcasts[fIndex] = x[-1]
+                fcasts[fIndex] = np.array(x[-1])
 
         return fcasts
+
+    def forecast_ellipses(self, deltaT, trackIDs, ellipses) :
+        """
+        Provided a list of ellipse tuples for each track, produce
+        a list of ellipse tuples that represents the forecasted
+        state of the ellipses.
+        """
+        # Get the f-casted positions and sizes
+        fcasts = self.forecast_tracks(deltaT, trackIDs)
+        f_ellipses = [None] * len(ellipses)
+
+        for index, (ellpse, f) in enumerate(zip(ellipses, fcasts)) :
+            if f is None or ellpse is None :
+                continue
+
+            # Assume aspect ratio and angle remains the same
+            h = np.squeeze(f['xLocs'])
+            k = np.squeeze(f['yLocs'])
+            szChange = np.sqrt(self.tracks[trackIDs[index]][-1]['sizes'] / f['sizes'])
+            a = ellpse[1] / szChange
+            b = ellpse[2] / szChange
+            f_ellipses[index] = ((h, k), a, b, ellpse[3])
+
+        return f_ellipses
+            
+
+    @staticmethod
+    def _contains(x, y, h, k, a, b, t) :
+        """
+        Determine if the ellipse described by *h*, *k*, *a*, *b*, *t*
+        contains the points *x* and *y*.
+
+        If *x* and *y* are numpy arrays, then return a numpy array of bools.
+        If *x* and *y* are scalars, then return a scalar boolean.
+
+        Note: *a* and *b* are full axes lengths, not half-lengths.
+              *t* is in degrees
+        """
+        ox = x - h
+        oy = y - k
+        t = np.deg2rad(t)
+        rotx = ox * np.cos(t) + oy * np.sin(t)
+        roty = -ox * np.sin(t) + oy * np.cos(t)
+        dist_x = rotx / (a / 2)
+        dist_y = roty / (b / 2)
+        return (np.hypot(dist_x, dist_y) <= 1)
+
+    @staticmethod
+    def reverse_lookup(strms_end, strms_keep, strms_start) :
+        """
+        Create reverse lookup dictionaries for the resulting dictionaries from
+        self.TrackStep().
+        """
+        return ({trackID : strmID for strmID, trackID in strms_end.iteritems()},
+                {trackID : strmID for strmID, trackID in strms_keep.iteritems()},
+                {trackID : strmID for strmID, trackID in strms_start.iteritems()})
+
+    def find_merges(self, deltaT, strms_end, strms_keep, strms_start,
+                          frameIndex=-1) :
+        """
+        *deltaT*        The time difference (units of 'frameNums') between the
+                        storms in *strms_end* and the storms in *strms_new*.
+
+        *strms_end*     dict of storm indices for storms at index-1 with value trackID
+        *strms_keep*    dict of storm indices for storms at index with value trackID
+        *strms_start*   dict of storm indices for storms at index with value trackID
+
+        *frameIndex*    Index number for the frame to operate on (not fully implemented!)
+                        By default, operate on the most recent frame.
+
+        Returns a dict of (strmID, trackID) pairs where trackID is
+        the track index the storm was being merged into. If -1, then it did not
+        merge into any other tracks
+        """
+        # Merge these two dictionaries into a single dict for active storms
+        act_storms = dict(strms_keep, **strms_start)
+        if len(act_storms) > 0 :
+            act_strms, act_ids = zip(*act_storms.items())       # strmIDs, trackIDs
+        else :
+            act_strms, act_ids = [], []
+
+        if len(strms_end) > 0 :
+            inact_strms, inact_ids = zip(*strms_end.items())    # strmIDs, track IDs
+        else :
+            inact_strms, inact_ids = [], []
         
+        fcasted_pts = self.forecast_tracks(deltaT, inact_ids)
+        merged_into = self._match_to_ellipses(fcasted_pts,
+                            [self.ellipses[frameIndex][strmID] for strmID in
+                             act_strms])
+        # FIXME: Might be an issue if strms_start has not gotten its trackIDs yet
+        return {strmID : (-1 if index == -1 else act_ids[index]) for
+                strmID, index in zip(inact_strms, merged_into)}
+        
+
+    def find_splits(self, deltaT, strms_end, strms_keep, strms_start, frameIndex=-1) :
+        """
+        *deltaT*        The time difference (units of 'frameNums') between the
+                        storms in *strms_end* and the storms in *strms_new*.
+
+        *strms_end*     dict of storm indices for storms at index-1 with value trackID
+        *strms_keep*    dict of storm indices for storms at index with value trackID
+        *strms_start*   dict of storm indices for storms at index with value trackID
+
+        *frameIndex*    The frame index to operate from (not fully implemented!)
+                        By default, operate from the most recent frame of data.
+
+        Returns a dict of (strmID, trackID) pairs where trackID is
+        the track index the storm was being split from.  If -1, then the storm
+        did not split from other tracks.
+        """
+        if len(strms_keep) > 0 :
+            act_strms, act_ids = zip(*strms_keep.items())       # strmIDs, trackIDs
+        else :
+            act_strms, act_ids = [], []
+
+        if len(strms_end) > 0 :
+            inact_strms, inact_ids = zip(*strms_end.items())    # strmIDs, trackIDs
+        else :
+            inact_strms, inact_ids = [], []
+
+        if len(strms_start) > 0 :
+            orph_strms, orph_ids = zip(*strms_start.items())    # strmIDs, trackIDs
+        else :
+            orph_strms, orph_ids = [], []
+
+        if abs(frameIndex) >= len(self.ellipses) :
+            previous = []
+        else :
+            previous = [self.ellipses[frameIndex - 1][index] for index in inact_strms]
+
+        # If I already have these ellipses, then I don't need to
+        # forecast them, now do I?  (Plus, it would be hard to correctly
+        # do a forecast because the forecasting code assumes to forecast
+        # from the end of the track history)
+        current = [self.ellipses[frameIndex][index] for index in strms_keep.keys()]
+        exist_trcks = inact_ids + act_ids
+        ellipses = self.forecast_ellipses(deltaT, inact_ids, previous) + current
+
+        orphan_pts = [np.array(self._currCells[index]) for index in orph_strms]
+        split_from = self._match_to_ellipses(orphan_pts, ellipses)
+
+        return {strmID : (-1 if index == -1 else exist_trcks[index]) for
+                strmID, index in zip(orph_strms, split_from)}
+
+    @staticmethod
+    def _match_to_ellipses(pts, ellipses) :
+        """
+        *pts*       The data points to use for assignment.
+
+        *ellipses*  A list of tuples of ellipse params
+                        [((h_0, k_0), a_0, b_0, t_0),
+                         ((h_1, k_1), a_1, b_1, t_1),
+                         ...
+                        ]
+
+        Returns a list of integers that represent the index
+        of the ellipse that the track was matched against from
+        the *ellipse_fcasts*.  If the integer is -1, then the
+        track was not matched against any ellipses.        
+        """
+        dist_to_ellps = np.empty((len(pts),))
+        dist_to_ellps[:] = np.inf
+        matched_to = np.array([-1] * len(pts))
+
+        if len(pts) > 0 :
+            tmpy = [((np.nan, np.nan) if p is None else
+                    p[['xLocs', 'yLocs']]) for
+                               p in pts]
+            xs, ys = np.array(zip(*tmpy))
+
+            for trackindex, ellp in enumerate(ellipses) :
+                if ellp is None :
+                    continue
+
+                print "Ellipse:", ellp
+                in_ellipse = TITAN._contains(xs, ys, ellp[0][0], ellp[0][1],
+                                             ellp[1], ellp[2], ellp[3])
+                dists = np.hypot(xs[in_ellipse] - ellp[0][0],
+                                 ys[in_ellipse] - ellp[0][1])
+
+                # If this storm matches to this ellipse better than
+                # previous matches, then switch it over.
+                match = (dists < dist_to_ellps[in_ellipse])
+                matched_to[in_ellipse][match] = trackindex
+                dist_to_ellps[in_ellipse][match] = dists[match]
+
+        return matched_to.tolist()
+
 
     def finalize(self) :
         """
