@@ -246,6 +246,64 @@ class TITAN(object) :
 
         return strms_end, strms_keep, strms_start
 
+    @staticmethod
+    def _double_exp_smoothing(x, dT, alpha, beta) :
+        """
+        Provide a smoothed estimate of x[-1] based upon
+        the past history of x (first values in the array
+        being the earliest in history).
+
+        Also provide the smoothed estimate of the current trend.
+        """
+        # Initializing smoothed data value
+        s = x[0]
+        # Initializing Trend estimation
+        b = (x[1] - x[0]) / dT[0]
+
+        for curIndex in range(1, len(x)) :
+            F = s + b*dT[curIndex - 1]
+            s_prev = s
+            s = (alpha*x[curIndex] +
+                 (1 - alpha)*F)
+            b = (beta*((s - s_prev)/dT[curIndex-1]) +
+                 (1 - beta)*b)
+
+        return s, b
+
+       
+
+    def forecast_tracks(self, deltaT, trackIDs) :
+        # Should probably be either properties of the object
+        # or parameters into this function.
+        # Current values choosen based on Dixon and Weiner paper
+        frames_back = 6
+        alpha = 0.5
+        # F-cast parameters
+        params = ['xLocs', 'yLocs', 'sizes']
+
+        fcasts = [None] * len(trackIDs)
+        for fIndex, trackIndex in enumerate(trackIDs) :
+            track = self.tracks[trackIndex]
+
+            # Grab only the variables you want for at most the past
+            # *frames_back* frames.
+            x = track[params][-frames_back:]
+            dT = np.diff(track['frameNums'][-frames_back:])
+
+            if len(track) > 1 :
+                tmp = np.empty((1,), dtype=x.dtype)
+                for p in params :
+                    s, b = self._double_exp_smoothing(x[p], dT, alpha, alpha)
+                    tmp[p] = s + b*deltaT
+                fcasts[fIndex] = tmp
+
+            elif len(track) == 1 :
+                # Do a persistence fcast
+                fcasts[fIndex] = x[-1]
+
+        return fcasts
+        
+
     def finalize(self) :
         """
         Used to finalize the track data when there are no more
