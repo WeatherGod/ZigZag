@@ -2,6 +2,7 @@ from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
 from scikits.learn.utils.hungarian import _Hungarian
+from collections import defaultdict
 
 class TITAN(object) :
     """
@@ -98,9 +99,10 @@ class TITAN(object) :
 
         # Just double-checking that _highCost will pass the reject_assoc() later.
         if not self._reject_assoc(self._highCost) :
-            # TODO: Need better safety here... I would likely prefer np.inf, maybe
-            # Because that wasn't good enough to satisfy _reject_assoc(),
-            #   go back to the fall-back of 999999.
+            # TODO: Need better safety here... I would likely prefer
+            #  np.inf, maybe.
+            # New NOTE: Because that wasn't good enough to satisfy
+            #  _reject_assoc(), go back to the fall-back of 999999.
             self._highCost = TITAN._fallback_cost
 
         # For any possible association where the points are too far
@@ -117,11 +119,11 @@ class TITAN(object) :
         strms_start = {}
         strms_keep = {}
 
-        # IMPORTANT: I am creating a mask rather than doing the comparison within
-        # the loop because of numpy-casting issues.  Because *cost* could have
-        # a dtype of "float" and self._highCost is a numpy float, the type casting
-        # is different if I do element-wise comparison versus direct element-based
-        # comparisons
+        # IMPORTANT: I am creating a mask rather than doing the comparison
+        #  within the loop because of numpy-casting issues.  Because *cost*
+        #  could have a dtype of "float" and self._highCost is a numpy float,
+        #  the type casting is different if I do element-wise comparison 
+        # versus direct element-based comparisons
         mask = (cost == self._highCost)
 
         for t0_index, t1_index in assocs :
@@ -134,7 +136,8 @@ class TITAN(object) :
                 strms_start[t1_index] = None
             else :
                 if cost[t0_index, t1_index] > self._highCost :
-                    print "SHOULD HAVE BEEN REJECTED!", cost[t0_index, t1_index] - self._highCost
+                    print "SHOULD HAVE BEEN REJECTED!", \
+                          cost[t0_index, t1_index] - self._highCost
                 strms_keep[t1_index] = self.prevStorms[t0_index]
 
         # Determine which other current storms were not associated
@@ -152,8 +155,101 @@ class TITAN(object) :
 
         return strms_end, strms_keep, strms_start
 
-    def _update_tracks(self, currStrms, currFrame, strms_end, strms_keep, strms_start) :
+    def _handle_merges(self, strms_end, strms_keep, strms_start,
+                       merged_into) :
+        """
+        *merged_into*   dict of (strmID_1, strmID_2) pairs where strmID_1 is
+                        the strmID of the storm (at current time - 1), and
+                        strmID_2 is the strmID the cell merged into.
+                        If strmID_2 is -1, then it did not merge into any
+                        other tracks
 
+        In the interest of maintaining the bipartite graphing framework
+        used by ZigZag's analysis, each feature can only have at most
+        one association going in, and one association going out.
+        Therefore, we will not be fully implementing Dr. Dixon's merge/split
+        handling logic with respect to translating and merging the track
+        histories into one history.
+        However, for each merger, we will ensure that at least one
+        track gets continued (they don't always).
+        """
+        # Produce a dict that for each storm that a merge came from
+        # have a list of storms that produced it.
+        rev_lookup = defaultdict(list)
+        for strmID1, strmID2 in merged_into.iteritems() :
+            rev_lookup[strmID2].append(strmID1)
+
+        # Dump those storms that never matched.  We don't care about those
+        rev_lookup.pop(-1, None)
+
+        for m_to, m_from in rev_lookup.items() :
+            # Gonna cheat here a bit.  I should be using the coordinates
+            # that were used for matching, but... whatever...
+            dists = [np.hypot(self._prevCells[strmID]['xLocs'] -
+                               self._currCells[m_to]['xLocs'],
+                              self._prevCells[strmID]['yLocs'] -
+                               self._currCells[m_to]['yLocs']) for
+                     strmID in m_from]
+
+            strm_from = m_from[np.argmin(dists)]
+            # TODO: do some housework with this information
+        # TODO: Find closest one and set that one as the track
+        return
+
+    def _handle_splits(self, strms_end, strms_keep, strms_start,
+                       split_from) :
+        """
+        *split_from*    dict of (strmID_1, strmID_2) pairs where strmID_1 is
+                        the strmID of the storm that had split, and strmID_2
+                        is the strmID of the storm that it had split from
+                        If strmID_2 is -1, then it did not split from
+                        any other storms.
+
+        In the interest of maintaining the bipartite graphing framework
+        used by ZigZag's analysis, each feature can only have at most
+        one association going in, and one association going out.
+        Therefore, we will not be fully implementing Dr. Dixon's merge/split
+        handling logic with respect to translating and copying the track
+        history into multiple histories.
+        However, for each split, we will ensure that at least one
+        track gets continued (they don't always).
+        """
+        # Produce a dict that for each storm that a split ocurred
+        # from, have a list of storms that came from it.
+        rev_lookup = defaultdict(list)
+        for strmID1, strmID2 in split_from.iteritems() :
+            rev_lookup[strmID2].append(strmID1)
+
+        # Dump those storms that never matched.  We don't care about those
+        rev_lookup.pop(-1, None)
+
+        for m_from, m_to in rev_lookup.items() :
+            # Gonna cheat here a bit.  I should be using the coordinates
+            # that were used for matching, but... whatever...
+            dists = [np.hypot(self._prevCells[m_from]['xLocs'] -
+                               self._currCells[strmID]['xLocs'],
+                              self._prevCells[m_from]['yLocs'] -
+                               self._currCells[strmID]['yLocs']) for
+                     strmID in m_to]
+
+            strm_to = m_to[np.argmin(dists)]
+            # TODO: do some housework with this information
+
+
+        # TODO: Find closest one and set that one as the track
+        return
+
+    def _update_tracks(self, currStrms, currFrame,
+                       strms_end, strms_keep, strms_start) :
+        """
+        *strms_end*     dict of storm indices for storms at index-1 with
+                        value trackID
+        *strms_keep*    dict of storm indices for storms at index with
+                        value trackID
+        *strms_start*   dict of storm indices for storms at index with
+                        value trackID
+
+        """
         # Only need to do the following if adding or extending
         # existing tracks
         if len(strms_keep) > 0 or len(strms_start) > 0 :
@@ -205,7 +301,8 @@ class TITAN(object) :
             currStrms[strmID]['st_yLocs'] = currStrms[strmID]['yLocs']
 
             # Add this new track to the list.
-            self.tracks.append(np.array([currStrms[strmID]], dtype=volume_dtype))
+            self.tracks.append(np.array([currStrms[strmID]],
+                                        dtype=volume_dtype))
 
         # Mark any length-1 tracks for strms_end as False Alarms
         for trackID in strms_end.values() :
@@ -228,38 +325,49 @@ class TITAN(object) :
                         for all current storms.
         """
         if len(self.stateHist) > 0 :
-            prevCells = self.stateHist[-1]['stormCells']
+            self._prevCells = self.stateHist[-1]['stormCells']
             dT = volume_data['frameNum'] - self.stateHist[-1]['frameNum']
         else :
-            prevCells = np.array([], dtype=volume_dtype)
+            self._prevCells = np.array([], dtype=volume_dtype)
             dT = 0
 
         self._currCells = volume_data['stormCells']
-        self.ellipses.append([None]*len(self._currCells) if ellipses is None else
-                             ellipses)
         frameNum = volume_data['frameNum']
 
-        C = self._calc_cost(prevCells, self._currCells)
+        self.stateHist.append({'volTime': volume_data['volTime'],
+                               'frameNum': volume_data['frameNum'],
+                               'stormCells': volume_data['stormCells']})
+
+        self.ellipses.append([None] * len(self._currCells) 
+                             if ellipses is None else
+                             ellipses)
+
+        C = self._calc_cost(self._prevCells, self._currCells)
         H = _Hungarian()
         # Returns a list of (row, col) tuples
         assocs = H.compute(C)
 
         # Return the storms organized by their status.
-        # strms_end  :  dict of storm indices for storms at index-1 with value trackID
-        # strms_keep :  dict of storm indices for storms at index with value trackID
-        # strms_start:  dict of storm indices for storms at index with value trackID
-        strms_end, strms_keep, strms_start = self._process_assocs(assocs, C, len(prevCells), len(self._currCells))
+        # strms_end  :  dict of storm indices for storms at index-1 with
+        #               value trackID
+        # strms_keep :  dict of storm indices for storms at index with
+        #               value trackID
+        # strms_start:  dict of storm indices for storms at index with
+        #               value trackID
+        strms_end, strms_keep, strms_start = self._process_assocs(assocs,
+                                        C, len(self._prevCells),
+                                           len(self._currCells))
 
         merge_into = self.find_merges(dT, strms_end, strms_keep, strms_start)
         split_from = self.find_splits(dT, strms_end, strms_keep, strms_start)
-        self._update_tracks(self._currCells, frameNum, strms_end, strms_keep, strms_start)
 
-        # The union of tracks that were kept and started for the next loop iteration.
+        self._update_tracks(self._currCells, frameNum,
+                            strms_end, strms_keep, strms_start)
+
+        # The union of tracks that were kept and started for the next loop
+        # iteration. This is used extensively throughout _process_assocs()
+        # and finalize().
         self.prevStorms = dict(strms_keep, **strms_start)
-
-        self.stateHist.append({'volTime': volume_data['volTime'],
-                               'frameNum': volume_data['frameNum'],
-                               'stormCells': volume_data['stormCells']})
 
         return strms_end, strms_keep, strms_start
 
@@ -337,7 +445,8 @@ class TITAN(object) :
             # Assume aspect ratio and angle remains the same
             h = np.squeeze(f['xLocs'])
             k = np.squeeze(f['yLocs'])
-            szChange = np.sqrt(self.tracks[trackIDs[index]][-1]['sizes'] / f['sizes'])
+            szChange = np.sqrt(self.tracks[trackIDs[index]][-1]['sizes'] /
+                               f['sizes'])
             a = ellpse[1] / szChange
             b = ellpse[2] / szChange
             f_ellipses[index] = ((h, k), a, b, ellpse[3])
@@ -372,9 +481,9 @@ class TITAN(object) :
         Create reverse lookup dictionaries for the resulting dictionaries from
         self.TrackStep().
         """
-        return ({trackID : strmID for strmID, trackID in strms_end.iteritems()},
-                {trackID : strmID for strmID, trackID in strms_keep.iteritems()},
-                {trackID : strmID for strmID, trackID in strms_start.iteritems()})
+        return ({trackID:strmID for strmID, trackID in strms_end.iteritems()},
+                {trackID:strmID for strmID, trackID in strms_keep.iteritems()},
+                {trackID:strmID for strmID, trackID in strms_start.iteritems()})
 
     def find_merges(self, deltaT, strms_end, strms_keep, strms_start,
                           frameIndex=-1) :
@@ -382,86 +491,88 @@ class TITAN(object) :
         *deltaT*        The time difference (units of 'frameNums') between the
                         storms in *strms_end* and the storms in *strms_new*.
 
-        *strms_end*     dict of storm indices for storms at index-1 with value trackID
-        *strms_keep*    dict of storm indices for storms at index with value trackID
-        *strms_start*   dict of storm indices for storms at index with value trackID
+        *strms_end*     dict of storm indices for storms at index-1 with
+                        value trackID
+        *strms_keep*    dict of storm indices for storms at index with
+                        value trackID
+        *strms_start*   dict of storm indices for storms at index with
+                        value trackID
 
-        *frameIndex*    Index number for the frame to operate on (not fully implemented!)
+        *frameIndex*    Index number for the frame to operate on (not fully
+                        implemented!)
                         By default, operate on the most recent frame.
 
-        Returns a dict of (strmID, trackID) pairs where trackID is
-        the track index the storm was being merged into. If -1, then it did not
-        merge into any other tracks
+        Returns a dict of (strmID_1, strmID_2) pairs where strmID_2 is
+        the storm index that strmID_1 was being merged into.
+        If -1, then it did not merge into any other tracks
         """
         # Merge these two dictionaries into a single dict for active storms
-        act_storms = dict(strms_keep, **strms_start)
-        if len(act_storms) > 0 :
-            act_strms, act_ids = zip(*act_storms.items())       # strmIDs, trackIDs
-        else :
-            act_strms, act_ids = [], []
+        strms = dict(strms_keep, **strms_start)
 
-        if len(strms_end) > 0 :
-            inact_strms, inact_ids = zip(*strms_end.items())    # strmIDs, track IDs
-        else :
-            inact_strms, inact_ids = [], []
-        
+        # strmIDs, trackIDs
+        act_strms, act_ids = (([], []) if len(strms) == 0 else
+                              zip(*strms.items()))
+
+        inact_strms, inact_ids = (([], []) if len(strms_end) == 0 else
+                                  zip(*strms_end.items()))
+
         fcasted_pts = self.forecast_tracks(deltaT, inact_ids)
         merged_into = self._match_to_ellipses(fcasted_pts,
                             [self.ellipses[frameIndex][strmID] for strmID in
                              act_strms])
-        # FIXME: Might be an issue if strms_start has not gotten its trackIDs yet
-        return {strmID : (-1 if index == -1 else act_ids[index]) for
+
+        return {strmID : (-1 if index == -1 else act_strms[index]) for
                 strmID, index in zip(inact_strms, merged_into)}
         
 
-    def find_splits(self, deltaT, strms_end, strms_keep, strms_start, frameIndex=-1) :
+    def find_splits(self, deltaT, strms_end, strms_keep, strms_start,
+                          frameIndex=-1) :
         """
         *deltaT*        The time difference (units of 'frameNums') between the
                         storms in *strms_end* and the storms in *strms_new*.
 
-        *strms_end*     dict of storm indices for storms at index-1 with value trackID
-        *strms_keep*    dict of storm indices for storms at index with value trackID
-        *strms_start*   dict of storm indices for storms at index with value trackID
+        *strms_end*     dict of storm indices for storms at index-1 with
+                        value trackID
+        *strms_keep*    dict of storm indices for storms at index with
+                        value trackID
+        *strms_start*   dict of storm indices for storms at index with
+                        value trackID
 
         *frameIndex*    The frame index to operate from (not fully implemented!)
                         By default, operate from the most recent frame of data.
 
-        Returns a dict of (strmID, trackID) pairs where trackID is
-        the track index the storm was being split from.  If -1, then the storm
+        Returns a dict of (strmID_1, strmID_2) pairs where strmID_2 is
+        the storm index strmID_1 was being split from.  If -1, then the storm
         did not split from other tracks.
         """
-        if len(strms_keep) > 0 :
-            act_strms, act_ids = zip(*strms_keep.items())       # strmIDs, trackIDs
-        else :
-            act_strms, act_ids = [], []
+        # strmIDs, trackIDs
+        act_strms, act_ids = (([], []) if len(strms_keep) == 0 else
+                              zip(*strms_keep.items()))
 
-        if len(strms_end) > 0 :
-            inact_strms, inact_ids = zip(*strms_end.items())    # strmIDs, trackIDs
-        else :
-            inact_strms, inact_ids = [], []
+        inact_strms, inact_ids = (([], []) if len(strms_end) == 0 else
+                                  zip(*strms_end.items()))
 
-        if len(strms_start) > 0 :
-            orph_strms, orph_ids = zip(*strms_start.items())    # strmIDs, trackIDs
-        else :
-            orph_strms, orph_ids = [], []
+        orph_strms, orph_ids = (([], []) if len(strms_start) == 0 else
+                                zip(*strms_start.items()))
 
-        if abs(frameIndex) >= len(self.ellipses) :
-            previous = []
-        else :
-            previous = [self.ellipses[frameIndex - 1][index] for index in inact_strms]
+        previous = ([] if abs(frameIndex) >= len(self.ellipses) else
+                    [self.ellipses[frameIndex - 1][index] for
+                     index in inact_strms])
 
         # If I already have these ellipses, then I don't need to
         # forecast them, now do I?  (Plus, it would be hard to correctly
         # do a forecast because the forecasting code assumes to forecast
         # from the end of the track history)
-        current = [self.ellipses[frameIndex][index] for index in strms_keep.keys()]
-        exist_trcks = inact_ids + act_ids
-        ellipses = self.forecast_ellipses(deltaT, inact_ids, previous) + current
+        current = [self.ellipses[frameIndex][index] for
+                   index in act_strms]
+        exist_strms = inact_strms + act_strms
+        ellipses = (self.forecast_ellipses(deltaT, inact_ids, previous) +
+                    current)
 
         orphan_pts = [np.array(self._currCells[index]) for index in orph_strms]
         split_from = self._match_to_ellipses(orphan_pts, ellipses)
 
-        return {strmID : (-1 if index == -1 else exist_trcks[index]) for
+        return {strmID : (-1 if index == -1 else exist_strms[index]) for
                 strmID, index in zip(orph_strms, split_from)}
 
     @staticmethod
@@ -530,12 +641,13 @@ if __name__ == '__main__' :
                                   CreateSegments, CompareSegments
     from ZigZag.TrackFileUtils import ReadCorners, ReadTracks
 
-    #dirPath = "/home/ben/Programs/Tracking/NewSim1"
-    dirPath = "/home/bvr/TrackingStudy/SquallSim"
-    cornerVol = ReadCorners(dirPath + os.path.sep + "InputDataFile",
+    dirPath = "/home/ben/Programs/Tracking/NewSim1"
+    #dirPath = "/home/bvr/TrackingStudy/SquallSim"
+    cornerVol = ReadCorners(os.path.join(dirPath, "InputDataFile"),
                             dirPath)['volume_data']
 
-    true_tracks, true_falarms = FilterMHTTracks(*ReadTracks(dirPath + os.path.sep + "noise_tracks"))
+    true_tracks, true_falarms = FilterMHTTracks(*ReadTracks(os.path.join(
+                                                    dirPath, "noise_tracks")))
 
     frameLims = (0, len(cornerVol))
     print frameLims[1]
@@ -552,7 +664,8 @@ if __name__ == '__main__' :
     CleanupTracks(tracks, falarms)
 
     # Compare with "truth data"
-    segs = [CreateSegments(trackData) for trackData in (true_tracks, true_falarms,
+    segs = [CreateSegments(trackData) for trackData in (true_tracks,
+                                                        true_falarms,
                                                         tracks, falarms)]
     truthtable = CompareSegments(*segs)
 
