@@ -156,7 +156,7 @@ class TITAN(object) :
         return strms_end, strms_keep, strms_start
 
     def _handle_merges(self, strms_end, strms_keep, strms_start,
-                       merged_into) :
+                             merged_into) :
         """
         *merged_into*   dict of (strmID_1, strmID_2) pairs where strmID_1 is
                         the strmID of the storm (at current time - 1), and
@@ -170,6 +170,7 @@ class TITAN(object) :
         Therefore, we will not be fully implementing Dr. Dixon's merge/split
         handling logic with respect to translating and merging the track
         histories into one history.
+
         However, for each merger, we will ensure that at least one
         track gets continued (they don't always).
         """
@@ -182,22 +183,40 @@ class TITAN(object) :
         # Dump those storms that never matched.  We don't care about those
         rev_lookup.pop(-1, None)
 
-        for m_to, m_from in rev_lookup.items() :
+        for m_to, m_froms in rev_lookup.items() :
             # Gonna cheat here a bit.  I should be using the coordinates
             # that were used for matching, but... whatever...
             dists = [np.hypot(self._prevCells[strmID]['xLocs'] -
                                self._currCells[m_to]['xLocs'],
                               self._prevCells[strmID]['yLocs'] -
                                self._currCells[m_to]['yLocs']) for
-                     strmID in m_from]
+                     strmID in m_froms]
 
-            strm_from = m_from[np.argmin(dists)]
-            # TODO: do some housework with this information
-        # TODO: Find closest one and set that one as the track
-        return
+            strm_from = m_froms[np.argmin(dists)]
+
+            # Ok, so *strm_from* is being matched to *strm_to*
+            trckID = None
+
+            # We want to get *m_to* out of *strms_start*
+            if m_to in strms_start :
+                strms_start.pop(m_to)
+
+            # Now, remove *strm_from* from *strms_end*.
+            if strm_from in strms_end :
+                trckID = strms_end.pop(strm_from)
+
+            # We need to add *m_to* to *strms_keep* if it isn't there already
+            if m_to not in strms_keep :
+                if trckID is None :
+                    print "ERROR: Unknown trckID for merger!"
+                # This should only happen if *strms_from* was in *strms_end*
+                strms_keep[m_to] = trckID
+            elif (trckID is not None) and strms_keep[m_to] !=  trckID :
+                print "WARNING! Odd merging happened!"
+
 
     def _handle_splits(self, strms_end, strms_keep, strms_start,
-                       split_from) :
+                             split_from) :
         """
         *split_from*    dict of (strmID_1, strmID_2) pairs where strmID_1 is
                         the strmID of the storm that had split, and strmID_2
@@ -211,6 +230,7 @@ class TITAN(object) :
         Therefore, we will not be fully implementing Dr. Dixon's merge/split
         handling logic with respect to translating and copying the track
         history into multiple histories.
+
         However, for each split, we will ensure that at least one
         track gets continued (they don't always).
         """
@@ -223,21 +243,37 @@ class TITAN(object) :
         # Dump those storms that never matched.  We don't care about those
         rev_lookup.pop(-1, None)
 
-        for m_from, m_to in rev_lookup.items() :
+        for s_from, s_tos in rev_lookup.items() :
             # Gonna cheat here a bit.  I should be using the coordinates
             # that were used for matching, but... whatever...
-            dists = [np.hypot(self._prevCells[m_from]['xLocs'] -
+            dists = [np.hypot(self._prevCells[s_from]['xLocs'] -
                                self._currCells[strmID]['xLocs'],
-                              self._prevCells[m_from]['yLocs'] -
+                              self._prevCells[s_from]['yLocs'] -
                                self._currCells[strmID]['yLocs']) for
-                     strmID in m_to]
+                     strmID in s_tos]
 
-            strm_to = m_to[np.argmin(dists)]
-            # TODO: do some housework with this information
+            strm_to = s_tos[np.argmin(dists)]
 
+            # Ok, so *m_from* is being matched to *strm_to*
+            trckID = None
 
-        # TODO: Find closest one and set that one as the track
-        return
+            # We want to get *strm_to* out of *strms_start*
+            if strm_to in strms_start :
+                strms_start.pop(strm_to)
+
+            # Now, remove *s_from* from *strms_end*.
+            if s_from in strms_end :
+                trckID = strms_end.pop(s_from)
+
+            # We need to add *strm_to* to *strms_keep* if it isn't there already
+            if strm_to not in strms_keep :
+                if trckID is None :
+                    print "ERROR: Unknown trckID for split!"
+                # This should only happen if *s_from* was in *strms_end*
+                strms_keep[strm_to] = trckID
+            elif (trckID is not None) and strms_keep[strm_to] !=  trckID :
+                print "WARNING! Odd splitting happened!"
+
 
     def _update_tracks(self, currStrms, currFrame,
                        strms_end, strms_keep, strms_start) :
@@ -360,6 +396,8 @@ class TITAN(object) :
 
         merge_into = self.find_merges(dT, strms_end, strms_keep, strms_start)
         split_from = self.find_splits(dT, strms_end, strms_keep, strms_start)
+        self._handle_merges(strms_end, strms_keep, strms_start, merge_into)
+        self._handle_splits(strms_end, strms_keep, strms_start, split_from)
 
         self._update_tracks(self._currCells, frameNum,
                             strms_end, strms_keep, strms_start)
