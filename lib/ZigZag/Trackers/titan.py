@@ -445,6 +445,7 @@ class TITAN(object) :
         params = ['xLocs', 'yLocs', 'sizes']
 
         fcasts = [None] * len(trackIDs)
+        trends = [None] * len(trackIDs)
         for fIndex, trackIndex in enumerate(trackIDs) :
             track = self.tracks[trackIndex]
 
@@ -453,18 +454,24 @@ class TITAN(object) :
             x = track[params][-frames_back:]
             dT = np.diff(track['frameNums'][-frames_back:])
 
+            trnd = np.zeros((1,), dtype=x.dtype)
+
             if len(track) > 1 :
                 tmp = np.empty((1,), dtype=x.dtype)
+
                 for p in params :
-                    s, b = self._double_exp_smoothing(x[p], dT, alpha, alpha)
-                    tmp[p] = s + b*deltaT
+                    s, trnd[p] = self._double_exp_smoothing(x[p], dT, alpha, alpha)
+                    tmp[p] = s + trnd[p]*deltaT
                 fcasts[fIndex] = np.array(tmp[0])
+
 
             elif len(track) == 1 :
                 # Do a persistence fcast
                 fcasts[fIndex] = np.array(x[-1])
 
-        return fcasts
+            trends[fIndex] = trnd
+
+        return fcasts, trends
 
     def forecast_ellipses(self, deltaT, trackIDs, ellipses) :
         """
@@ -473,7 +480,7 @@ class TITAN(object) :
         state of the ellipses.
         """
         # Get the f-casted positions and sizes
-        fcasts = self.forecast_tracks(deltaT, trackIDs)
+        fcasts, _ = self.forecast_tracks(deltaT, trackIDs)
         f_ellipses = [None] * len(ellipses)
 
         for index, (ellpse, f) in enumerate(zip(ellipses, fcasts)) :
@@ -554,7 +561,7 @@ class TITAN(object) :
         inact_strms, inact_ids = (([], []) if len(strms_end) == 0 else
                                   zip(*strms_end.items()))
 
-        fcasted_pts = self.forecast_tracks(deltaT, inact_ids)
+        fcasted_pts, _ = self.forecast_tracks(deltaT, inact_ids)
         merged_into = self._match_to_ellipses(fcasted_pts,
                             [self.ellipses[frameIndex][strmID] for strmID in
                              act_strms])
@@ -643,7 +650,7 @@ class TITAN(object) :
                 if ellp is None :
                     continue
 
-                print "Ellipse:", ellp
+                #print "Ellipse:", ellp
                 in_ellipse = TITAN._contains(xs, ys, ellp[0][0], ellp[0][1],
                                              ellp[1], ellp[2], ellp[3])
                 dists = np.hypot(xs[in_ellipse] - ellp[0][0],
@@ -679,8 +686,8 @@ if __name__ == '__main__' :
                                   CreateSegments, CompareSegments
     from ZigZag.TrackFileUtils import ReadCorners, ReadTracks
 
-    dirPath = "/home/ben/Programs/Tracking/NewSim1"
-    #dirPath = "/home/bvr/TrackingStudy/SquallSim"
+    #dirPath = "/home/ben/Programs/Tracking/NewSim1"
+    dirPath = "/home/bvr/TrackingStudy/SquallSim"
     cornerVol = ReadCorners(os.path.join(dirPath, "InputDataFile"),
                             dirPath)['volume_data']
 

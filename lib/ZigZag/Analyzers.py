@@ -138,7 +138,8 @@ def Skill_TrackLen(tracks, **kwargs) :
     """
     Using one of Lak's measures for goodness of tracking  -- median length/duration of tracks
     """
-    return np.median([aTrack['frameNums'].ptp() for aTrack in tracks])
+    trackLens = [aTrack['frameNums'].ptp() for aTrack in tracks]
+    return np.median([trckLen for trckLen in trackLens if trckLen > 2])
 
 _register_trackskill(Skill_TrackLen, "Dur")
 
@@ -147,9 +148,10 @@ def Skill_LineErr(tracks, **kwargs) :
     Using one of Lak's measures for goodness of tracking -- mean RMSE of
     the tracks against their respective best-fit lines.
     """
+    medianLen = Skill_TrackLen(tracks)
     fiterr = []
     for aTrack in tracks :
-        if len(aTrack) < 3 :
+        if aTrack['frameNums'].ptp() < medianLen :
             continue
         a, b = polyfit(aTrack['xLocs'], aTrack['yLocs'], 1)
         y_fit = polyval([a, b], aTrack['xLocs'])
