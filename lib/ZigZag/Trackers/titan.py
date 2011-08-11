@@ -194,21 +194,30 @@ class TITAN(object) :
 
             strm_from = m_froms[np.argmin(dists)]
 
-            # Ok, so *strm_from* is being matched to *strm_to*
-            trckID = None
+            # Doing a bit of cheating here.  If *strm_from* is not in
+            # *strms_end*, then that means that storm already got
+            # tracked, somehow.  Now, it may be that it tracked to
+            # *m_to* and all is well.
+            # However, I wonder if it is possible if it could have
+            # matched to a storm not listed in *m_to*? In that case,
+            # then a butt-load of housekeeping needs to be done to
+            # undo that association and mess things up.
+            # Just skip such a scenario until we can better understand
+            # the required logic.
+            if strm_from not in strms_end :
+                continue
 
             # We want to get *m_to* out of *strms_start*
-            if m_to in strms_start :
-                strms_start.pop(m_to)
+            strms_start.pop(m_to, None)
 
             # Now, remove *strm_from* from *strms_end*.
-            if strm_from in strms_end :
-                trckID = strms_end.pop(strm_from)
+            # If it wasn't in strms_end, then it was continued already.
+            trckID = strms_end.pop(strm_from, None)
 
             # We need to add *m_to* to *strms_keep* if it isn't there already
             if m_to not in strms_keep :
                 if trckID is None :
-                    print "ERROR: Unknown trckID for merger!"
+                    raise Exception("ERROR: Unknown trckID for merger!")
                 # This should only happen if *strms_from* was in *strms_end*
                 strms_keep[m_to] = trckID
             elif (trckID is not None) and strms_keep[m_to] !=  trckID :
@@ -244,6 +253,20 @@ class TITAN(object) :
         rev_lookup.pop(-1, None)
 
         for s_from, s_tos in rev_lookup.items() :
+            # Doing a bit of cheating here.  If *s_from* is not in
+            # *strms_end*, then that means that storm already got
+            # tracked, somehow.  Now, it may be that it tracked to
+            # one of the *s_tos* and all is well.
+            # However, I wonder if it is possible if it could have
+            # matched to a storm not listed in *s_tos*? In that case,
+            # then a butt-load of housekeeping needs to be done to
+            # undo that association (which may undo a merging...)
+            # and mess things up.
+            # Just skip such a scenario until we can better understand
+            # the required logic.
+            if s_from not in strms_end :
+                continue
+
             # Gonna cheat here a bit.  I should be using the coordinates
             # that were used for matching, but... whatever...
             dists = [np.hypot(self._prevCells[s_from]['xLocs'] -
@@ -254,21 +277,18 @@ class TITAN(object) :
 
             strm_to = s_tos[np.argmin(dists)]
 
-            # Ok, so *m_from* is being matched to *strm_to*
-            trckID = None
-
+            # Ok, so *s_from* is being matched to *strm_to*
             # We want to get *strm_to* out of *strms_start*
-            if strm_to in strms_start :
-                strms_start.pop(strm_to)
+            strms_start.pop(strm_to, None)
 
             # Now, remove *s_from* from *strms_end*.
-            if s_from in strms_end :
-                trckID = strms_end.pop(s_from)
+            # If it wasn't in strms_end, then it was tracked...
+            trckID = strms_end.pop(s_from, None)
 
             # We need to add *strm_to* to *strms_keep* if it isn't there already
             if strm_to not in strms_keep :
                 if trckID is None :
-                    print "ERROR: Unknown trckID for split!"
+                    raise Exception("ERROR: Unknown trckID for split!")
                 # This should only happen if *s_from* was in *strms_end*
                 strms_keep[strm_to] = trckID
             elif (trckID is not None) and strms_keep[strm_to] !=  trckID :
@@ -555,10 +575,10 @@ class TITAN(object) :
         strms = dict(strms_keep, **strms_start)
 
         # strmIDs, trackIDs
-        act_strms, act_ids = (([], []) if len(strms) == 0 else
+        act_strms, act_ids = (((), ()) if len(strms) == 0 else
                               zip(*strms.items()))
 
-        inact_strms, inact_ids = (([], []) if len(strms_end) == 0 else
+        inact_strms, inact_ids = (((), ()) if len(strms_end) == 0 else
                                   zip(*strms_end.items()))
 
         fcasted_pts, _ = self.forecast_tracks(deltaT, inact_ids)
@@ -591,13 +611,13 @@ class TITAN(object) :
         did not split from other tracks.
         """
         # strmIDs, trackIDs
-        act_strms, act_ids = (([], []) if len(strms_keep) == 0 else
+        act_strms, act_ids = (((), ()) if len(strms_keep) == 0 else
                               zip(*strms_keep.items()))
 
-        inact_strms, inact_ids = (([], []) if len(strms_end) == 0 else
+        inact_strms, inact_ids = (((), ()) if len(strms_end) == 0 else
                                   zip(*strms_end.items()))
 
-        orph_strms, orph_ids = (([], []) if len(strms_start) == 0 else
+        orph_strms, orph_ids = (((), ()) if len(strms_start) == 0 else
                                 zip(*strms_start.items()))
 
         previous = ([] if abs(frameIndex) >= len(self.ellipses) else
@@ -650,17 +670,16 @@ class TITAN(object) :
                 if ellp is None :
                     continue
 
-                #print "Ellipse:", ellp
                 in_ellipse = TITAN._contains(xs, ys, ellp[0][0], ellp[0][1],
                                              ellp[1], ellp[2], ellp[3])
-                dists = np.hypot(xs[in_ellipse] - ellp[0][0],
-                                 ys[in_ellipse] - ellp[0][1])
+                dists = np.hypot(xs - ellp[0][0],
+                                 ys - ellp[0][1])
 
                 # If this storm matches to this ellipse better than
                 # previous matches, then switch it over.
-                match = (dists < dist_to_ellps[in_ellipse])
-                matched_to[in_ellipse][match] = trackindex
-                dist_to_ellps[in_ellipse][match] = dists[match]
+                match = (dists < dist_to_ellps)
+                matched_to[in_ellipse & match] = trackindex
+                dist_to_ellps[in_ellipse & match] = dists[in_ellipse & match]
 
         return matched_to.tolist()
 
