@@ -186,13 +186,16 @@ class TITAN(object) :
         for m_to, m_froms in rev_lookup.items() :
             # Gonna cheat here a bit.  I should be using the coordinates
             # that were used for matching, but... whatever...
-            dists = [np.hypot(self._prevCells[strmID]['xLocs'] -
-                               self._currCells[m_to]['xLocs'],
-                              self._prevCells[strmID]['yLocs'] -
-                               self._currCells[m_to]['yLocs']) for
-                     strmID in m_froms]
+            xshifts = [self._currCells[m_to]['xLocs'] -
+                       self._prevCells[strmID]['xLocs'] for
+                       strmID in m_froms]
+            yshifts = [self._currCells[m_to]['yLocs'] -
+                       self._prevCells[strmID]['yLocs'] for
+                       strmID in m_froms]
+            dists = np.hypot(xshifts, yshifts)
 
-            strm_from = m_froms[np.argmin(dists)]
+            strm_index = np.argmin(dists)
+            strm_from = m_froms[strm_index]
 
             # Doing a bit of cheating here.  If *strm_from* is not in
             # *strms_end*, then that means that storm already got
@@ -220,7 +223,14 @@ class TITAN(object) :
                     raise Exception("ERROR: Unknown trckID for merger!")
                 # This should only happen if *strms_from* was in *strms_end*
                 strms_keep[m_to] = trckID
-            elif (trckID is not None) and strms_keep[m_to] !=  trckID :
+
+                # Now, shift the track so the trend history makes more sense
+                # TODO: This isn't done exactly as it was done in Dixon's paper,
+                # but it approximates the effect.
+                self.tracks[trckID]['xLocs'] += xshifts[strm_index]
+                self.tracks[trckID]['yLocs'] += yshifts[strm_index]
+
+            elif (trckID is not None) and strms_keep[m_to] != trckID :
                 print "WARNING! Odd merging happened!"
 
 
@@ -269,13 +279,16 @@ class TITAN(object) :
 
             # Gonna cheat here a bit.  I should be using the coordinates
             # that were used for matching, but... whatever...
-            dists = [np.hypot(self._prevCells[s_from]['xLocs'] -
-                               self._currCells[strmID]['xLocs'],
-                              self._prevCells[s_from]['yLocs'] -
-                               self._currCells[strmID]['yLocs']) for
-                     strmID in s_tos]
+            xshifts = [self._currCells[strmID]['xLocs'] -
+                       self._prevCells[s_from]['xLocs'] for
+                        strmID in s_tos]
+            yshifts = [self._currCells[strmID]['yLocs'] -
+                       self._prevCells[s_from]['yLocs'] for
+                        strmID in s_tos]
+            dists = np.hypot(xshifts, yshifts)
 
-            strm_to = s_tos[np.argmin(dists)]
+            strm_index = np.argmin(dists)
+            strm_to = s_tos[strm_index]
 
             # Ok, so *s_from* is being matched to *strm_to*
             # We want to get *strm_to* out of *strms_start*
@@ -291,7 +304,14 @@ class TITAN(object) :
                     raise Exception("ERROR: Unknown trckID for split!")
                 # This should only happen if *s_from* was in *strms_end*
                 strms_keep[strm_to] = trckID
-            elif (trckID is not None) and strms_keep[strm_to] !=  trckID :
+
+                # Now, shift the track so that the trend history makes more sense
+                # TODO: This isn't done exactly as it was done in Dixon's paper,
+                # but it approximates the effect.
+                self.tracks[trckID]['xLocs'] += xshifts[strm_index]
+                self.tracks[trckID]['yLocs'] += yshifts[strm_index]
+
+            elif (trckID is not None) and strms_keep[strm_to] != trckID :
                 print "WARNING! Odd splitting happened!"
 
 
@@ -586,6 +606,18 @@ class TITAN(object) :
                             [self.ellipses[frameIndex][strmID] for strmID in
                              act_strms])
 
+        # Produce a dict that for each storm that a merge ocurred
+        # into, have a list of storms that merged into it.
+        rev_lookup = defaultdict(list)
+        for strmID1, strmID2 in enumerate(merged_into) :
+            rev_lookup[strmID2].append(strmID1)
+
+        # For any mergers that had only one storm merge into it,
+        # invalidate that since that wasn't really a merger.
+        for strmID2, strms in rev_lookup.items() :
+            if len(strms) == 1 :
+                merged_into[strms[0]] = -1
+
         return {strmID : (-1 if index == -1 else act_strms[index]) for
                 strmID, index in zip(inact_strms, merged_into)}
         
@@ -636,6 +668,18 @@ class TITAN(object) :
 
         orphan_pts = [np.array(self._currCells[index]) for index in orph_strms]
         split_from = self._match_to_ellipses(orphan_pts, ellipses)
+
+        # Produce a dict that for each storm that a split ocurred
+        # from, have a list of storms that split from it.
+        rev_lookup = defaultdict(list)
+        for strmID1, strmID2 in enumerate(split_from) :
+            rev_lookup[strmID2].append(strmID1)
+
+        # For any mergers that had only one storm split from it,
+        # invalidate that since that wasn't really a split.
+        for strmID2, strms in rev_lookup.items() :
+            if len(strms) == 1 :
+                split_from[strms[0]] = -1
 
         return {strmID : (-1 if index == -1 else exist_strms[index]) for
                 strmID, index in zip(orph_strms, split_from)}
