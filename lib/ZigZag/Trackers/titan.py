@@ -476,6 +476,10 @@ class TITAN(object) :
        
 
     def forecast_tracks(self, deltaT, trackIDs) :
+        """
+        Forecast the position of the tracks indicated by *trackIDs*.
+        *deltaT* is the forecast time in the same units as the frameindex.
+        """
         # Should probably be either properties of the object
         # or parameters into this function.
         # Current values choosen based on Dixon and Weiner paper
@@ -500,7 +504,8 @@ class TITAN(object) :
                 tmp = np.empty((1,), dtype=x.dtype)
 
                 for p in params :
-                    s, trnd[p] = self._double_exp_smoothing(x[p], dT, alpha, alpha)
+                    s, trnd[p] = self._double_exp_smoothing(x[p], dT, alpha,
+                                                            alpha)
                     tmp[p] = s + trnd[p]*deltaT
                 fcasts[fIndex] = np.array(tmp[0])
 
