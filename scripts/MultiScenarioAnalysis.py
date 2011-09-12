@@ -331,6 +331,9 @@ def main(args) :
         if args.tick_disp == 'group' :
             args.tick_disp = args.groupby[1]
 
+    plt.rcParams['axes.color_cycle'] = ['k']
+    plt.rcParams['style.cycle'] = True
+
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
         set([args.fig_disp, args.plot_disp, args.tick_disp])) :

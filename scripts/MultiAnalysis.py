@@ -14,6 +14,9 @@ def main(args) :
     n_boot = 100
     ci_alpha = 0.05
 
+    plt.rcParams['axes.color_cycle'] = ['k']
+    plt.rcParams['style.cycle'] = True
+
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
     fullNames = [os.path.join(args.multiSim, aSim) for aSim in simNames]
     commonTrackRuns = CommonTrackRuns(fullNames, args.directory)
