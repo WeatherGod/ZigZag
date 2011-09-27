@@ -8,3 +8,5 @@ argparse (should already be available in more recent versions of python...)
 configobj (should already be available in more recent versions of python...)
 
 MHT (assumed to be installed in ~/Programs/mht_tracking/)
+
+Copyright 2011 - BSD Licensed
