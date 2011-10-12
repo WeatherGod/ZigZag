@@ -56,6 +56,7 @@ def main(args) :
     # store the animations in this list to prevent them from going out of scope and GC'ed
     anims = []
 
+
     # A common timer for all animations for syncing purposes.
     theTimer = None
 
@@ -75,6 +76,9 @@ def main(args) :
             stackedTracks += aTracker[0] + aTracker[1]
         (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
+    animator = SegAnimator(theFig, min(frameLims), max(frameLims),
+                                   max(frameLims) - min(frameLims) + 1)
+
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
 
@@ -82,12 +86,15 @@ def main(args) :
             trackAssocSegs = CreateSegments(aTracker[0])
             trackFAlarmSegs = CreateSegments(aTracker[1])
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-            l = Animate_Segments(truthtable, frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+            l, d = Animate_Segments(truthtable, frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
         else :
-            l = Animate_PlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+            l, d = Animate_PlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+
+        animator._lines.extend(l)
+        animator._lineData.extend(d)
             
         if theTimer is None :
-            theTimer = l.event_source
+            theTimer = animator.event_source
 
         anims.append(l)
 
@@ -100,7 +107,7 @@ def main(args) :
         curAxis.set_ylabel("Y")
 
 
-    #anims[0].save("test.mp4")
+    #animator.save("test.mp4")
     plt.show()
 
 

@@ -67,7 +67,7 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=Non
     if axis is None :
         axis = figure.gca()
 
-    tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=True) 
+    tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=False) 
 
     theLines = []
     theSegs = []
@@ -76,7 +76,8 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=Non
         theLines += tableLines[keyname]
         theSegs += truthTable[keyname]
 
-    return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
+    return theLines, theSegs
+    #return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
 
 #############################################
 #           Corner Plotting                 #
@@ -122,6 +123,30 @@ class CornerAnimation(FuncAnimation) :
 #############################################
 #           Animation Code                  #
 #############################################
+class SegAnimator(FuncAnimation) :
+    def __init__(self, fig, startFrame, endFrame, tail) :
+        self._lineData = []
+        self._lines = []
+        FuncAnimation.__init__(self, fig, self.update_lines,
+                                     endFrame - startFrame + 1,
+                                     fargs=(self._lineData, self._lines,
+                                            startFrame, endFrame, tail),
+                                     interval=500, blit=True)
+
+    def update_lines(self, idx, lineData, lines, firstFrame, lastFrame, tail) :
+        theHead = min(max(idx, firstFrame), lastFrame)
+        startTail = max(theHead - tail, firstFrame)
+
+        for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
+            mask = np.logical_and(aSeg['frameNums'] <= theHead,
+                                  aSeg['frameNums'] >= startTail)
+
+            line.set_xdata(aSeg['xLocs'][mask])
+            line.set_ydata(aSeg['yLocs'][mask])
+        return lines
+
+
+
 def AnimateLines(lines, lineData, startFrame, endFrame, 
                  figure=None, axis=None,
                  speed=1.0, loop_hold=2.0, tail=None, event_source=None) :
@@ -202,7 +227,7 @@ def PlotTracks(true_tracks, model_tracks, startFrame=None, endFrame=None,
     trueLines = PlotTrack(true_tracks, startFrame, endFrame,
                           marker='.', markersize=9.0,
                           color='grey', linewidth=2.5, linestyle=':', 
-                          animated=False, zorder=1, axis=axis)
+                          animated=animated, zorder=1, axis=axis)
     modelLines = PlotTrack(model_tracks, startFrame, endFrame, 
                            marker='.', markersize=8.0, 
                            color='r', linewidth=2.5, alpha=0.55, 
@@ -238,11 +263,12 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
 
     # create the initial lines    
     theLines = PlotTracks(true_tracks, model_tracks, startFrame, endFrame, 
-                          axis=axis, animated=True)
+                          axis=axis, animated=False)
 
     return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
                         true_tracks + model_tracks, startFrame, endFrame,
-                        axis=axis, figure=figure, event_source=event_source, **kwargs)
+                        axis=axis, figure=figure, event_source=event_source,
+                        **kwargs)
 
 
 def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
@@ -258,10 +284,10 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
 
     # Create the initial lines
     theLines = PlotPlainTracks(tracks, falarms, startFrame, endFrame,
-                               axis=axis, animated=True)
+                               axis=axis, animated=False)
 
     return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
                         tracks + falarms, startFrame, endFrame,
-                        axis=axis, figure=figure, event_source=event_source, **kwargs)
-
+                        axis=axis, figure=figure, event_source=event_source,
+                        **kwargs)
 
