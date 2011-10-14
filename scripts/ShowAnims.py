@@ -6,6 +6,19 @@ from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), Doma
 import ZigZag.ParamUtils as ParamUtils           # for ReadSimulationParams()
 from ZigZag.ListRuns import ExpandTrackRuns
 
+from BRadar.maputils import LatLonFrom
+from mpl_toolkits.basemap import Basemap
+from BRadar.maputils import PlotMapLayers, mapLayers
+
+def CoordinateChange(tracks, cent_lon, cent_lat) :
+    for track in tracks :
+        # Purposely backwards to get bearing relative to 0 North
+        azi = np.rad2deg(np.arctan2(track['xLocs'], track['yLocs']))
+        dists = np.hypot(track['xLocs'], track['yLocs']) * 1000
+        lats, lons = LatLonFrom(cent_lat, cent_lon, dists, azi)
+        track['xLocs'] = lons
+        track['yLocs'] = lats
+
 
 def main(args) :
     import os.path			# for os.path.join()
@@ -47,6 +60,11 @@ def main(args) :
 
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
+    if args.statLonLat is not None :
+        for aTracker in trackerData :
+            CoordinateTransform(aTracker[0] + aTracker[1],
+                                args.statLonLat[0],
+                                args.statLonLat[1])
 
 
     theFig = plt.figure(figsize=args.figsize)
@@ -66,6 +84,11 @@ def main(args) :
         true_AssocSegs = CreateSegments(true_tracks)
         true_FAlarmSegs = CreateSegments(true_falarms)
 
+        if args.statLonLat is not None :
+            CoordinateTransform(true_tracks + true_falarms,
+                                args.statLonLat[0],
+                                args.statLonLat[1])
+
         (xLims, yLims, frameLims) = DomainFromTracks(true_tracks + true_falarms)
     else :
         true_AssocSegs = None
@@ -76,11 +99,22 @@ def main(args) :
             stackedTracks += aTracker[0] + aTracker[1]
         (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
+    showMap = (args.statLonLat is not None and args.displayMap)
+
+    if showMap :
+        bmap = Basemap(projection='cyl', resolution='i',
+                       suppress_ticks=False,
+                       llcrnrlat=yLims[0], llcrnrlon=xLims[0],
+                       urcrnrlat=yLims[1], urcrnrlon=xLims[1])
+
     animator = SegAnimator(theFig, min(frameLims), max(frameLims),
                                    max(frameLims) - min(frameLims) + 1)
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
+
+        if showMap :
+            PlotMapLayers(bmap, mapLayers, curAxis)
 
         if true_AssocSegs is not None and true_FAlarmSegs is not None :
             trackAssocSegs = CreateSegments(aTracker[0])
@@ -103,12 +137,19 @@ def main(args) :
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")
         curAxis.set_title(trackTitles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
+        if not showMap :
+            curAxis.set_xlabel("X")
+            curAxis.set_ylabel("Y")
+        else :
+            curAxis.set_xlabel("Longitude (degrees)")
+            curAxis.set_ylabel("Latitude (degrees)")
 
 
-    #animator.save("test.mp4")
-    plt.show()
+    if args.saveImgFile is not None :
+        animator.save(args.saveImgFile)
+
+    if args.doShow :
+        plt.show()
 
 
 if __name__ == '__main__' :
