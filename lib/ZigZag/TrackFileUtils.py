@@ -184,35 +184,37 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
     """
     NOTE: This is not suitable yet for getting truth tables for Track Plotting!
     """
+    """
     correctFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs")
     wrongFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs")
     corrIndsFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Correct.ind")
     wrongIndsFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Wrong.ind")
+    """
     resultFilename = os.path.join(path, simParams['result_file'] + "_" + trackrun)
     (finalTracks, finalFAlarms) = TrackUtils.FilterMHTTracks(*ReadTracks(resultFilename))
 
-    result_mtime = os.path.getmtime(resultFilename)
+    #result_mtime = os.path.getmtime(resultFilename)
 
-    if (not (os.path.exists(correctFilename) and os.path.exists(wrongFilename)
-             and os.path.exists(corrIndsFilename) and os.path.exists(wrongIndsFilename))
-       or (os.path.getmtime(correctFilename) < result_mtime)
-       or (os.path.getmtime(wrongFilename) < result_mtime)
-       or (os.path.getmtime(corrIndsFilename) < result_mtime)
-       or (os.path.getmtime(wrongIndsFilename) < result_mtime)) :
+    if True : #(not (os.path.exists(correctFilename) and os.path.exists(wrongFilename)
+             #and os.path.exists(corrIndsFilename) and os.path.exists(wrongIndsFilename))
+       #or (os.path.getmtime(correctFilename) < result_mtime)
+       #or (os.path.getmtime(wrongFilename) < result_mtime)
+       #or (os.path.getmtime(corrIndsFilename) < result_mtime)
+       #or (os.path.getmtime(wrongIndsFilename) < result_mtime)) :
         # rebuild the correct and wrong segments files because they either
         # don't exist or the result file is newer than one of the segments files.
-        trackerAssocSegs = TrackUtils.CreateSegments(finalTracks)
-        trackerFAlarmSegs = TrackUtils.CreateSegments(finalFAlarms)
-
+        trk_segs = TrackUtils.CreateSegments(finalTracks + finalFAlarms)
 
         #truthTable = TrackUtils.CompareSegments(true_AssocSegs, true_FAlarmSegs,
         #                                        trackerAssocSegs, trackerFAlarmSegs)
-        truthTable = TrackUtils.MakeTruthTable(true_AssocSegs, true_FAlarmSegs,
-                                                trackerAssocSegs, trackerFAlarmSegs)
+        truthTable = TrackUtils.MakeContingency(true_AssocSegs + true_FAlarmSegs,
+                                                trk_segs)
 
-        SaveTruthTable(trackrun, os.path.join(path, simParams['analysis_stem']), truthTable)
+        #SaveTruthTable(trackrun, os.path.join(path, simParams['analysis_stem']), truthTable)
 
     else :
+        pass
+        """
         # Ok, the results are not newer than the cached truth table segments file, so the
         # cached truth table segments files are valid. So load the cache.
         assocs_Correct, falarms_Correct = TrackUtils.FilterMHTTracks(*ReadTracks(correctFilename))
@@ -225,6 +227,7 @@ def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.
                       'assocs_Wrong': assocs_Wrong, 'falarms_Wrong': falarms_Wrong,
                       'correct_indices': correct_indices,
                       'wrong_indices': wrong_indices}
+        """
 
     return truthTable, finalTracks, finalFAlarms
 
