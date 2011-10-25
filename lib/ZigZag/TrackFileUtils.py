@@ -13,13 +13,20 @@ falarm_cols = {'xLocs': 0, 'yLocs': 1, 'frameNums': 2, 'cornerIDs': 3,
                # appended on with default values.
                'st_xLocs': -2, 'st_yLocs': -2, 'types': -1}
 
-def SaveTracks(simTrackFile, tracks, falarms = []) :
+def SaveTracks(simTrackFile, tracks, falarms=()) :
     dataFile = open(simTrackFile, 'w')
+
+    non_empty = [(len(trk) > 0) for trk in tracks]
     
-    dataFile.write("%d\n" % (len(tracks)))
+    dataFile.write("%d\n" % (sum(non_empty)))
     dataFile.write("%d\n" % (len(falarms)))
 
     for (index, track) in enumerate(tracks) :
+        if len(track) == 0 :
+            # The track loader function is incapable of loading
+            # empty tracks properly.
+            continue
+
         dataFile.write("%d %d\n" % (index, len(track)))
         for centroid in track :
             dataFile.write("%(types)s %(xLocs).10f %(yLocs).10f %(st_xLocs).10f %(st_yLocs).10f 0.0 0 %(frameNums)d CONSTANT VELOCITY %(cornerIDs)d\n" % 
@@ -62,10 +69,15 @@ def ReadTracks(fileName) :
         tempList = line.split()
     
         if len(tracks) == trackCounter and trackCounter < contourCnt :
-            #print "Reading Begining of track   curTrackCnt: %d   trackCounter: %d    contourCnt: %d" % (len(tracks['tracks']), trackCounter, contourCnt)
-            centroidCnt = 0
             trackID = int(tempList[0])
             trackLen = int(tempList[1])
+
+            # Quick sanity check...
+            if trackLen == 0 :
+                raise ValueError("Empty track %d in %s" % (trackID, fileName))
+
+            #print "Reading Begining of track   curTrackCnt: %d   trackCounter: %d    contourCnt: %d" % (len(tracks['tracks']), trackCounter, contourCnt)
+            centroidCnt = 0
 
             tracks.append(np.empty(trackLen, dtype=TrackUtils.base_track_dtype))
             continue
