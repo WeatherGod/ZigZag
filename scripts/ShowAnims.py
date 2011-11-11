@@ -119,10 +119,16 @@ def main(args) :
         if true_AssocSegs is not None and true_FAlarmSegs is not None :
             trackAssocSegs = CreateSegments(aTracker[0])
             trackFAlarmSegs = CreateSegments(aTracker[1])
-            truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs, trackAssocSegs, trackFAlarmSegs)
-            l, d = Animate_Segments(truthtable, frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+            truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
+                                         trackAssocSegs, trackFAlarmSegs)
+            l, d = Animate_Segments(truthtable, frameLims, axis=curAxis,
+                                    speed=0.1, loop_hold=3.0,
+                                    event_source=theTimer)
         else :
-            l, d = Animate_PlainTracks(aTracker[0], aTracker[1], frameLims, axis=curAxis, speed=0.1, loop_hold=3.0, event_source=theTimer)
+            l, d = Animate_PlainTracks(aTracker[0], aTracker[1],
+                                       frameLims, axis=curAxis,
+                                       speed=0.1, loop_hold=3.0,
+                                       event_source=theTimer)
 
         animator._lines.extend(l)
         animator._lineData.extend(d)
