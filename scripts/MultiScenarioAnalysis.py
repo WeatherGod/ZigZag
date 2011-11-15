@@ -112,6 +112,8 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                           ax, startLoc=startLoc, label=label,
                           fmt=fmt)
 
+    leg_objs = []
+
     for aFig, title in zip(figs, figTitles) :
         ax = aFig.gca()
         ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
@@ -121,9 +123,12 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
         ax.set_title(title)
         # We want the upper-right corner of the legend to be
         # in the figure's upper right corner.
-        ax.legend(numpoints=1, loc='upper right',
-                  bbox_transform=aFig.transFigure,
-                  bbox_to_anchor=(0.99, 0.99))
+        leg = ax.legend(numpoints=1, loc='upper left',
+                        #bbox_transform=aFig.transFigure,
+                        bbox_to_anchor=(1.01, 1.01))
+        leg_objs.append(leg)
+
+    return leg_objs
 
 def Rearrange(display, *args) :
     # Now we need to roll data axes around so that it matches with what the
@@ -202,15 +207,19 @@ def main(args) :
                      defaultLabels[display['plot']]
 
         figs = [plt.figure(figsize=args.figsize) for title in figTitles]
-        DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
+        legs = DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                                   meanSkills, skills_ci_upper, skills_ci_lower,
                                   figs, dispMode=args.dispMode)
 
 
-        for aFig, title in zip(figs, defaultLabels[display['fig']]) :
+        for aFig, legend, title in zip(figs, legs,
+                                       defaultLabels[display['fig']]) :
             aFig.gca().set_xlabel(args.xlabel)
             if args.saveImgFile is not None :
-                aFig.savefig("%s_%s.%s" % (args.saveImgFile, title, args.imageType))
+                aFig.savefig("%s_%s.%s" % (args.saveImgFile,
+                                           title, args.imageType),
+                             bbox_inches='tight', pad_inches=0.25,
+                             bbox_extra_artists=[legend])
 
         if args.doShow :
             plt.show()
