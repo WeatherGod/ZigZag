@@ -265,10 +265,13 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
     theLines = PlotTracks(true_tracks, model_tracks, startFrame, endFrame, 
                           axis=axis, animated=False)
 
-    return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
-                        true_tracks + model_tracks, startFrame, endFrame,
-                        axis=axis, figure=figure, event_source=event_source,
-                        **kwargs)
+    return (theLines['trueLines'] + theLines['modelLines'],
+            true_tracks + model_tracks)
+
+    #return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
+    #                    true_tracks + model_tracks, startFrame, endFrame,
+    #                    axis=axis, figure=figure, event_source=event_source,
+    #                    **kwargs)
 
 
 def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
@@ -286,8 +289,11 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
     theLines = PlotPlainTracks(tracks, falarms, startFrame, endFrame,
                                axis=axis, animated=False)
 
-    return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-                        tracks + falarms, startFrame, endFrame,
-                        axis=axis, figure=figure, event_source=event_source,
-                        **kwargs)
+    return (theLines['trackLines'] + theLines['falarmLines'],
+            tracks + falarms)
+
+    #return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
+    #                    tracks + falarms, startFrame, endFrame,
+    #                    axis=axis, figure=figure, event_source=event_source,
+    #                    **kwargs)
 

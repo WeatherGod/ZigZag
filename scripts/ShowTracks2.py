@@ -37,7 +37,7 @@ def main(args) :
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout, aspect=False,
-                            share_all=True, axes_pad=0.35)
+                            share_all=True, axes_pad=0.45)
     
     MakeTrackPlots(grid, trackerData, args.trackTitles)
 

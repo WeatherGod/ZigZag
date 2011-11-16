@@ -378,19 +378,12 @@ _zigargs['ParamSearch'] = [
           metavar="VAL"))
     ]
 
-
-
-_zigargs['ShowTracks2'] = [
-    (("trackFiles",),
-     dict(nargs='+',
-          help="TRACKFILEs to use for display",
-          metavar="TRACKFILE")),
+show_opts = [
     (("--titles",),
      dict(dest='trackTitles', type=str,
-          nargs='*', help=("Titles to use for the figure subplots. "
+          nargs='+', help=("Titles to use for the figure subplots. "
                            "Default is to use the filenames."),
           metavar="TITLE", default=None)),
-
     (("--save",),
      dict(dest="saveImgFile",
           help="Save the resulting image as FILENAME.",
@@ -399,7 +392,6 @@ _zigargs['ShowTracks2'] = [
      dict(dest="doShow", action = 'store_false',
           help="To display or not to display...",
           default=True)),
-
     (("-l", "--layout"),
      dict(dest="layout", type=int,
           nargs=2, help=("Layout of the subplots (rows x columns). "
@@ -409,6 +401,9 @@ _zigargs['ShowTracks2'] = [
      dict(dest="figsize", type=float,
           nargs=2, help="Size of the figure in inches (width x height). Default: auto",
           metavar="SIZE", default=None)),
+    ]
+
+map_opts = [
     (("--station",),
      dict(dest="statLonLat", type=float,
           nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
@@ -419,11 +414,18 @@ _zigargs['ShowTracks2'] = [
     (("-m", "--map"),
      dict(dest="displayMap",
           action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--stayion' option."),
+                                     " Only valid with '--station' option."),
           default=False))
-         
-
     ]
+
+
+
+_zigargs['ShowTracks2'] = [
+    (("trackFiles",),
+     dict(nargs='+',
+          help="TRACKFILEs to use for display",
+          metavar="TRACKFILE")),
+    ] + show_opts #+ map_opts
 
 
 _zigargs['ShowCompare2'] = [
@@ -435,88 +437,14 @@ _zigargs['ShowCompare2'] = [
      dict(dest="truthTrackFile", nargs='+',
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE")),
-    (("--titles",),
-     dict(dest='trackTitles', type=str,
-          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-          metavar="TITLE", default=None)),
-
-    (("--save",),
-     dict(dest="saveImgFile",
-          help="Save the resulting image as FILENAME.",
-          metavar="FILENAME", default=None)),
-    (("--noshow",),
-     dict(dest="doShow", action = 'store_false',
-          help="To display or not to display...",
-          default=True)),
-
-    (("-l", "--layout"),
-     dict(dest="layout", type=int,
-          nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-          metavar="NUM", default=None)),
-    (("-f", "--figsize"),
-     dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
-          metavar="SIZE", default=None)),
-
-    (("--station",),
-     dict(dest="statLonLat", type=float,
-          nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
-                         " When specified, the domain will change to"
-                         " Longitude and Latitude, and map layers can be"
-                         " displayed with '-m' switch."),
-          metavar="COORDS", default=None)),
-    (("-m", "--map"),
-     dict(dest="displayMap",
-          action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--station' option."),
-          default=False))
-
-    ]
+    ] + show_opts #+ map_opts
 
 _zigargs['ShowCorners2'] = [
     (("inputDataFiles",),
      dict(nargs='+',
           help="Use INDATAFILE for finding corner data files",
           metavar="INDATAFILE")),
-    (("--titles",),
-     dict(dest='trackTitles', type=str,
-          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-          metavar="TITLE", default=None)),
-
-    (("--save",),
-     dict(dest="saveImgFile",
-          help="Save the resulting image as FILENAME.",
-          metavar="FILENAME", default=None)),
-    (("--noshow",),
-     dict(dest="doShow", action = 'store_false',
-          help="To display or not to display...",
-          default=True)),
-
-    (("-l", "--layout"),
-     dict(dest="layout", type=int,
-          nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-          metavar="NUM", default=None)),
-    (("-f", "--figsize"),
-     dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
-          metavar="SIZE", default=None)),
-
-    (("--station",),
-     dict(dest="statLonLat", type=float,
-          nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
-                         " When specified, the domain will change to"
-                         " Longitude and Latitude, and map layers can be"
-                         " displayed with '-m' switch."),
-          metavar="COORDS", default=None)),
-    (("-m", "--map"),
-     dict(dest="displayMap",
-          action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--station' option."),
-          default=False))
-
-    ]
-
-
+    ] + show_opts #+ map_opts
 
 _zigargs['ShowTracks'] = [
     (("trackFiles",), 
@@ -540,44 +468,7 @@ _zigargs['ShowTracks'] = [
      dict(dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")),
-
-    (("--save",), 
-     dict(dest="saveImgFile",
-          help="Save the resulting image as FILENAME.",
-          metavar="FILENAME", default=None)),
-    (("--noshow",), 
-     dict(dest="doShow", action = 'store_false',
-          help="To display or not to display...",
-          default=True)),
-
-    (("-l", "--layout"), 
-     dict(dest="layout", type=int,
-          nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-          metavar="NUM", default=None)),
-    (("-f", "--figsize"), 
-     dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
-          metavar="SIZE", default=None)),
-    (("--titles",), 
-     dict(dest='trackTitles', type=str,
-          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-          metavar="TITLE", default=None)),
-
-    (("--station",),
-     dict(dest="statLonLat", type=float,
-          nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
-                         " When specified, the domain will change to"
-                         " Longitude and Latitude, and map layers can be"
-                         " displayed with '-m' switch."),
-          metavar="COORDS", default=None)),
-    (("-m", "--map"),
-     dict(dest="displayMap",
-          action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--station' option."),
-          default=False))
-
-
-    ]
+    ] + show_opts #+ map_opts
 
 
 _zigargs['ShowAnims'] = [
@@ -602,44 +493,11 @@ _zigargs['ShowAnims'] = [
      dict(dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")),
-
-    (("--save",),
-     dict(dest="saveImgFile",
-          help="Save the resulting animation as FILENAME.",
-          metavar="FILENAME", default=None)),
-    (("--noshow",),
-     dict(dest="doShow", action = 'store_false',
-          help="To display or not to display...",
-          default=True)),
-
-    (("-l", "--layout"), 
-     dict(dest="layout", type=int,
-          nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-          metavar="NUM", default=None)),
-    (("-f", "--figsize"), 
-     dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
-          metavar="SIZE", default=None)),
-#    (("--titles",),
-#     dict(dest='trackTitles', type=str,
-#          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-#          metavar="TITLE", default=None))
-    (("--station",),
-     dict(dest="statLonLat", type=float,
-          nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
-                         " When specified, the domain will change to"
-                         " Longitude and Latitude, and map layers can be"
-                         " displayed with '-m' switch."),
-          metavar="COORDS", default=None)),
-    (("-m", "--map"),
-     dict(dest="displayMap",
-          action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--station' option."),
-          default=False))
-
-
-
-    ]
+    (("--tail",),
+     dict(dest="tail", type=int,
+          help="Show segments for N previous frames. Default: All frames",
+          metavar="N", default=None)),
+    ] + show_opts + map_opts
 
 _zigargs['ShowCorners'] = [
     (("inputDataFiles",), 
@@ -659,33 +517,7 @@ _zigargs['ShowCorners'] = [
      dict(dest="directory",
           help="Base directory to work from when using --simName",
           metavar="DIRNAME", default=".")),
-
-    (("-l", "--layout"), 
-     dict(dest="layout", type=int,
-          nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-          metavar="NUM", default=None)),
-    (("-f", "--figsize"), 
-     dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
-          metavar="SIZE", default=None)),
-#    (("--titles",),
-#     dict(dest='trackTitles', type=str,
-#          nargs='*', help="Titles to use for the figure subplots. Default is to use the filenames or the track run names.",
-#          metavar="TITLE", default=None))
-    (("--station",),
-     dict(dest="statLonLat", type=float,
-          nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
-                         " When specified, the domain will change to"
-                         " Longitude and Latitude, and map layers can be"
-                         " displayed with '-m' switch."),
-          metavar="COORDS", default=None)),
-    (("-m", "--map"),
-     dict(dest="displayMap",
-          action="store_true", help=("Turn on display of map layers."
-                                     " Only valid with '--station' option."),
-          default=False))
-
-    ]
+    ] + show_opts #+ map_opts
 
 
 _zigargs['TrackReports'] = [

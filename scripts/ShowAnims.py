@@ -49,6 +49,9 @@ def main(args) :
     trackFiles += args.trackFiles
     trackTitles += args.trackFiles
 
+    if args.trackTitles is not None :
+        trackTitles = args.trackTitles
+
 
     if len(trackFiles) == 0 : print "WARNING: No trackFiles given or found!"
 
@@ -57,6 +60,8 @@ def main(args) :
 
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
+
+
 
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
 
@@ -68,8 +73,8 @@ def main(args) :
 
 
     theFig = plt.figure(figsize=args.figsize)
-    grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
-                            share_all=True, axes_pad=0.32)
+    grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,# aspect=False,
+                            share_all=True, axes_pad=0.45)
 
     # store the animations in this list to prevent them from going out of scope and GC'ed
     anims = []
@@ -107,8 +112,11 @@ def main(args) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    animator = SegAnimator(theFig, min(frameLims), max(frameLims),
-                                   max(frameLims) - min(frameLims) + 1)
+
+    if args.tail is None :
+        args.tail = max(frameLims) - min(frameLims) + 1
+
+    animator = SegAnimator(theFig, min(frameLims), max(frameLims), args.tail)
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
@@ -149,7 +157,6 @@ def main(args) :
         else :
             curAxis.set_xlabel("Longitude (degrees)")
             curAxis.set_ylabel("Latitude (degrees)")
-
 
     if args.saveImgFile is not None :
         animator.save(args.saveImgFile)
