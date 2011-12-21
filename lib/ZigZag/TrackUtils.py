@@ -64,7 +64,7 @@ def Tracks2Cells(tracks, falarms=None) :
 
 def Cells2Tracks(strmCells) :
     """
-    Convert a numpy recarray of dtype volume_dtype into two lists
+    Convert a numpy recarray of dtype track_dtype into two lists
     of tracks and falarms.
 
     This can be reversed with Tracks2Cells().
@@ -80,7 +80,7 @@ def Cells2Tracks(strmCells) :
     return tracks, falarms
     
 
-def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
+def CreateVolData(tracks, falarms, frames, tLims=None, xLims=None, yLims=None) :
     """
     Essentially, go from lagrangian (following a particle)
     to eulerian (at fixed points on a grid).
@@ -94,19 +94,23 @@ def CreateVolData(tracks, falarms, frames, tLims, xLims, yLims) :
 
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
-    domainMask = np.logical_and(allCells['xLocs'] >= min(xLims),
-                 np.logical_and(allCells['xLocs'] <= max(xLims),
-                 np.logical_and(allCells['yLocs'] >= min(yLims),
-                                allCells['yLocs'] <= max(yLims))))
+    xMask = ((allCells['xLocs'] >= min(xLims)) &
+             (allCells['xLocs'] <= max(xLims))) if xLims is not None else True
 
-    times = np.linspace(min(tLims), max(tLims), len(frames))
+    yMask = ((allCells['yLocs'] >= min(yLims)) &
+             (allCells['yLocs'] <= max(yLims))) if yLims is not None else True
+
+    domainMask = (xMask & yMask)
+
+    times = frames if tLims is None else \
+            np.linspace(min(tLims), max(tLims), len(frames))
 
     for volTime, frameIndex in zip(times, frames) :
         # Again, this mask is opposite from numpy masked array.
         tMask = (allCells['frameNums'] == frameIndex)
         volData.append({'volTime': volTime,
                         'frameNum': frameIndex,
-                        'stormCells': allCells[np.logical_and(domainMask, tMask)]})
+                        'stormCells': allCells[domainMask & tMask]})
 
     return(volData)
 
