@@ -64,7 +64,7 @@ def Tracks2Cells(tracks, falarms=None) :
 
 def Cells2Tracks(strmCells) :
     """
-    Convert a numpy recarray of dtype track_dtype into two lists
+    Convert a numpy recarray of dtype volume_dtype into two lists
     of tracks and falarms.
 
     This can be reversed with Tracks2Cells().
@@ -75,7 +75,7 @@ def Cells2Tracks(strmCells) :
 
     falarmIDs = np.unique(strmCells['trackID'][strmCells['trackID'] < 0])    
     falarms = [np.sort(strmCells[strmCells['trackID'] == id], 0, order=['frameNums'])
-                for id in trackIDs]
+                for id in falarmIDs]
 
     return tracks, falarms
     
