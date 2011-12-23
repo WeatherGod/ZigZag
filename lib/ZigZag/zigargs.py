@@ -11,7 +11,7 @@ def AddCommandParser(command, parser) :
             parser.add_argument(*_common_args[args][0],
                                 **_common_args[args][1])
         else :
-            parser.add_argument(*args[0], **kwargs[1])
+            parser.add_argument(*args[0], **args[1])
 
 
 _common_args["simName"] = (("simName",),
