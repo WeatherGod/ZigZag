@@ -1,53 +1,72 @@
 
 _zigargs = {}
+_common_args = {}
 
 def AddCommandParser(command, parser) :
     if command not in _zigargs :
         raise ValueError("The command '%s' is not registered." % command)
 
-    for args, kwargs in _zigargs[command] :
-        parser.add_argument(*args, **kwargs)
+    for args in _zigargs[command] :
+        if isinstance(args, str) :
+            parser.add_argument(*_common_args[args][0],
+                                **_common_args[args][1])
+        else :
+            parser.add_argument(*args[0], **kwargs[1])
 
 
-_zigargs['TrackSim'] = [
-    (("simName",), 
-     dict(help="Generate Tracks for SIMNAME",
-          metavar="SIMNAME", default="NewSim")),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to place SIMNAME",
-          metavar="DIRNAME", default='.')),
-    (("-c", "--conf"), 
-     dict(dest="simConfFiles",
-          nargs='+',
-          help="Configuration files for the simulation.",
-          metavar="CONFFILE", default=None))
-    ]
+_common_args["simName"] = (("simName",),
+        dict(help="Tracks for SIMNAME",
+             metavar="SIMNAME", default="NewSim"))
+_common_args["simNames"] = (("simNames",),
+        dict(help="Tracks for SIMNAME",
+             nargs='+',
+             metavar="SIMNAME", type=str))
 
-_zigargs['MultiSim'] = [
-    (("multiSim",), 
-     dict(type=str,
-          help="Generate Tracks for MULTISIM",
-          metavar="MULTISIM", default="NewMulti")),
-    (("simCnt",), 
-     dict(type=int,
-          help="Repeat Simulation N times.",
-          metavar="N", default=1)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to place MULTISIM",
-          metavar="DIRNAME", default='.')),
-    (("-c", "--conf"), 
-     dict(dest="simConfFiles",
-          nargs='+',
-          help="Configuration files for the simulation.",
-          metavar="CONFFILE", default=None))
-    ]
+_common_args["multiSim"] = (("multiSim",), 
+        dict(type=str,
+             help="Tracks for multiple realizations from MULTISIM",
+             metavar="MULTISIM", default="NewMulti"))
+_common_args["multiSims"] = (("multiSims",),  
+        dict(help="Tracks for multiple realizations from MULTISIMs",
+             nargs='+',
+             metavar="MULTISIM", type=str))
 
-_zigargs['DownsampleSim'] = [
-    (("simName",), 
-     dict(help="Downsample the tracks of SIMNAME",
-          metavar="SIMNAME")),
+_common_args["simCnt"] = (("simCnt",), 
+        dict(type=int,
+             help="Repeat Simulation N times.",
+             metavar="N", default=1))
+_common_args["trackconfs"] = (("trackconfs",), 
+        dict(nargs='+',
+             help="Config files for the parameters for the trackers",
+             metavar="CONF"))
+_common_args["skillNames"] = (("skillNames",), 
+        dict(nargs="+",
+             help="The skill measures to use (e.g., HSS)",
+             metavar="SKILL"))
+
+_common_args["-d"] = (("-d", "--dir"),
+        dict(dest="directory", help="Base directory for SIMNAME/MULTISIM",
+             metavar="DIRNAME", default='.'))
+_common_args["-c"] = (("-c", "--conf"), 
+        dict(dest="simConfFiles",
+             nargs='+',
+             help="Configuration files for the simulation.",
+             metavar="CONFFILE", default=None))
+_common_args["-t"] = (("-t", "--trackruns"),
+        dict(dest="trackRuns",
+             nargs="+", help="RUNs to use. If none are given, use all RUNs"
+                             " listed in CONF",
+             metavar="RUN", default=None))
+_common_args["-s"] = (("skillNames",), 
+        dict(nargs="+",
+             help="The skill measures to use (e.g., HSS)",
+             metavar="SKILL"))
+
+
+
+_zigargs['TrackSim'] = ["simName", "-d", "-c"]
+_zigargs['MultiSim'] = ["multiSim", "simCnt", "-d", "-c"]
+_zigargs['DownsampleSim'] = ["simName",
     (("newName",), 
      dict(help="Name of the new simulation",
           metavar="NEWNAME")),
@@ -60,16 +79,10 @@ _zigargs['DownsampleSim'] = [
           action="store_false",
           help="Downsample only the corner files, not tracks",
           default=True)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME and NEWNAME",
-          metavar="DIRNAME", default='.'))
+    "-d"
     ]
 
-_zigargs['MultiDownsample'] = [
-    (("multiSim",), 
-     dict(help="Downsample the simulations of MULTISIM",
-          metavar="MULTISIM")),
+_zigargs['MultiDownsample'] = ["multiSim",
     (("newName",), 
      dict(help="Name of the downsampled multi-sim",
           metavar="NEWMULTI")),
@@ -82,89 +95,24 @@ _zigargs['MultiDownsample'] = [
 #          action="store_false",
 #          help="Downsample only the corner files, not tracks",
 #          default=True)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM and NEWMULTI",
-          metavar="DIRNAME", default='.'))
+    "-d"
     ]
 
-
-_zigargs['DoTracking'] = [
-    (("simName",), 
-     dict(help="Generate Tracks for SIMNAME",
-          metavar="SIMNAME")),
-    (("trackconfs",), 
-     dict(nargs='+',
-          help="Config files for the parameters for the trackers",
-          metavar="CONF")),
-    (("-t", "--trackruns"),
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to perform.  Perform all runs in CONF if none are given.",
-          metavar="RUN", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME",
-          metavar="DIRNAME", default='.'))
-    ]
-
-
-_zigargs['MultiTracking'] = [
-    (("multiSim",), 
-     dict(help="Generate Tracks for MULTISIM",
-          metavar="MULTISIM")),
-    (("trackconfs",), 
-     dict(nargs='+',
-          help="Config files for the parameters for the trackers",
-          metavar="CONF")),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to perform.  Perform all runs in CONF if none are given.",
-          metavar="RUN", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM",
-          metavar="DIRNAME", default='.'))
-    ]
-
-_zigargs['AnalyzeTracking'] = [
-    (("simName",),
-     dict(type=str,
-          help="Analyze tracks for SIMNAME",
-          metavar="SIMNAME", default="NewSim")),
-    (("skillNames",), 
-     dict(nargs="+",
-          help="The skill measures to use (e.g., HSS)",
-          metavar="SKILL")),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-          metavar="RUN", default=None)),
+_zigargs['DoTracking'] = ["simName", "trackconfs", "-t", "-d"]
+_zigargs['MultiTracking'] = ["multiSim", "trackconfs", "-t", "-d"]
+_zigargs['AnalyzeTracking'] = ["simName", "-t", "-d",
     (("--cache",), 
      dict(dest="cacheOnly",
-          help="Only bother with processing for the purpose of caching results.",
+          help="Only bother with processing for the purpose"
+               " of caching results.",
           action="store_true", default=False)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME",
-          metavar="DIRNAME", default='.'))
     ]
 
-_zigargs['MultiAnalysis'] = [
-    (("multiSim",), 
-     dict(help="Analyze tracks for MULTISIM",
-          metavar="MULTISIM", default="NewMulti")),
-    (("skillNames",), 
-     dict(nargs="+",
-          help="The skill measures to use",
-          metavar="SKILL")),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-          metavar="RUN", default=None)),
-
+_zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
     (("--titles",),
      dict(dest="titles",
-          nargs="+", help="Titles for the plots.  Default is to use the skill score name",
+          nargs="+", help="Titles for the plots.  Default is to use the"
+                          " skill score name",
           metavar="TITLE", default=None)),
     (("--ticklabels",),
      dict(dest="ticklabels",
@@ -174,12 +122,10 @@ _zigargs['MultiAnalysis'] = [
 
     (("--cache",),
      dict(dest="cacheOnly",
-          help="Only bother with processing for the purpose of caching results.",
+          help="Only bother with processing for the purpose of"
+               " caching results.",
           action="store_true", default=False)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM",
-          metavar="DIRNAME", default='.')),
+    "-d",
 
     (("--compare",), 
      dict(dest="compareTo", type=str,
@@ -194,15 +140,20 @@ _zigargs['MultiAnalysis'] = [
 
     (("--save",), 
      dict(dest="saveImgFile", type=str,
-          help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
+          help="Save the resulting image using FILESTEM as the prefix."
+               " (e.g., saved file will be 'foo/bar_PC.png' for the PC"
+               " skill scores and suffix of 'foo/bar').  Use --type to"
+               " control which image format.",
           metavar="FILESTEM", default=None)),
     (("--type",), 
      dict(dest="imageType", type=str,
-          help="Image format to use for saving the figures. Default: %(default)s",
+          help="Image format to use for saving the figures."
+               " Default: %(default)s",
           metavar="TYPE", default='png')),
     (("-f", "--figsize"), 
      dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
+          nargs=2, help="Size of the figure in inches (width x height)."
+                        " Default: %(default)s",
           metavar="SIZE", default=(11.0, 5.0))),
     (("--noshow",), 
      dict(dest="doShow", action = 'store_false',
@@ -210,22 +161,11 @@ _zigargs['MultiAnalysis'] = [
           default=True))
     ]
 
-_zigargs['MultiScenarioAnalysis'] = [
-    (("multiSims",),  
-     dict(help="Analyze tracks for MULTISIM",
-          nargs='+',
-          metavar="MULTISIM", type=str)),
-    (("-s", "--skills"), 
-     dict(dest="skillNames",
-          help="The skill measures to use",
-          nargs='+', metavar="SKILL")),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all common runs if none are given",
-          metavar="RUN", default=None)),
+_zigargs['MultiScenarioAnalysis'] = ["multiSims", "-s", "-t",
     (("--titles",),
      dict(dest="titles",
-          nargs="+", help="Titles for the plots.  Default is to use the skill score name",
+          nargs="+", help="Titles for the plots.  Default is to use the"
+                          " skill score name",
           metavar="TITLE", default=None)),
     (("--ticklabels",),
      dict(dest="ticklabels",
@@ -241,10 +181,7 @@ _zigargs['MultiScenarioAnalysis'] = [
      dict(dest="cacheOnly",
           help="Only bother with processing for the purpose of caching results.",
           action="store_true", default=False)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find MULTISIM",
-          metavar="DIRNAME", default='.')),
+    "-d",
 
     (("--save",), 
      dict(dest="saveImgFile", type=str,
@@ -264,34 +201,22 @@ _zigargs['MultiScenarioAnalysis'] = [
           default=True))
     ]
 
-_zigargs['ListRuns'] = [
-    (("simNames",), 
-     dict(nargs='+',
-          help="List track runs done for SIMNAME. If more than one, then list all common track runs.",
-          metavar="SIMNAME")),
+_zigargs['ListRuns'] = ["simNames",
     (("-f", "--files"),
      dict(action='store_true', dest='listfiles',
-          help="Do we list the track runs, or the track result files? (Default is to list the runs)",
+          help="Do we list the track runs, or the track result files?"
+               " (Default is to list the runs)",
           default=False)),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to list.  List all runs if none are given.",
-          metavar="RUN", default=None)),
+    "-t",
     (("-m", "--multi"), 
      dict(dest='isMulti',
-          help="Indicate that SIMNAME(s) is actually a Multi-Sim so that we can process correctly.",
+          help="Indicate that SIMNAME(s) is actually a Multi-Sim so that"
+               " we can process correctly.",
           default=False, action='store_true')),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME",
-          metavar="DIRNAME", default='.'))
+    "-d"
     ]
 
-_zigargs['MoveRuns'] = [
-    (("simNames",), 
-     dict(nargs='+',
-          help="Move track runs done for SIMNAME(s). Use common track runs for multiple sims",
-          metavar="SIMNAME")),
+_zigargs['MoveRuns'] = ["simNames",
     (("-o", "--old"),
      dict(dest="old",
           help="The pattern to match",
@@ -300,18 +225,13 @@ _zigargs['MoveRuns'] = [
      dict(dest="new",
           help="The string to replace the OLD pattern with.",
           metavar="NEW", default=None)),
-    (("-t", "--trackruns"), 
-     dict(dest="trackRuns",
-          nargs="+", help="Trackruns to operate on.  List all runs if none are given.",
-          metavar="RUN", default=None)),
+    "-t",
     (("-m", "--multi"), 
      dict(dest='isMulti',
-          help="Indicate that SIMNAME(s) is actually a Multi-Sim so that we can process correctly.",
+          help="Indicate that SIMNAME(s) is actually a Multi-Sim"
+               " so that we can process correctly.",
           default=False, action='store_true')),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to find SIMNAME",
-          metavar="DIRNAME", default='.'))
+    "-d" 
     ]
 
 _zigargs['ParamSearch'] = [
@@ -370,11 +290,13 @@ _zigargs['ParamSearch'] = [
           metavar="VAL")),
     (("--linspace",), 
      dict(dest="paramSpecs", nargs='+', type=float,
-          help="Float list created by numpy.linspace()", action='AppendLinspace',
+          help="Float list created by numpy.linspace()",
+          action='AppendLinspace',
           metavar="VAL")),
     (("--logspace",), 
      dict(dest="paramSpecs", nargs='+', type=float,
-          help="Float list created by numpy.logspace()", action='AppendLogspace',
+          help="Float list created by numpy.logspace()",
+          action='AppendLogspace',
           metavar="VAL"))
     ]
 
@@ -399,7 +321,8 @@ show_opts = [
           metavar="NUM", default=None)),
     (("-f", "--figsize"),
      dict(dest="figsize", type=float,
-          nargs=2, help="Size of the figure in inches (width x height). Default: auto",
+          nargs=2, help="Size of the figure in inches (width x height)."
+                        " Default: auto",
           metavar="SIZE", default=None)),
     ]
 
@@ -447,27 +370,24 @@ _zigargs['ShowCorners2'] = [
     ] + show_opts #+ map_opts
 
 _zigargs['ShowTracks'] = [
-    (("trackFiles",), 
+    (("trackFiles",),
      dict(nargs='*',
           help="TRACKFILEs to use for display",
           metavar="TRACKFILE", default=[])),
-    (("-t", "--truth"), 
+    (("-t", "--truth"),
      dict(dest="truthTrackFile",
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE", default=None)),
-    (("-r", "--trackruns"), 
+    (("-r", "--trackruns"),
      dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
+          nargs="+", help="Trackruns to analyze.  Analyze all runs "
+                          " if none are given",
           metavar="RUN", default=None)),
-
-    (("-s", "--simName"), 
+    (("-s", "--simName"),
      dict(dest="simName",
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
+    "-d"
     ] + show_opts #+ map_opts
 
 
@@ -482,21 +402,14 @@ _zigargs['ShowAnims'] = [
           metavar="TRUTHFILE", default=None)),
     (("-r", "--trackruns"), 
      dict(dest="trackRuns",
-          nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
+          nargs="+", help="Trackruns to analyze.  Analyze all runs if"
+                          " none are given",
           metavar="RUN", default=None)),
-
     (("-s", "--simName"), 
      dict(dest="simName",
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
-    (("--tail",),
-     dict(dest="tail", type=int,
-          help="Show segments for N previous frames. Default: All frames",
-          metavar="N", default=None)),
+    "-d", 
     ] + show_opts + map_opts
 
 _zigargs['ShowCorners'] = [
@@ -513,10 +426,7 @@ _zigargs['ShowCorners'] = [
      dict(dest="simName",
           help="Use data from the simulation SIMNAME.",
           metavar="SIMNAME", default=None)),
-    (("-d", "--dir"), 
-     dict(dest="directory",
-          help="Base directory to work from when using --simName",
-          metavar="DIRNAME", default=".")),
+    "-d",
     ] + show_opts #+ map_opts
 
 
