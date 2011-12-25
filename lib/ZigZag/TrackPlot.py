@@ -88,26 +88,27 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
 
     corners = []
     for aVol in volData :
-        if aVol['volTime'] >= min(tLims) and aVol['volTime'] <= max(tLims) :
+        if min(tLims) <= aVol['volTime'] <= max(tLims) :
             corners.append(axis.scatter(aVol['stormCells']['xLocs'],
-                                        aVol['stormCells']['yLocs'], s=1, **kwargs))
+                                        aVol['stormCells']['yLocs'], s=1,
+                                        **kwargs))
     return corners
 
 class CornerAnimation(FuncAnimation) :
-    def __init__(self, figure, frameCnt, **kwargs) :
+    def __init__(self, figure, frameCnt, tail=0, **kwargs) :
         self._allcorners = []
         self._flatcorners = []
         self._myframeCnt = frameCnt
 
         FuncAnimation.__init__(self, figure, self.update_corners,
-                                     frameCnt, fargs=(self._allcorners,),
+                                     frameCnt, fargs=(self._allcorners, tail),
                                      **kwargs)
 
-    def update_corners(self, idx, corners) :
+    def update_corners(self, idx, corners, tail) :
         for index, scatterCol in enumerate(zip(*corners)) :
             for aCollection in scatterCol :
-                aCollection.set_visible(index == idx)
-            
+                aCollection.set_visible((idx - tail) <= index <= idx)
+
         return self._flatcorners
 
     def AddCornerVolume(self, corners) :
@@ -131,7 +132,7 @@ class SegAnimator(FuncAnimation) :
                                      endFrame - startFrame + 1,
                                      fargs=(self._lineData, self._lines,
                                             startFrame, endFrame, tail),
-                                     interval=500, blit=True)
+                                     interval=250, blit=False)
 
     def update_lines(self, idx, lineData, lines, firstFrame, lastFrame, tail) :
         theHead = min(max(idx, firstFrame), lastFrame)
@@ -174,7 +175,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
 
     return FuncAnimation(figure, update_lines, endFrame - startFrame + 1,
                          fargs=(lineData, lines, startFrame, endFrame, tail),
-                         interval=500, blit=True, event_source=event_source)
+                         interval=250, blit=True, event_source=event_source)
 
 
 ###################################################

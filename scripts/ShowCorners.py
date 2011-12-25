@@ -5,6 +5,20 @@ from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
 import ZigZag.ParamUtils as ZigZag          # for ReadSimulationParams()
 
+from BRadar.maputils import LatLonFrom
+from mpl_toolkits.basemap import Basemap
+from BRadar.maputils import PlotMapLayers, mapLayers
+
+import numpy as np
+
+def CoordinateTransform(centroids, cent_lon, cent_lat) :
+    for cents in centroids :
+        # Purposely backwards to get bearing relative to 0 North
+        azi = np.rad2deg(np.arctan2(cents['xLocs'], cents['yLocs']))
+        dists = np.hypot(cents['xLocs'], cents['yLocs']) * 1000
+        lats, lons = LatLonFrom(cent_lat, cent_lon, dists, azi)
+        cents['xLocs'] = lons
+        cents['yLocs'] = lats
 
 def main(args) :
     import os.path			# for os.path
@@ -17,7 +31,8 @@ def main(args) :
 
     if args.simName is not None :
         dirName = os.path.join(args.directory, args.simName)
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
+                                                    "simParams.conf"))
         inputDataFiles.append(os.path.join(dirName, simParams['inputDataFile']))
         titles.append(args.simName)
 
@@ -25,8 +40,12 @@ def main(args) :
     inputDataFiles += args.inputDataFiles
     titles += args.inputDataFiles
 
+    if len(inputDataFiles) == 0 :
+        print "WARNING: No inputDataFiles given or found!"
 
-    if len(inputDataFiles) == 0 : print "WARNING: No inputDataFiles given or found!"
+    if len(titles) != len(inputDataFiles) :
+        raise ValueError("The number of TITLEs does not match the"
+                         " number of INPUTFILEs.")
 
     if args.layout is None :
         args.layout = (1, len(inputDataFiles))
@@ -34,8 +53,13 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
-    cornerVolumes = [ReadCorners(inFileName, os.path.dirname(inFileName))['volume_data']
+    cornerVolumes = [ReadCorners(inFileName,
+                                 os.path.dirname(inFileName))['volume_data']
                      for inFileName in inputDataFiles]
+
+    if args.statLonLat is not None :
+        CoordinateTransform(cornerVolumes, args.statLonLat[0],
+                                           args.statLonLat[1])
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
@@ -47,6 +71,12 @@ def main(args) :
 
     if args.trackFile is not None :
         (tracks, falarms) = FilterMHTTracks(*ReadTracks(args.trackFile))
+
+        if args.statLonLat is not None :
+            CoordinateTransform(tracks + falarms,
+                                args.statLonLat[0],
+                                args.statLonLat[1])
+
         (xLims, yLims, frameLims) = DomainFromTracks(tracks + falarms)
     else :
         volumes = []
@@ -54,27 +84,47 @@ def main(args) :
             volumes.extend(aVol)
         (xLims, yLims, tLims, frameLims) = DomainFromVolumes(volumes)
 
-    theAnim = CornerAnimation(theFig, frameLims[1] - frameLims[0] + 1,
-                              interval=250, blit=True)
+    showMap = (args.statLonLat is not None and args.displayMap)
+
+    if showMap :
+        bmap = Basemap(projection='cyl', resolution='l',
+                       suppress_ticks=False,
+                       llcrnrlat=yLims[0], llcrnrlon=xLims[0],
+                       urcrnrlat=yLims[1], urcrnrlon=xLims[1])
+
+    if args.tail is None :
+        args.tail = 0
+
+    theAnim = CornerAnimation(theFig, max(frameLims) - min(frameLims) + 1,
+                              tail=args.tail, interval=250, blit=False)
 
     for (index, volData) in enumerate(cornerVolumes) :
         curAxis = grid[index]
-        corners = PlotCorners(volData, frameLims, axis=curAxis)
 
+        if showMap :
+            PlotMapLayers(bmap, mapLayers, curAxis)
+
+        corners = PlotCorners(volData, frameLims, axis=curAxis)
 
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")
         curAxis.set_title(titles[index])
-        curAxis.set_xlabel("X")
-        curAxis.set_ylabel("Y")
+        if not showMap :
+            curAxis.set_xlabel("X")
+            curAxis.set_ylabel("Y")
+        else :
+            curAxis.set_xlabel("Longitude")
+            curAxis.set_ylabel("Latitude")
 
         theAnim.AddCornerVolume(corners)
 
-    #theAnim.save("test.mp4")
+    if args.saveImgFile is not None :
+        theAnim.save(args.saveImgFile)
 
-    plt.show()
+    if args.doShow :
+        plt.show()
 
 
 
@@ -83,31 +133,9 @@ if __name__ == '__main__' :
 
     from ZigZag.zigargs import AddCommandParser
 
-
-    parser = argparse.ArgumentParser(description="Produce an animation of the centroids")
+    parser = argparse.ArgumentParser(description="Produce an animation of"
+                                                 " the centroids")
     AddCommandParser('ShowCorners', parser)
-    """
-    parser.add_argument("inputDataFiles", nargs='*',
-                        help="Use INDATAFILE for finding corner data files",
-                        metavar="INDATAFILE")
-
-    parser.add_argument("-t", "--track", dest="trackFile",
-                      help="Use TRACKFILE for determining domain limits.",
-                      metavar="TRACKFILE", default=None)
-    parser.add_argument("-l", "--layout", dest="layout", type=int,
-                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-                        metavar="NUM", default=None)
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("-d", "--dir", dest="directory",
-              help="Base directory to work from when using --simName",
-              metavar="DIRNAME", default=".")
-    parser.add_argument("-s", "--simName", dest="simName",
-              help="Use data from the simulation SIMNAME.",
-              metavar="SIMNAME", default=None)
-    """
     args = parser.parse_args()
 
     main(args)
-

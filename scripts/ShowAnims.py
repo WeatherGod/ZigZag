@@ -10,7 +10,9 @@ from BRadar.maputils import LatLonFrom
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
 
-def CoordinateChange(tracks, cent_lon, cent_lat) :
+import numpy as np
+
+def CoordinateTransform(tracks, cent_lon, cent_lat) :
     for track in tracks :
         # Purposely backwards to get bearing relative to 0 North
         azi = np.rad2deg(np.arctan2(track['xLocs'], track['yLocs']))
@@ -27,24 +29,28 @@ def main(args) :
     from mpl_toolkits.axes_grid1 import AxesGrid
 
     # FIXME: Currently, the code allows for trackFiles to be listed as well
-    #        as providing a simulation (which trackfiles are automatically grabbed).
-    #        Both situations can not be handled right now, though.
+    #        as providing a simulation (which trackfiles are automatically
+    #        grabbed). Both situations can not be handled right now, though.
     trackFiles = []
     trackTitles = []
 
     if args.simName is not None :
         dirName = os.path.join(args.directory, args.simName)
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName, "simParams.conf"))
+        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
+                                                    "simParams.conf"))
 
         if args.trackRuns is not None :
-            simParams['trackers'] = ExpandTrackRuns(simParams['trackers'], args.trackRuns)
+            simParams['trackers'] = ExpandTrackRuns(simParams['trackers'],
+                                                    args.trackRuns)
 
-        trackFiles = [os.path.join(dirName, simParams['result_file'] + '_' + aTracker)
+        trackFiles = [os.path.join(dirName, simParams['result_file'] +
+                                            '_' + aTracker)
                       for aTracker in simParams['trackers']]
         trackTitles = simParams['trackers']
 
         if args.truthTrackFile is None :
-            args.truthTrackFile = os.path.join(dirName, simParams['noisyTrackFile'])
+            args.truthTrackFile = os.path.join(dirName,
+                                               simParams['noisyTrackFile'])
 
     trackFiles += args.trackFiles
     trackTitles += args.trackFiles
@@ -63,7 +69,8 @@ def main(args) :
 
 
 
-    trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for trackFile in trackFiles]
+    trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for
+                   trackFile in trackFiles]
 
     if args.statLonLat is not None :
         for aTracker in trackerData :
@@ -76,15 +83,12 @@ def main(args) :
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,# aspect=False,
                             share_all=True, axes_pad=0.45)
 
-    # store the animations in this list to prevent them from going out of scope and GC'ed
-    anims = []
-
-
     # A common timer for all animations for syncing purposes.
     theTimer = None
 
     if args.truthTrackFile is not None :
-        (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
+        (true_tracks,
+         true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
         true_AssocSegs = CreateSegments(true_tracks)
         true_FAlarmSegs = CreateSegments(true_falarms)
@@ -111,7 +115,6 @@ def main(args) :
                        suppress_ticks=False,
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
-
 
     if args.tail is None :
         args.tail = max(frameLims) - min(frameLims) + 1
@@ -144,8 +147,6 @@ def main(args) :
         if theTimer is None :
             theTimer = animator.event_source
 
-        anims.append(l)
-
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)
         #curAxis.set_aspect("equal", 'datalim')
@@ -170,32 +171,9 @@ if __name__ == '__main__' :
 
     from ZigZag.zigargs import AddCommandParser
 
-
-    parser = argparse.ArgumentParser(description="Produce an animation of the tracks")
+    parser = argparse.ArgumentParser(description="Produce an animation of"
+                                                 " the tracks")
     AddCommandParser('ShowAnims', parser)
-    """
-    parser.add_argument("trackFiles", nargs='*',
-                        help="Use TRACKFILE for track data",
-                        metavar="TRACKFILE")
-    parser.add_argument("-t", "--truth", dest="truthTrackFile",
-                      help="Use TRUTHFILE for true track data",
-                      metavar="TRUTHFILE", default=None)
-    parser.add_argument("-r", "--trackruns", dest="trackRuns",
-                        nargs="+", help="Trackruns to analyze.  Analyze all runs if none are given",
-                        metavar="RUN", default=None)
-    parser.add_argument("-l", "--layout", dest="layout", type=int,
-                        nargs=2, help="Layout of the subplots (rows x columns). All plots on one row by default.",
-                        metavar="NUM", default=None)
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("-d", "--dir", dest="directory",
-              help="Base directory to work from when using --simName",
-              metavar="DIRNAME", default=".")
-    parser.add_argument("-s", "--simName", dest="simName",
-              help="Use data from the simulation SIMNAME",
-              metavar="SIMNAME", default=None)
-    """
     args = parser.parse_args()
 
     main(args)
