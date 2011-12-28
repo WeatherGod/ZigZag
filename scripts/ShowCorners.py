@@ -22,7 +22,6 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
 
 def main(args) :
     import os.path			# for os.path
-    import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
     
