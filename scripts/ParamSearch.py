@@ -15,23 +15,37 @@ def main(args) :
 
         # Skip finding formatting if it is a silent parameter
         if name in args.silentParams :
+            # Appending a `None` so that *autoFormatter* will be the
+            # same length as *args.parameters*
+            autoFormatter.append(None)
             continue
 
         # Check the first item's type to see what it is for formatting
         if isinstance(args.paramSpecs[index][0], int) :
             temp = np.asarray(args.paramSpecs[index])
-            maxlen = int(np.floor(np.log10(np.abs(temp))).max()) + 1
+            if np.all(temp == 0) :
+                maxlen = 1
+            else :
+                maxlen = int(np.floor(np.log10(np.abs(
+                             temp[temp != 0]))).max()) + 1
             if np.any(temp < 0) :
                 # Need extra spot for negative sign
                 maxlen += 1
             autoFormatter.append("%0." + str(maxlen) + "d")
         elif isinstance(args.paramSpecs[index][0], float) :
             temp = np.asarray(args.paramSpecs[index])
-            # At least one spot for the zero
-            max_intpart = max(int(np.floor(np.log10(np.abs(temp))).max()) + 1, 1)
+            if np.all(temp == 0.0) :
+                max_intpart = 1
+                decipoints = 1
+            else :
+                # At least one spot for the zero
+                max_intpart = max(int(np.floor(np.log10(np.abs(
+                                  temp[temp != 0.0]))).max()) + 1, 1)
+                decipoints = int(np.floor(np.log10(np.abs(
+                                 temp[temp != 0.0]))).min())
             if np.any(temp < 0) :
                 max_intpart += 1
-            decipoints = int(np.floor(np.log10(np.abs(temp))).min())
+
             max_floatpart = (abs(decipoints) + 1) if decipoints <= 0 else 1
             autoFormatter.append("%0" + str(max_intpart + max_floatpart + 1) +
                                  "." + str(max_floatpart) + "f")
@@ -63,10 +77,14 @@ def main(args) :
 
     for vals in zip(*paramSpecs) :
         trackrun = '_'.join(("%s_" + form) % (name, val) for name, val, form in
-                            zip(args.parameters, vals, autoFormatter) if name not in args.silentParams)
+                            zip(args.parameters, vals, autoFormatter) if
+                                form is not None)
         aConf = {'algorithm': args.tracker}
         aConf.update(zip(args.parameters, vals))
-        trackConfs[args.tracker + '_' + trackrun] = aConf
+        runname = args.tracker + '_' + trackrun
+        if runname in trackConfs :
+            print "WARNING: %s has already been done!" % runname
+        trackConfs[runname] = aConf
 
 
     config = ConfigObj(trackConfs, interpolation=False)
