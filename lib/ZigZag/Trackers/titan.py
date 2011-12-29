@@ -705,8 +705,8 @@ if __name__ == '__main__' :
                                   CreateSegments, CompareSegments
     from ZigZag.TrackFileUtils import ReadCorners, ReadTracks
 
-    #dirPath = "/home/ben/Programs/Tracking/NewSim1"
-    dirPath = "/home/bvr/TrackingStudy/SquallSim"
+    dirPath = "/home/ben/Programs/Tracking/NewSim1"
+    #dirPath = "/home/bvr/TrackingStudy/SquallSim"
     cornerVol = ReadCorners(os.path.join(dirPath, "InputDataFile"),
                             dirPath)['volume_data']
 

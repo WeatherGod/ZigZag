@@ -22,14 +22,20 @@ def _register_tracker(tracker, name, param_conf) :
 def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     import scit
     dirName = path
-    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName,
+                                                 simParams['inputDataFile']),
+                                            path=dirName)
     speedThresh = float(trackParams['speedThresh'])
+    framesBack = int(trackParams['framesBack'])
 
     if simParams['frameCnt'] <= 1 :
-        raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
+        raise Exception("Not enough frames for tracking: %d" %
+                         simParams['frameCnt'])
 
-    tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
-    strmAdap = {'distThresh': speedThresh * tDelta}
+    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
+              float(simParams['frameCnt'] - 1))
+    strmAdap = {'distThresh': speedThresh * tDelta,
+                'framesBack': framesBack}
     stateHist = []
     strmTracks = []
     infoTracks = []
@@ -41,13 +47,16 @@ def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
 
     falarms = []
     TrackUtils.CleanupTracks(strmTracks, falarms)
-    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
+    TrackFileUtils.SaveTracks(os.path.join(dirName,
+                                     simParams['result_file'] + "_" + trackRun),
                               strmTracks, falarms)
 
     if returnResults :
         return strmTracks, falarms
 
-_register_tracker(SCIT_Track, "SCIT", dict(speedThresh="float(min=0.0)"))
+_register_tracker(SCIT_Track, "SCIT",
+                  dict(speedThresh="float(min=0.0)",
+                       framesBack="integer(min=0, default=10)"))
 
 def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     import mht
@@ -65,26 +74,14 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     # Temporary popping...
     trackParams.pop("algorithm")
 
-
     mht.SaveMHTParams(paramName, trackParams)
-    resultFile = os.path.join(dirName, simParams['result_file'] + '_' + trackRun)
-
-#    paramArgs = "python %smakeparams.py %s" % (progDir, os.path.join(dirName, paramFile))
-#    for key, val in trackParams.items() :
-#        paramArgs += " --%s %s" % (key, val)
-#
-#    print paramArgs
-#    # TODO: Temporary until I fix this to use Popen()
-#    if os.system(paramArgs) != 0 :
-#        raise Exception("MHT Param-maker failed!")
+    resultFile = os.path.join(dirName, simParams['result_file'] +
+                                       '_' + trackRun)
 
     retcode = mht.track(resultFile, paramName,
                         os.path.join(dirName, simParams['inputDataFile']),
                         dirName)
     
-    # TODO: Temporary until I fix this to use Popen()
-    #if os.system(theCommand) != 0 :
-    #    raise Exception("MHT tracker failed!")
     if retcode != 0 :
         raise Exception("MHT Tracker failed! ResultFile: %s ParamFile: %s" %
                         (resultFile, paramName))
@@ -92,36 +89,43 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     os.remove(paramName)
 
     if returnResults :
-        return TrackUtils.FilterMHTTracks(*TrackFileUtils.ReadTracks(resultFile))
+        tracks = TrackFileUtils.ReadTracks(resultFile)
+        return TrackUtils.FilterMHTTracks(*tracks)
 
-_register_tracker(MHT_Track, "MHT", dict(varx="float(min=0.0, default=1.0)",
-                                         vary="float(min=0.0, default=1.0)",
-                                         vargrad="float(min=0.0, default=0.01)",
-                                         varint="float(min=0.0, default=100.0)",
-                                         varproc="float(min=0.0, default=0.5)",
-                                         pod="float(min=0.0, default=0.9999)",
-                                         lambdax="float(min=0.0, default=20.0)",
-                                         ntps="float(min=0.0, default=0.004)",
-                                         mfaps="float(min=0.0, default=0.0002)",
-                                         mxghpg="integer(min=1, default=300)",
-                                         mxdpth="integer(min=0, default=3)",
-                                         mnratio="float(min=0.0, default=0.001)",
-                                         intthrsh="float(min=0.0, default=0.90)",
-                                         mxdist="float(min=0.0, default=5.9)",
-                                         varvel="float(min=0.0, default=200.0)",
-                                         frames="integer(min=1, default=999999)",
-                                         ParamFile="string(default='Parameters')"))
+_register_tracker(MHT_Track, "MHT",
+                  dict(varx="float(min=0.0, default=1.0)",
+                       vary="float(min=0.0, default=1.0)",
+                       vargrad="float(min=0.0, default=0.01)",
+                       varint="float(min=0.0, default=100.0)",
+                       varproc="float(min=0.0, default=0.5)",
+                       pod="float(min=0.0, default=0.9999)",
+                       lambdax="float(min=0.0, default=20.0)",
+                       ntps="float(min=0.0, default=0.004)",
+                       mfaps="float(min=0.0, default=0.0002)",
+                       mxghpg="integer(min=1, default=300)",
+                       mxdpth="integer(min=0, default=3)",
+                       mnratio="float(min=0.0, default=0.001)",
+                       intthrsh="float(min=0.0, default=0.90)",
+                       mxdist="float(min=0.0, default=5.9)",
+                       varvel="float(min=0.0, default=200.0)",
+                       frames="integer(min=1, default=999999)",
+                       ParamFile="string(default='Parameters')"))
 
-def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
+def TITAN_Track(trackRun, simParams, trackParams,
+                returnResults=True, path='.') :
     import titan
     dirName = path
-    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName, simParams['inputDataFile']), path=dirName)
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName,
+                                                    simParams['inputDataFile']),
+                                            path=dirName)
     speedThresh = float(trackParams['speedThresh'])
 
     if simParams['frameCnt'] <= 1 :
-        raise Exception("Not enough frames for tracking: %d" % simParams['frameCnt'])
+        raise Exception("Not enough frames for tracking: %d" %
+                         simParams['frameCnt'])
 
-    tDelta = (simParams['tLims'][1] - simParams['tLims'][0]) / float(simParams['frameCnt'] - 1)
+    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
+              float(simParams['frameCnt'] - 1))
 
     t = titan.TITAN(distThresh=speedThresh*tDelta)
     for aVol in cornerInfo['volume_data'] :
@@ -133,10 +137,47 @@ def TITAN_Track(trackRun, simParams, trackParams, returnResults=True, path='.') 
     tracks = t.tracks
     falarms = []
     TrackUtils.CleanupTracks(tracks, falarms)
-    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] + "_" + trackRun),
+    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] +
+                                                    "_" + trackRun),
                               tracks, falarms)
 
     if returnResults :
         return tracks, falarms
 
 _register_tracker(TITAN_Track, "TITAN", dict(speedThresh="float(min=0.0)"))
+
+def ASCIT_Track(trackRun, simParams, trackParams,
+                returnResults=True, path='.') :
+    import ascit
+    dirName = path
+    cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName,
+                                                    simParams['inputDataFile']),
+                                            path=dirName)
+    speedThresh = float(trackParams['speedThresh'])
+
+    if simParams['frameCnt'] <= 1 :
+        raise Exception("Not enough frames for tracking: %d" %
+                         simParams['frameCnt'])
+
+    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
+              float(simParams['frameCnt'] - 1))
+
+    t = ascit.ASCIT(distThresh=speedThresh*tDelta)
+    for aVol in cornerInfo['volume_data'] :
+        t.TrackStep(aVol)
+
+    # Tidy up tracks because there won't be any more data
+    t.finalize()
+
+    tracks = t.tracks
+    falarms = []
+    TrackUtils.CleanupTracks(tracks, falarms)
+    TrackFileUtils.SaveTracks(os.path.join(dirName, simParams['result_file'] +
+                                                    "_" + trackRun),
+                              tracks, falarms)
+
+    if returnResults :
+        return tracks, falarms
+
+_register_tracker(ASCIT_Track, "ASCIT", dict(speedThresh="float(min=0.0)"))
+

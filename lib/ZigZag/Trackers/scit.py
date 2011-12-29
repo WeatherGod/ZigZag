@@ -1,4 +1,3 @@
-import math                                 # for abs(), sqrt()
 import numpy as np
 import numpy.lib.recfunctions as nprf       # for append_fields()
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
@@ -31,9 +30,12 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
                                    usemask=False)
 
     BestLocs(stateHist, strmTracks, infoTracks, volume_Data['frameNum'])
-    Correl_Storms(strmAdap, currStrms, volume_Data['frameNum'], stateHist, strmTracks, infoTracks)
-    Compute_Speed(currStrms, strmTracks, infoTracks)
-    tracksToEnd, tracksToKeep, tracksToAdd = EndTracks(stateHist, strmTracks, currStrms)
+    Correl_Storms(strmAdap, currStrms, volume_Data['frameNum'],
+                  stateHist, strmTracks, infoTracks)
+    Compute_Speed(strmAdap, currStrms, strmTracks, infoTracks)
+    (tracksToEnd,
+     tracksToKeep,
+     tracksToAdd) = EndTracks(stateHist, strmTracks, currStrms)
 
 
     stateHist.append({'volTime': volume_Data['volTime'],
@@ -48,8 +50,8 @@ def EndTracks(stateHist, strmTracks, currStrms=None) :
     determine which tracks have to be 'turned off' and clean up the data in
     the track data.
 
-    Call this function without a currStrms argument when you are finished tracking and
-    want to finalize the tracks.
+    Call this function without a currStrms argument when you are finished
+    tracking and want to finalize the tracks.
     """
     if currStrms is not None :
         currTracks = set(currStrms['trackID'])
@@ -61,7 +63,8 @@ def EndTracks(stateHist, strmTracks, currStrms=None) :
         return set([]), set([]), currTracks
 
     # build list of track ids for the stormcells in the previous frame
-    prevTracks = set([aCell['trackID'] for aCell in stateHist[-1]['stormCells'] if aCell['trackID'] >= 0])
+    prevTracks = set([aCell['trackID'] for aCell in
+                      stateHist[-1]['stormCells'] if aCell['trackID'] >= 0])
 
 
     # Find the set difference of the list of tracks.
@@ -92,7 +95,8 @@ def EndTracks(stateHist, strmTracks, currStrms=None) :
     return tracksToEnd, tracksToKeep, tracksToAdd
 
 
-def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTracks) :
+def Correl_Storms(strmAdap, currStorms, volTime,
+                  stateHist, strmTracks, infoTracks) :
 
     newTracks = []
     contTracks = []
@@ -102,7 +106,8 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
         bestMatch = {'prevIndx': None, 
                      'dist': strmAdap['distThresh']**2}
 
-        for trackID, (infoTrack, track) in enumerate(zip(infoTracks, strmTracks)) :
+        for trackID, (infoTrack, track) in enumerate(zip(infoTracks,
+                                                         strmTracks)) :
             # equal to 'U' means that storm hasn't been matched yet.
             if track['types'][-1] == 'U':
                 """
@@ -122,18 +127,19 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
 
 
         if bestMatch['prevIndx'] is not None :
-            # Note how it goes ahead and matches with the first storm cell it finds
-            # that is below the threshold.  I believe this to be a bug that can cause
-            # "track-stealing" as the algorithm does not find the closest stormcell,
-            # only the first one that was "close enough".
-            # In other words, while this oldCell is the closest oldCell to this newCell,
-            # it doesn't necessarially mean that this newCell is the closest newCell to
-            # this oldCell.
-            # This is *partly* mitigated by sorting the storm cells by size.  Larger
-            # storm cells have more stable centroids (less noisey).  Track stealing
-            # more likely to occur with noisey cell centroids.
-            # However, note that any sort of sorting must be done outside of the SCIT tracking functions.
-            # In other words, the passed-in storm cells should have already been sorted.
+            # Note how it goes ahead and matches with the first storm cell
+            # it finds that is below the threshold. I believe this to be
+            # a bug that can cause "track-stealing" as the algorithm does
+            # not find the closest stormcell, only the first one that was
+            # "close enough". In other words, while this oldCell is the
+            # closest oldCell to this newCell, it doesn't necessarially
+            # mean that this newCell is the closest newCell to this oldCell.
+            # This is *partly* mitigated by sorting the storm cells by size.
+            # Larger storm cells supposedly have more stable centroids
+            # (less noisey).  Track stealing more likely to occur with noisey
+            # cell centroids. However, note that any sort of sorting must be
+            # done outside of the SCIT tracking functions. In other words,
+            # the passed-in storm cells should have already been sorted.
 
             #matchedStorm = prevStorms[bestMatch['prevIndx']]
 
@@ -156,9 +162,9 @@ def Correl_Storms(strmAdap, currStorms, volTime, stateHist, strmTracks, infoTrac
         track = strmTracks[trackID]
         infoTrack = infoTracks[trackID]
 
-        infoTrack['distErrs'].append(math.sqrt(bestMatch['dist']))
-        infoTrack['dists'].append(math.sqrt(CalcDistSqrd(newCell, track[-1]))
-)
+        infoTrack['distErrs'].append(np.sqrt(bestMatch['dist']))
+        infoTrack['dists'].append(np.sqrt(CalcDistSqrd(newCell, track[-1])))
+
         # Assigning the current storm its track ID number, and
         # the state-estimated position
         newCell['trackID'] = trackID
@@ -215,7 +221,7 @@ def BestLocs(stateHist, strmTracks, infoTracks, volTime) :
 
 
 
-def Compute_Speed(currStorms, strmTracks, infoTracks) :
+def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
     """
     Updates the speed for all of the current, active tracks.
     Also initiates all new tracks with the average speed of all
@@ -224,6 +230,7 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
     tot_x_spd = 0.0
     tot_y_spd = 0.0
     trackCnt = 0
+    framesBack = strmAdap['framesBack']
 
     # Gonna first calculate the track speed for all established tracks
     # in order to determine an overall average speed to use for initializing
@@ -234,24 +241,17 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
         #print "CurrStorm..."
 
         theTrackInfo = infoTracks[index]
-        aTrack = strmTracks[index]
+        aTrack = strmTracks[index][-framesBack:]
         #trackLen = len(theTrackInfo['track'])
 
-        if len(aTrack[-10:]) > 1 :
-            xAvg = np.mean(aTrack['xLocs'][-10:])
-            yAvg = np.mean(aTrack['yLocs'][-10:])
-            tAvg = np.mean(aTrack['frameNums'][-10:].astype(float))
+        if len(aTrack) > 1 :
+            xAvg = np.mean(aTrack['xLocs'])
+            yAvg = np.mean(aTrack['yLocs'])
+            tAvg = np.mean(aTrack['frameNums'].astype(float))
 
-            #xtVar = sum([(xLoc - xAvg) * (trackTime - tAvg)
-            #	         for (xLoc, trackTime) in zip(aTrack['xLocs'], aTrack['frameNums'])])
-            #ytVar = sum([(yLoc - yAvg) * (trackTime - tAvg)
-            #	         for (yLoc, trackTime) in zip(aTrack['yLocs'], aTrack['frameNums'])])
-            #ttVar = sum([(trackTime - tAvg)**2
-            #	         for trackTime in aTrack['frameNums']])
-
-            tDev = aTrack['frameNums'][-10:] - tAvg
-            xtVar = np.sum((aTrack['xLocs'][-10:] - xAvg) * tDev)
-            ytVar = np.sum((aTrack['yLocs'][-10:] - yAvg) * tDev)
+            tDev = aTrack['frameNums'] - tAvg
+            xtVar = np.sum((aTrack['xLocs'] - xAvg) * tDev)
+            ytVar = np.sum((aTrack['yLocs'] - yAvg) * tDev)
             ttVar = np.sum(tDev**2)
 
 #            print "tot    tAvg:", tAvg, "   frames:", aTrack['frameNums'][-10:], "   ttVar: ", ttVar
@@ -261,7 +261,6 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
 
             theTrackInfo['speed_x'].append(xtVar / ttVar)
             theTrackInfo['speed_y'].append(ytVar / ttVar)
-
 
     if (trackCnt != 0) :
         systemAvg = {'speed_x': tot_x_spd / trackCnt,
@@ -276,4 +275,61 @@ def Compute_Speed(currStorms, strmTracks, infoTracks) :
         if len(theTrackInfo['speed_x']) == 0 :
             theTrackInfo['speed_x'].append(systemAvg['speed_x'])
             theTrackInfo['speed_y'].append(systemAvg['speed_y'])
+
+if __name__ == '__main__' :
+    import os.path
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import AxesGrid
+
+    from ZigZag.TrackPlot import PlotPlainTracks, PlotSegments
+    from ZigZag.TrackUtils import CleanupTracks, FilterMHTTracks,\
+                                  CreateSegments, CompareSegments
+    from ZigZag.TrackFileUtils import ReadCorners, ReadTracks
+
+    dirPath = "/home/ben/Programs/Tracking/NewSim1"
+    #dirPath = "/home/bvr/TrackingStudy/SquallSim"
+    cornerVol = ReadCorners(os.path.join(dirPath, "InputDataFile"),
+                            dirPath)['volume_data']
+
+    true_tracks, true_falarms = FilterMHTTracks(*ReadTracks(os.path.join(
+                                                    dirPath, "noise_tracks")))
+
+    frameLims = (0, len(cornerVol))
+    strmAdap = {'distThresh': 5.0,
+                'framesBack': 10}
+    stateHist = []
+    strmTracks = []
+    infoTracks = []
+    print frameLims[1]
+
+    for aVol in cornerVol :
+        TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol)
+
+    EndTracks(stateHist, strmTracks)
+
+    falarms = []
+    tracks = strmTracks
+    CleanupTracks(tracks, falarms)
+
+    # Compare with "truth data"
+    segs = [CreateSegments(trackData) for trackData in (true_tracks,
+                                                        true_falarms,
+                                                        tracks, falarms)]
+    truthtable = CompareSegments(*segs)
+
+
+    # Display Result
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    grid = AxesGrid(fig, 111, nrows_ncols=(1, 2), aspect=False,
+                    share_all=True, axes_pad=0.35)
+
+    ax = grid[0]
+    PlotPlainTracks(tracks, falarms, *frameLims, axis=ax)
+    ax.set_title("SCIT Tracks")
+
+    ax = grid[1]
+    PlotSegments(truthtable, frameLims, axis=ax)
+    ax.set_title("Track Check")
+
+    plt.show()
 
