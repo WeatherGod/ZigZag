@@ -14,9 +14,10 @@ class ASCIT(object) :
     """
     _fallback_cost = 999999.0
 
-    def __init__(self, distThresh=5.0) :
+    def __init__(self, distThresh=5.0, framesBack=10) :
         self.distThresh = distThresh
         self._highCost = None
+        self._framesBack = framesBack
 
         # If the cost threshold is set larger than
         # the fallback cost, then nothing works right
@@ -243,7 +244,7 @@ class ASCIT(object) :
         return strms_end, strms_keep, strms_start
 
     def forecast_tracks(self, deltaT, trackIDs) :
-        frames_back = 10
+        frames_back = self._frames_back
 
         fcasts = [None] * len(trackIDs)
         trends = [None] * len(trackIDs)

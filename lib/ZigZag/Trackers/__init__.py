@@ -179,5 +179,7 @@ def ASCIT_Track(trackRun, simParams, trackParams,
     if returnResults :
         return tracks, falarms
 
-_register_tracker(ASCIT_Track, "ASCIT", dict(speedThresh="float(min=0.0)"))
+_register_tracker(ASCIT_Track, "ASCIT",
+                  dict(speedThresh="float(min=0.0)",
+                       framesBack="integer(min=0, default=10)"))
 
