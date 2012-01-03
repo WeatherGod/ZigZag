@@ -17,7 +17,7 @@ class ASCIT(object) :
     def __init__(self, distThresh=5.0, framesBack=10) :
         self.distThresh = distThresh
         self._highCost = None
-        self._framesBack = framesBack
+        self._frames_back = framesBack
 
         # If the cost threshold is set larger than
         # the fallback cost, then nothing works right
@@ -254,15 +254,15 @@ class ASCIT(object) :
         trackCnt = 0
 
         for fIndex, trackIndex in enumerate(trackIDs) :
-            track = self.tracks[trackIndex]
+            track = self.tracks[trackIndex][-frames_back:]
 
             if len(track) <= 1 :
                 continue
 
             # Grab only the variables you want for at most the past
             # *frames_back* frames.
-            x = track[['xLocs', 'yLocs']][-frames_back:]
-            t = track['frameNums'][-frames_back:].astype(float)
+            x = track[['xLocs', 'yLocs']]
+            t = track['frameNums'].astype(float)
 
             xAvg = np.mean(x['xLocs'])
             yAvg = np.mean(x['yLocs'])

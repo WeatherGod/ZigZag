@@ -162,7 +162,8 @@ def ASCIT_Track(trackRun, simParams, trackParams,
     tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
               float(simParams['frameCnt'] - 1))
 
-    t = ascit.ASCIT(distThresh=speedThresh*tDelta)
+    t = ascit.ASCIT(distThresh=speedThresh*tDelta,
+                    framesBack=int(trackParams['framesBack']))
     for aVol in cornerInfo['volume_data'] :
         t.TrackStep(aVol)
 
