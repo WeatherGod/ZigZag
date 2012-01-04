@@ -57,8 +57,8 @@ _common_args["-t"] = (("-t", "--trackruns"),
              nargs="+", help="RUNs to use. If none are given, use all RUNs"
                              " listed in CONF",
              metavar="RUN", default=None))
-_common_args["-s"] = (("skillNames",), 
-        dict(nargs="+",
+_common_args["-s"] = (("-s", "--skills"),
+        dict(dest='skillNames', nargs="+",
              help="The skill measures to use (e.g., HSS)",
              metavar="SKILL"))
 
