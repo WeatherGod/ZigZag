@@ -44,18 +44,23 @@ def Tracks2Cells(tracks, falarms=None) :
     if falarms is None :
         falarms = []
 
-    tmpTracks = [nprf.append_fields(aTrack, 'trackID',
-                                    [trackIndex] * len(aTrack),
-                                    usemask=False)
-                      for trackIndex, aTrack in enumerate(tracks)]
-
-    tmpFalarms = [nprf.append_fields(aTrack, 'trackID',
-                                     [-trackIndex - 1] * len(aTrack),
+    # NOTE: This function can not handle arrays of tracks that do/do not have
+    #       a trackID field in a mix.  Either they all have it, or not.
+    if not any('trackID' in aTrack.dtype.names for aTrack in tracks) :
+        tracks = [nprf.append_fields(aTrack, 'trackID',
+                                     [trackIndex] * len(aTrack),
                                      usemask=False)
-                      for trackIndex, aTrack in enumerate(falarms)]
+                  for trackIndex, aTrack in enumerate(tracks)]
 
-    if len(tmpTracks) != 0 or len(tmpFalarms) != 0 :
-        allCells = np.hstack(tmpTracks + tmpFalarms)
+    if not any('trackID' in aTrack.dtype.names for aTrack in falarms) :
+        falarms = [nprf.append_fields(aTrack, 'trackID',
+                                      [-trackIndex - 1] * len(aTrack),
+                                      usemask=False)
+                   for trackIndex, aTrack in enumerate(falarms)]
+
+    # If both are empty, then create an array without hstack()
+    if len(tracks) != 0 or len(falarms) != 0 :
+        allCells = np.hstack(tracks + falarms)
     else :
         allCells = np.array([], dtype=volume_dtype)
 
