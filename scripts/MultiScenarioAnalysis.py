@@ -97,14 +97,15 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
     *dispMode*  ['cat' | 'ordinal']
         Categorical or ordinal mode for the x-axis
     """
-    fmt = _dispFmt[dispMode]
+    fmt = _dispFmt.get(dispMode, None)
+    leg_objs = []
 
-    for plotIndex, label in enumerate(plotLabels) :
-        startLoc = 0.5 if dispMode == 'ordinal' else \
-                   ((plotIndex + 1) / (len(plotLabels) + 1.0))
+    for figIndex, (fig, title) in enumerate(zip(figs, figTitles)) :
+        ax = figs[figIndex].gca()
 
-        for figIndex in range(len(figTitles)) :
-            ax = figs[figIndex].gca()
+        for plotIndex, label in enumerate(plotLabels) :
+            startLoc = 0.5 if dispMode in ('ordinal', 'bar') else \
+                       ((plotIndex + 1) / (len(plotLabels) + 1.0))
 
             MakeErrorBars(meanSkills[:, figIndex, plotIndex],
                           (skills_ci_upper[:, figIndex, plotIndex],
@@ -112,10 +113,6 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                           ax, startLoc=startLoc, label=label,
                           fmt=fmt)
 
-    leg_objs = []
-
-    for aFig, title in zip(figs, figTitles) :
-        ax = aFig.gca()
         ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
         ax.set_xticklabels(tickLabels)
         ax.set_xlim((0.0, len(tickLabels)))
@@ -376,22 +373,28 @@ if __name__ == '__main__' :
     import argparse
     from ZigZag.zigargs import AddCommandParser
 
-
-
-    parser = argparse.ArgumentParser(description='Analyze the tracking results of multiple scenarios of multiple storm-track simulations')
+    parser = argparse.ArgumentParser(description='Analyze the tracking results'
+                                            ' of multiple scenarios of'
+                                            ' multiple storm-track simulations')
     AddCommandParser('MultiScenarioAnalysis', parser)
     parser.add_argument("--mode", dest="dispMode",
-                        help="Mode for x-axis (categorical (default) or ordinal). In categorical mode, error bars are unconnected and non-overlapping. In ordinal mode, the errorbars for each plot are connected, and are overlapping in the x-axis.",
+                        help="Mode for x-axis (categorical (default) or"
+                             " ordinal). In categorical mode, error bars are"
+                             " unconnected and non-overlapping. In ordinal"
+                             " mode, the errorbars for each plot are"
+                             " connected, and are overlapping in the x-axis.",
                         choices=['cat', 'ordinal'], default='cat')
     parser.add_argument("--xlabel", dest="xlabel", type=str,
                         help="Label for the x-axis.  Default: '%(default)s'",
                         default='')
     parser.add_argument("--fig", dest="fig_disp", type=str,
-                        help="Figures should be organized by... %(choices)s (Default: %(default)s)",
+                        help="Figures should be organized by... %(choices)s"
+                             " (Default: %(default)s)",
                         choices=['skills', 'trackruns', 'scenarios'],
                         default='skills')
     parser.add_argument("--plot", dest="plot_disp", type=str,
-                        help="Plot errorbars by... %(choices)s (Default: %(default)s)",
+                        help="Plot errorbars by... %(choices)s (Default:"
+                             " %(default)s)",
                         choices=['skills', 'trackruns', 'scenarios'],
                         default='trackruns')
     parser.add_argument("--tick", dest="tick_disp", type=str,
@@ -406,36 +409,6 @@ if __name__ == '__main__' :
                              " and (3) the key by which to group (1)'s"
                              " dimensions.",
                         metavar="GROUP", default=None)
-    """
-    parser.add_argument("multiSims",
-                      help="Analyze tracks for MULTISIM",
-                      nargs='+',
-                      metavar="MULTISIM", type=str)
-    parser.add_argument("-s", "--skills", dest="skillNames",
-                        help="The skill measures to use",
-                        nargs='+', metavar="SKILL")
-    parser.add_argument("-t", "--trackruns", dest="trackRuns",
-                        nargs="+", help="Trackruns to analyze.  Analyze all common runs if none are given",
-                        metavar="RUN", default=None)
-    parser.add_argument("--cache", dest="cacheOnly",
-                        help="Only bother with processing for the purpose of caching results.",
-                        action="store_true", default=False)
-    parser.add_argument("--save", dest="saveImgFile", type=str,
-                        help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
-                        metavar="FILESTEM", default=None)
-    parser.add_argument("--type", dest="imageType", type=str,
-                        help="Image format to use for saving the figures. Default: %(default)s",
-                        metavar="TYPE", default='png')
-    parser.add_argument("-f", "--figsize", dest="figsize", type=float,
-                        nargs=2, help="Size of the figure in inches (width x height). Default: %(default)s",
-                        metavar="SIZE", default=(11.0, 5.0))
-    parser.add_argument("--noshow", dest="doShow", action = 'store_false',
-                        help="To display or not to display...",
-                        default=True)
-    parser.add_argument("-d", "--dir", dest="directory",
-                        help="Base directory to find MULTISIM",
-                        metavar="DIRNAME", default='.')
-    """
     args = parser.parse_args()
 
     main(args)
