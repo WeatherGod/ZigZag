@@ -1,15 +1,8 @@
-#------------------------
-# for the animation code
-#import gtk, gobject
-
-#import matplotlib
-#matplotlib.use('GTKAgg')
-from matplotlib.animation import FuncAnimation
-#------------------------
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections as mcoll
+from matplotlib.animation import FuncAnimation
 
 #################################
 #		Segment Plotting        #
@@ -31,31 +24,37 @@ def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
     return lines
 
 def PlotSegments(truthTable, tLims,
-	         axis=None, width=4.0, **kwargs) :
+                 axis=None, width=4.0, **kwargs) :
     if axis is None :
         axis = plt.gca()
 
     tableSegs = {}
 
     # Correct Stuff
-    tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'], tLims, axis,
-                                              linewidth=width, color= 'green', 
-                                              marker=' ', 
+    tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'],
+                                              tLims, axis,
+                                              linewidth=width, color= 'green',
+                                              marker=' ',
                                               zorder=1, **kwargs)
-    tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'], tLims, axis,
-                                               color='lightgreen', linestyle=' ', 
+    tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'],
+                                               tLims, axis,
+                                               color='lightgreen',
+                                               linestyle=' ',
                                                marker='.', markersize=2*width,
                                                zorder=1, **kwargs)
 
     # Wrong Stuff
-    tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'], tLims, axis,
-                                             linewidth=width, color='gray', linestyle='-.',
-                                             dash_capstyle = 'round', 
+    tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'],
+                                             tLims, axis,
+                                             linewidth=width, color='gray',
+                                             linestyle='-.',
+                                             dash_capstyle = 'round',
                                              marker=' ', #markersize = 2*width,
                                              zorder=2, **kwargs)
-    tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'], tLims, axis,
-                                            linewidth=width, color='red', 
-                                            marker=' ', 
+    tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'],
+                                            tLims, axis,
+                                            linewidth=width, color='red',
+                                            marker=' ',
                                             zorder=2, **kwargs)
 
     return tableSegs
@@ -242,10 +241,12 @@ def PlotPlainTracks(tracks, falarms,
     if axis is None :
         axis = plt.gca()
 
-    trackLines = PlotTrack(tracks, startFrame, endFrame, axis=axis, marker='.', markersize=6.0,
-                           color='k', linewidth=1.5, animated=animated)
-    falarmLines = PlotTrack(falarms, startFrame, endFrame, axis=axis, marker='.', markersize=6.0,
-                            linestyle=' ', color='r', animated=animated)
+    trackLines = PlotTrack(tracks, startFrame, endFrame, axis=axis, marker='.',
+                           markersize=6.0, color='k', linewidth=1.5,
+                           animated=animated)
+    falarmLines = PlotTrack(falarms, startFrame, endFrame, axis=axis,
+                            marker='.', markersize=6.0, linestyle=' ',
+                            color='r', animated=animated)
 
     return {'trackLines': trackLines, 'falarmLines': falarmLines}
 

@@ -325,6 +325,11 @@ show_opts = [
           nargs=2, help="Size of the figure in inches (width x height)."
                         " Default: auto",
           metavar="SIZE", default=None)),
+    (("--tail",),
+     dict(dest='tail', type=int,
+          help="Length of lagging tail in frames. Default depends on"
+               " the program.",
+          metavar='N', default=None)),
     ]
 
 map_opts = [
@@ -349,6 +354,10 @@ _zigargs['ShowTracks2'] = [
      dict(nargs='+',
           help="TRACKFILEs to use for display",
           metavar="TRACKFILE")),
+    (("-e", "--end"),
+     dict(dest="endFrame", type=int,
+          help="The ending FRAME (Default: last frame in data)",
+          metavar="FRAME", default=None)),
     ] + show_opts + map_opts
 
 
@@ -361,18 +370,17 @@ _zigargs['ShowCompare2'] = [
      dict(dest="truthTrackFile", nargs='+',
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE")),
-    ] + show_opts + map_opts
+    (("-e", "--end"),
+     dict(dest="endFrame", type=int,
+          help="The ending FRAME (Default: last frame in data)",
+          metavar="FRAME", default=None)),
+   ] + show_opts + map_opts
 
 _zigargs['ShowCorners2'] = [
     (("inputDataFiles",),
      dict(nargs='+',
           help="Use INDATAFILE for finding corner data files",
           metavar="INDATAFILE")),
-    (("--tail",),
-     dict(dest='tail', type=int,
-          help="Length of lagging tail in frames. Default depends on"
-               " the program.",
-          metavar='N', default=None)),
     ] + show_opts + map_opts
 
 _zigargs['ShowTracks'] = [
@@ -393,8 +401,12 @@ _zigargs['ShowTracks'] = [
      dict(dest="simName",
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
-    "-d"
-    ] + show_opts + map_opts
+    "-d",
+    (("-e", "--end"),
+     dict(dest="endFrame", type=int,
+          help="The ending FRAME (Default: last frame in data)",
+          metavar="FRAME", default=None)),
+   ] + show_opts + map_opts
 
 
 _zigargs['ShowAnims'] = [
@@ -416,11 +428,6 @@ _zigargs['ShowAnims'] = [
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
     "-d",
-    (("--tail",),
-     dict(dest='tail', type=int,
-          help="Length of lagging tail in frames. Default depends on"
-               " the program.",
-          metavar='N', default=None)),
     ] + show_opts + map_opts
 
 _zigargs['ShowCorners'] = [
@@ -438,11 +445,6 @@ _zigargs['ShowCorners'] = [
           help="Use data from the simulation SIMNAME.",
           metavar="SIMNAME", default=None)),
     "-d",
-    (("--tail",),
-     dict(dest='tail', type=int,
-          help="Length of lagging tail in frames. Default depends on"
-               " the program.",
-          metavar='N', default=None)),
     ] + show_opts + map_opts
 
 

@@ -22,13 +22,31 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
         track['yLocs'] = lats
 
 
-def MakeTrackPlots(grid, trackData, titles, showMap) :
+def MakeTrackPlots(grid, trackData, titles, showMap,
+                   endFrame=None, tail=None) :
+    """
+    *grid*              axes_grid object
+    *trackData*         a list of the lists of tracks
+    *titles*            titles for each subplot
+    *showMap*           boolean indicating whether to plot a map layer
+    *endFrame*          Display tracks as of *frame* number. Default: last
+    *tail*              How many frames to include prior to *frame* to display
+                        Default: all
+    """
     stackedTracks = []
     for aTracker in trackData :
         stackedTracks += aTracker[0] + aTracker[1]
 
     # TODO: gotta make this get the time limits!
     (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
+
+    if endFrame is None :
+        endFrame = frameLims[1]
+
+    if tail is None :
+        tail = frameLims[1] - frameLims[0]
+
+    startFrame = endFrame - tail
 
     if showMap :
         bmap = Basemap(projection='cyl', resolution='i',
@@ -47,7 +65,7 @@ def MakeTrackPlots(grid, trackData, titles, showMap) :
             ax.set_ylabel("Y")
 
         PlotPlainTracks(aTracker[0], aTracker[1],
-                        frameLims[0], frameLims[1], axis=ax)
+                        startFrame, endFrame, axis=ax)
 
         ax.set_title(title)
 
@@ -83,7 +101,8 @@ def main(args) :
     
     showMap = (args.statLonLat is not None and args.displayMap)
 
-    MakeTrackPlots(grid, trackerData, args.trackTitles, showMap)
+    MakeTrackPlots(grid, trackerData, args.trackTitles, showMap,
+                   endFrame=args.endFrame, tail=args.tail)
 
     if args.saveImgFile is not None :
         theFig.savefig(args.saveImgFile)

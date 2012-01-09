@@ -111,6 +111,17 @@ def main(args) :
             stackedTracks += aTracker[0] + aTracker[1]
         (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
+    endFrame = args.endFrame
+    tail = args.tail
+
+    if endFrame is None :
+        endFrame = frameLims[1]
+
+    if tail is None :
+        tail = frameLims[1] - frameLims[0]
+
+    startFrame = endFrame - tail
+
     showMap = (args.statLonLat is not None and args.displayMap)
 
     if showMap :
@@ -131,10 +142,10 @@ def main(args) :
             trackFAlarmSegs = CreateSegments(aTracker[1])
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                          trackAssocSegs, trackFAlarmSegs)
-            PlotSegments(truthtable, frameLims, axis=curAxis)
+            PlotSegments(truthtable, (startFrame, endFrame), axis=curAxis)
         else :
             PlotPlainTracks(aTracker[0], aTracker[1],
-                            frameLims[0], frameLims[1], axis=curAxis)
+                            startFrame, endFrame, axis=curAxis)
 
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)

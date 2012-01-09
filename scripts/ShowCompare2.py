@@ -22,14 +22,22 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
         track['xLocs'] = lons
         track['yLocs'] = lats
 
-def MakeComparePlots(grid, trackData, truthData, titles, showMap) :
+def MakeComparePlots(grid, trackData, truthData, titles, showMap,
+                     endFrame=None, tail=None) :
     true_AssocSegs = None
     true_FAlarmSegs = None
     frameLims = None
 
     for ax, aTracker, truth, title in zip(grid, trackData, truthData, titles) :
+        this_endFrame = endFrame
+        this_tail = tail
+
         # Either only do this for the first pass through,
         #  or do it for all passes
+        # In other words, if no frameLims is given, then use the frameLimits
+        # for each truthkData dataset.
+        # Or, if there are multiple truthData datasets, then regardless of
+        # whether frameLims was specified, calculate the frame limits each time
         if frameLims is None or len(truthData) > 1 :
             true_AssocSegs = CreateSegments(truth[0])
             true_FAlarmSegs = CreateSegments(truth[1])
@@ -44,16 +52,25 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap) :
                                urcrnrlat=yLims[1], urcrnrlon=xLims[1])
                 PlotMapLayers(bmap, mapLayers, ax)
 
+        if this_endFrame is None :
+            this_endFrame = frameLims[1]
+
+        if this_tail is None :
+            this_tail = frameLims[1] - frameLims[0]
+
+        this_startFrame = this_endFrame - this_tail
+
+
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackAssocSegs, trackFAlarmSegs)
-        PlotSegments(truthtable, frameLims, axis=ax)
+        PlotSegments(truthtable, (this_startFrame, this_endFrame), axis=ax)
 
         ax.set_title(title)
         if not showMap :
-            ax.set_xlabel("X (km)")
-            ax.set_ylabel("Y (km)")
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
         else :
             ax.set_xlabel("Longitude")
             ax.set_ylabel("Latitude")
@@ -118,7 +135,8 @@ def main(args) :
 
     showMap = (args.statLonLat is not None and args.displayMap)
 
-    MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap)
+    MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap,
+                     endFrame=args.endFrame, tail=args.tail)
 
     if args.saveImgFile is not None :
         theFig.savefig(args.saveImgFile)

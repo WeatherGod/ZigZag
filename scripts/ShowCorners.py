@@ -91,11 +91,19 @@ def main(args) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    if args.tail is None :
-        args.tail = 0
+    endFrame = frameLims[1]
+    tail = args.tail
 
-    theAnim = CornerAnimation(theFig, max(frameLims) - min(frameLims) + 1,
-                              tail=args.tail, interval=250, blit=False)
+    if tail is None :
+        tail = 0
+
+    if endFrame is None :
+        endFrame = frameLims[1]
+
+    startFrame = endFrame - tail
+
+    theAnim = CornerAnimation(theFig, endFrame - startFrame + 1,
+                              tail=tail, interval=250, blit=False)
 
     for (index, volData) in enumerate(cornerVolumes) :
         curAxis = grid[index]
@@ -118,6 +126,9 @@ def main(args) :
             curAxis.set_ylabel("Latitude")
 
         theAnim.AddCornerVolume(corners)
+        #[aCorn for findex, aCorn for
+        #                         enumerate(corners) if
+        #                         (startFrame <= aCorn <= endFrame)])
 
     if args.saveImgFile is not None :
         theAnim.save(args.saveImgFile)
