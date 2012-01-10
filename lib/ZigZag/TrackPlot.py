@@ -59,7 +59,8 @@ def PlotSegments(truthTable, tLims,
 
     return tableSegs
 
-def Animate_Segments(truthTable, tLims, axis=None, figure=None, event_source=None, **kwargs) :
+def Animate_Segments(truthTable, tLims, axis=None, figure=None,
+                     event_source=None, **kwargs) :
     if figure is None :
         figure = plt.gcf()
 
@@ -86,10 +87,13 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
         axis = plt.gca()
 
     corners = []
+    startT = min(tLims)
+    endT = max(tLims)
     for aVol in volData :
-        if min(tLims) <= aVol['volTime'] <= max(tLims) :
+        if startT <= aVol['volTime'] <= endT :
             corners.append(axis.scatter(aVol['stormCells']['xLocs'],
-                                        aVol['stormCells']['yLocs'], s=1,
+                                        aVol['stormCells']['yLocs'],
+                                        s=1, c='k',
                                         **kwargs))
     return corners
 
@@ -134,7 +138,7 @@ class SegAnimator(FuncAnimation) :
                                      interval=250, blit=False)
 
     def update_lines(self, idx, lineData, lines, firstFrame, lastFrame, tail) :
-        theHead = min(max(idx, firstFrame), lastFrame)
+        theHead = min(idx + firstFrame, lastFrame)
         startTail = max(theHead - tail, firstFrame)
 
         for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
@@ -161,7 +165,7 @@ def AnimateLines(lines, lineData, startFrame, endFrame,
         tail = endFrame - startFrame
 
     def update_lines(idx, lineData, lines, firstFrame, lastFrame, tail) :
-        theHead = min(max(idx, firstFrame), lastFrame)
+        theHead = min(idx + firstFrame, lastFrame)
         startTail = max(theHead - tail, firstFrame)
             
         for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
@@ -184,8 +188,12 @@ def PrepareFrameLims1(f) :
     def wrapf(tracks1, startFrame=None, endFrame=None, **kwargs) :
         if startFrame is None or endFrame is None :
             trackFrames = [aTrack['frameNums'] for aTrack in tracks1]
-            if startFrame is None : startFrame = min([min(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
-            if endFrame is None : endFrame = max([max(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+            if startFrame is None :
+                startFrame = min([min(aTrack) for aTrack in trackFrames if
+                                  len(aTrack) > 0])
+            if endFrame is None :
+                endFrame = max([max(aTrack) for aTrack in trackFrames if
+                                len(aTrack) > 0])
 
         return f(tracks1, startFrame, endFrame, **kwargs)
     return wrapf
@@ -194,8 +202,12 @@ def PrepareFrameLims2(f) :
     def wrapf(tracks1, tracks2, startFrame=None, endFrame=None, **kwargs) :
         if startFrame is None or endFrame is None :
             trackFrames = [aTrack['frameNums'] for aTrack in tracks1 + tracks2]
-            if startFrame is None : startFrame = min([min(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
-            if endFrame is None : endFrame = max([max(aTrack) for aTrack in trackFrames if len(aTrack) > 0])
+            if startFrame is None :
+                startFrame = min([min(aTrack) for aTrack in trackFrames if
+                                  len(aTrack) > 0])
+            if endFrame is None :
+                endFrame = max([max(aTrack) for aTrack in trackFrames if
+                                len(aTrack) > 0])
 
         return f(tracks1, tracks2, startFrame, endFrame, **kwargs)
     return wrapf
@@ -215,8 +227,6 @@ def PlotTrack(tracks, startFrame=None, endFrame=None, axis=None, **kwargs) :
 
     return lines
 
-
-           
 
 @PrepareFrameLims2
 def PlotTracks(true_tracks, model_tracks, startFrame=None, endFrame=None,

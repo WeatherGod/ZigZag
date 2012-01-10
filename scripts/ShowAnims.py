@@ -108,6 +108,19 @@ def main(args) :
             stackedTracks += aTracker[0] + aTracker[1]
         (xLims, yLims, frameLims) = DomainFromTracks(stackedTracks)
 
+    startFrame = args.startFrame
+    endFrame = args.endFrame
+    tail = args.tail
+
+    if startFrame is None :
+        startFrame = frameLims[0]
+
+    if endFrame is None :
+        endFrame = frameLims[1]
+
+    if tail is None :
+        tail = endFrame - startFrame
+
     showMap = (args.statLonLat is not None and args.displayMap)
 
     if showMap :
@@ -116,10 +129,7 @@ def main(args) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    if args.tail is None :
-        args.tail = max(frameLims) - min(frameLims) + 1
-
-    animator = SegAnimator(theFig, min(frameLims), max(frameLims), args.tail)
+    animator = SegAnimator(theFig, startFrame, endFrame, tail)
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
@@ -132,12 +142,13 @@ def main(args) :
             trackFAlarmSegs = CreateSegments(aTracker[1])
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                          trackAssocSegs, trackFAlarmSegs)
-            l, d = Animate_Segments(truthtable, frameLims, axis=curAxis,
+            l, d = Animate_Segments(truthtable, (startFrame, endFrame),
+                                    axis=curAxis,
                                     speed=0.1, loop_hold=3.0,
                                     event_source=theTimer)
         else :
             l, d = Animate_PlainTracks(aTracker[0], aTracker[1],
-                                       frameLims, axis=curAxis,
+                                       (startFrame, endFrame), axis=curAxis,
                                        speed=0.1, loop_hold=3.0,
                                        event_source=theTimer)
 

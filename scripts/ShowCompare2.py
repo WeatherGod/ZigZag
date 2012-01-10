@@ -10,6 +10,8 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 from BRadar.maputils import LatLonFrom
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
+from BRadar.io import LoadRastRadar
+from BRadar.plotutils import MakeReflectPPI
 
 import numpy as np
 
@@ -56,7 +58,7 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap,
             this_endFrame = frameLims[1]
 
         if this_tail is None :
-            this_tail = frameLims[1] - frameLims[0]
+            this_tail = this_endFrame - frameLims[0]
 
         this_startFrame = this_endFrame - this_tail
 
@@ -135,6 +137,13 @@ def main(args) :
 
     showMap = (args.statLonLat is not None and args.displayMap)
 
+    if args.radarFile is not None and args.statLonLat is not None :
+        data = LoadRastRadar(args.radarFile)
+        for ax in grid :
+            MakeReflectPPI(data['vals'][0], data['lats'], data['lons'],
+                           meth='pcmesh', ax=ax, colorbar=False,
+                           axis_labels=False, zorder=0, alpha=0.6)
+
     MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap,
                      endFrame=args.endFrame, tail=args.tail)
 
@@ -156,6 +165,12 @@ if __name__ == '__main__' :
                                                  " truth data. Slightly "
                                                  " different from ShowTracks2.")
     AddCommandParser('ShowCompare2', parser)
+    parser.add_argument("--radar", dest="radarFile", type=str,
+                        help="A rasterized radar data file to use to"
+                             " display reflectivities under the tracks."
+                             " This option only works if '--station' option"
+                             " is given.",
+                        metavar="RADFILE", default=None)
     args = parser.parse_args()
 
     main(args)

@@ -22,16 +22,26 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
         cents['xLocs'] = lons
         cents['yLocs'] = lats
 
-def MakeCornerPlots(fig, grid, cornerVolumes, titles, tail, showMap) :
+def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
+                    startFrame=None, endFrame=None, tail=None) :
     volumes = []
     frameCnts = []
     for volData in cornerVolumes :
-        frameCnts.append(len(volData))
+        #frameCnts.append(len(volData))
         volumes.extend(volData)
 
     # the info in frameLims is completely useless because we
     # can't assume that each cornerVolumes has the same frame reference.
     xLims, yLims, tLims, frameLims = DomainFromVolumes(volumes)
+
+    if startFrame is None :
+        startFrame = frameLims[0]
+
+    if endFrame is None :
+        endFrame = frameLims[1]
+
+    if tail is None :
+        tail = endFrame - startFrame
 
     if showMap :
         bmap = Basemap(projection='cyl', resolution='l',
@@ -39,7 +49,7 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, tail, showMap) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    theAnim = CornerAnimation(fig, max(frameCnts),
+    theAnim = CornerAnimation(fig, endFrame - startFrame + 1,
                               tail=tail, interval=250, blit=True)
 
     for ax, volData, title in zip(grid, cornerVolumes, titles) :
@@ -51,7 +61,16 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, tail, showMap) :
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
-        corners = PlotCorners(volData, tLims, axis=ax)
+        # TODO: Need to figure out a better way to handle this for
+        # volume data that do not have the same number of frames
+        volFrames = [frameVol['frameNum'] for frameVol in volData]
+        startIdx = volFrames.index(startFrame)
+        endIdx = volFrames.index(endFrame)
+        volTimes = [frameVol['volTime'] for frameVol in volData]
+        startT = volTimes[startIdx]
+        endT = volTimes[endIdx]
+
+        corners = PlotCorners(volData, (startT, endT), axis=ax)
 
         ax.set_title(title)
 
@@ -94,11 +113,10 @@ def main(args) :
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
                             share_all=True, axes_pad=0.32)
 
-    if args.tail is None :
-        args.tail = 0
-
     theAnim = MakeCornerPlots(theFig, grid, cornerVolumes,
-                              args.trackTitles, args.tail, showMap)
+                              args.trackTitles, showMap, tail=args.tail,
+                              startFrame=args.startFrame,
+                              endFrame=args.endFrame)
 
     if args.saveImgFile is not None :
         theAnim.save(args.saveImgFile)

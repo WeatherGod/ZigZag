@@ -91,16 +91,19 @@ def main(args) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    endFrame = frameLims[1]
+    startFrame = args.startFrame
+    endFrame = args.endFrame
     tail = args.tail
 
-    if tail is None :
-        tail = 0
+    if startFrame is None :
+        startFrame = frameLims[0]
 
     if endFrame is None :
         endFrame = frameLims[1]
 
-    startFrame = endFrame - tail
+    if tail is None :
+        tail = 0
+
 
     theAnim = CornerAnimation(theFig, endFrame - startFrame + 1,
                               tail=tail, interval=250, blit=False)
@@ -111,7 +114,14 @@ def main(args) :
         if showMap :
             PlotMapLayers(bmap, mapLayers, curAxis)
 
-        corners = PlotCorners(volData, frameLims, axis=curAxis)
+        volFrames = [frameVol['frameNum'] for frameVol in volData]
+        startIdx = volFrames.index(startFrame)
+        endIdx = volFrames.index(endFrame)
+        volTimes = [frameVol['volTime'] for frameVol in volData]
+        startT = volTimes[startIdx]
+        endT = volTimes[endIdx]
+
+        corners = PlotCorners(volData, (startT, endT), axis=curAxis)
 
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)
@@ -126,9 +136,6 @@ def main(args) :
             curAxis.set_ylabel("Latitude")
 
         theAnim.AddCornerVolume(corners)
-        #[aCorn for findex, aCorn for
-        #                         enumerate(corners) if
-        #                         (startFrame <= aCorn <= endFrame)])
 
     if args.saveImgFile is not None :
         theAnim.save(args.saveImgFile)

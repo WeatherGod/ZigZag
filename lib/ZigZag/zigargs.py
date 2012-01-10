@@ -330,7 +330,13 @@ show_opts = [
           help="Length of lagging tail in frames. Default depends on"
                " the program.",
           metavar='N', default=None)),
-    ]
+    (("--end",),
+     dict(dest="endFrame", type=int,
+          help="The ending FRAME (Default: last frame in data)",
+          metavar="FRAME", default=None)),
+   ]
+
+
 
 map_opts = [
     (("--station",),
@@ -354,10 +360,6 @@ _zigargs['ShowTracks2'] = [
      dict(nargs='+',
           help="TRACKFILEs to use for display",
           metavar="TRACKFILE")),
-    (("-e", "--end"),
-     dict(dest="endFrame", type=int,
-          help="The ending FRAME (Default: last frame in data)",
-          metavar="FRAME", default=None)),
     ] + show_opts + map_opts
 
 
@@ -370,10 +372,6 @@ _zigargs['ShowCompare2'] = [
      dict(dest="truthTrackFile", nargs='+',
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE")),
-    (("-e", "--end"),
-     dict(dest="endFrame", type=int,
-          help="The ending FRAME (Default: last frame in data)",
-          metavar="FRAME", default=None)),
    ] + show_opts + map_opts
 
 _zigargs['ShowCorners2'] = [
@@ -381,6 +379,10 @@ _zigargs['ShowCorners2'] = [
      dict(nargs='+',
           help="Use INDATAFILE for finding corner data files",
           metavar="INDATAFILE")),
+    (("--start",),
+     dict(dest="startFrame", type=int,
+          help="The starting FRAME (Default: first frame in data)",
+          metavar="FRAME", default=None)),
     ] + show_opts + map_opts
 
 _zigargs['ShowTracks'] = [
@@ -402,10 +404,6 @@ _zigargs['ShowTracks'] = [
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
     "-d",
-    (("-e", "--end"),
-     dict(dest="endFrame", type=int,
-          help="The ending FRAME (Default: last frame in data)",
-          metavar="FRAME", default=None)),
    ] + show_opts + map_opts
 
 
@@ -428,6 +426,10 @@ _zigargs['ShowAnims'] = [
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
     "-d",
+    (("--start",),
+     dict(dest="startFrame", type=int,
+          help="The starting FRAME (Default: first frame in data)",
+          metavar="FRAME", default=None)),
     ] + show_opts + map_opts
 
 _zigargs['ShowCorners'] = [
@@ -445,6 +447,10 @@ _zigargs['ShowCorners'] = [
           help="Use data from the simulation SIMNAME.",
           metavar="SIMNAME", default=None)),
     "-d",
+    (("--start",),
+     dict(dest="startFrame", type=int,
+          help="The starting FRAME (Default: first frame in data)",
+          metavar="FRAME", default=None)),
     ] + show_opts + map_opts
 
 

@@ -9,6 +9,8 @@ from ZigZag.ListRuns import ExpandTrackRuns
 from BRadar.maputils import LatLonFrom
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
+from BRadar.plotutils import MakeReflectPPI
+from BRadar.io import LoadRastRadar
 
 import numpy as np
 
@@ -118,11 +120,16 @@ def main(args) :
         endFrame = frameLims[1]
 
     if tail is None :
-        tail = frameLims[1] - frameLims[0]
+        tail = endFrame - frameLims[0]
 
     startFrame = endFrame - tail
 
     showMap = (args.statLonLat is not None and args.displayMap)
+
+    if args.radarFile is not None and args.statLonLat is not None :
+        raddata = LoadRastRadar(args.radarFile)
+    else :
+        raddata = None
 
     if showMap :
         bmap = Basemap(projection='cyl', resolution='i',
@@ -133,6 +140,11 @@ def main(args) :
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
+
+        if raddata is not None :
+            MakeReflectPPI(raddata['vals'][0], data['lats'], data['lons'],
+                           meth='pcmesh', ax=curAxis, colorbar=False,
+                           axis_labels=False, zorder=0, alpha=0.6)
 
         if showMap :
             PlotMapLayers(bmap, mapLayers, curAxis)
@@ -177,6 +189,12 @@ if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description="Produce a display of"
                                                  " the tracks")
     AddCommandParser('ShowTracks', parser)
+    parser.add_argument("--radar", dest="radarFile", type=str,
+                        help="A rasterized radar data file to use to"
+                             " display reflectivities under the tracks."
+                             " This option only works if '--station' option"
+                             " is given.",
+                        metavar="RADFILE", default=None)
     args = parser.parse_args()
 
     main(args)
