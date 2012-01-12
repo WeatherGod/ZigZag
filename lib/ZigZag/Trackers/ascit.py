@@ -11,13 +11,20 @@ class ASCIT(object) :
 
     *distThresh* is the maximum distance storms are expected to travel
                  in the frame intervals.
+
+    *default_dir* is the default direction the storm should come "from"
+                in degrees using math angles.
     """
     _fallback_cost = 999999.0
 
-    def __init__(self, distThresh=5.0, framesBack=10) :
+    def __init__(self, distThresh=5.0, framesBack=10,
+                       default_dir=0.0, default_spd=0.0) :
         self.distThresh = distThresh
         self._highCost = None
         self._frames_back = framesBack
+        # Flip it around to point in the direction "to"
+        self._default_dir = np.radians(default_dir + 180.0)
+        self._default_spd = default_spd
 
         # If the cost threshold is set larger than
         # the fallback cost, then nothing works right
@@ -286,7 +293,8 @@ class ASCIT(object) :
             systemAvg = (tot_x_spd / trackCnt,
                          tot_y_spd / trackCnt)
         else :
-            systemAvg = (0.0, 0.0)
+            systemAvg = (self._default_spd * np.cos(self._default_dir),
+                         self._default_spd * np.sin(self._default_dir))
 
         # Any newly established tracks will be initialized
         # with the average speed of all the existing tracks

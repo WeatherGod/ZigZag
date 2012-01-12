@@ -266,10 +266,13 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
         systemAvg = {'speed_x': tot_x_spd / trackCnt,
                      'speed_y': tot_y_spd / trackCnt}
     else :
-        systemAvg = {'speed_x': 0.0,
-                     'speed_y': 0.0}
+        direction = np.radians(strmAdap.get("default_dir", 0.0) + 180.0)
+        speed = strmAdap.get("default_spd", 0.0)
 
-    # Now initialize any unestablished tracks with the sytem average
+        systemAvg = {'speed_x': speed * np.cos(direction),
+                     'speed_y': speed * np.sin(direction)}
+
+    # Now initialize any unestablished tracks with the system average
     for index in trackIDs :
         theTrackInfo = infoTracks[index]
         if len(theTrackInfo['speed_x']) == 0 :

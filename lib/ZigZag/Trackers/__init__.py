@@ -4,6 +4,7 @@ import ZigZag.TrackUtils as TrackUtils
 import os.path
 import tempfile
 import os
+import numpy as np
 
 
 trackerList = {}
@@ -17,7 +18,23 @@ def _register_tracker(tracker, name, param_conf) :
     param_confList[name] = param_conf
     
 
+# Some standard utility functions that would be typically used here...
+def _load_times(simParams, volumes) :
+    """ Assumes that len(volumes) > 1 """
+    times = simParams['times']
 
+    if times is None :
+        times = np.linspace(simParams['tLims'][0], simParams['tLims'][1],
+                            len(volumes))
+
+    if len(volumes) != len(times) :
+        raise Exception("The times and the frame data do not match up!")
+
+    # Use the median time delta as a starting point for the loop.
+    lasttime = times[0] - np.median(np.diff(times))
+
+    return times, lasttime
+   
 
 def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     import scit
@@ -27,20 +44,28 @@ def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
                                             path=dirName)
     speedThresh = float(trackParams['speedThresh'])
     framesBack = int(trackParams['framesBack'])
+    default_dir = float(trackParams['default_dir'])
+    default_spd = float(trackParams['default_spd'])
 
     if simParams['frameCnt'] <= 1 :
         raise Exception("Not enough frames for tracking: %d" %
                          simParams['frameCnt'])
 
-    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
-              float(simParams['frameCnt'] - 1))
-    strmAdap = {'distThresh': speedThresh * tDelta,
-                'framesBack': framesBack}
+    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
+
     stateHist = []
     strmTracks = []
     infoTracks = []
 
-    for aVol in cornerInfo['volume_data'] :
+    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
+        # Technically, distThresh and default_spd are actually speeds,
+        # just with units of distance per frame
+        tDelta = currtime - lasttime
+        lasttime = currtime
+        strmAdap = {'distThresh': speedThresh * tDelta,
+                    'framesBack': framesBack,
+                    'default_dir': default_dir,
+                    'default_spd': default_spd * tDelta}
         scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol)
 
     scit.EndTracks(stateHist, strmTracks)
@@ -56,7 +81,9 @@ def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
 
 _register_tracker(SCIT_Track, "SCIT",
                   dict(speedThresh="float(min=0.0)",
-                       framesBack="integer(min=0, default=10)"))
+                       framesBack="integer(min=0, default=10)",
+                       default_dir="float(min=-360.0, max=360.0, default=0.0)",
+                       default_spd="float(min=0.0, default=0.0)"))
 
 def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     import mht
@@ -64,9 +91,6 @@ def MHT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
     dirName = path
     # Popping off the ParamFile key so that the rest of the available
     # configs can be used for making the MHT parameter file.
-#    paramDir, paramName = os.path.split(trackParams.pop("ParamFile"))
-#    file, paramFile = tempfile(prefix=paramName,
-#                               dir=os.path.join(dirName, paramDir)
     paramFile, paramName = tempfile.mkstemp(text=True)
     # Don't need it open, just pass the name along.
     os.close(paramFile)
@@ -124,12 +148,14 @@ def TITAN_Track(trackRun, simParams, trackParams,
         raise Exception("Not enough frames for tracking: %d" %
                          simParams['frameCnt'])
 
-    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
-              float(simParams['frameCnt'] - 1))
+    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
 
-    t = titan.TITAN(distThresh=speedThresh*tDelta)
-    for aVol in cornerInfo['volume_data'] :
+    t = titan.TITAN()
+    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
+        tDelta = currtime - lasttime
+        t.distThresh = speedThresh * tDelta
         t.TrackStep(aVol)
+        lasttime = currtime
 
     # Tidy up tracks because there won't be any more data
     t.finalize()
@@ -154,18 +180,23 @@ def ASCIT_Track(trackRun, simParams, trackParams,
                                                     simParams['inputDataFile']),
                                             path=dirName)
     speedThresh = float(trackParams['speedThresh'])
+    default_spd = float(trackParams['default_spd'])
 
     if simParams['frameCnt'] <= 1 :
         raise Exception("Not enough frames for tracking: %d" %
                          simParams['frameCnt'])
 
-    tDelta = ((simParams['tLims'][1] - simParams['tLims'][0]) /
-              float(simParams['frameCnt'] - 1))
+    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
 
-    t = ascit.ASCIT(distThresh=speedThresh*tDelta,
-                    framesBack=int(trackParams['framesBack']))
-    for aVol in cornerInfo['volume_data'] :
+    t = ascit.ASCIT(framesBack=int(trackParams['framesBack']),
+                    default_dir=float(trackParams['default_dir']))
+    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
+        tDelta = currtime - lasttime
+        t.distThresh = speedThresh * tDelta
+        t._default_spd = default_spd * tDelta
         t.TrackStep(aVol)
+        lasttime = currtime
+
 
     # Tidy up tracks because there won't be any more data
     t.finalize()
@@ -182,5 +213,7 @@ def ASCIT_Track(trackRun, simParams, trackParams,
 
 _register_tracker(ASCIT_Track, "ASCIT",
                   dict(speedThresh="float(min=0.0)",
-                       framesBack="integer(min=0, default=10)"))
+                       framesBack="integer(min=0, default=10)",
+                       default_dir="float(min=-360.0, max=360.0, default=0.0)",
+                       default_spd="float(min=0.0, default=0.0)"))
 

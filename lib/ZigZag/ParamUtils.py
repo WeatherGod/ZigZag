@@ -33,22 +33,8 @@ def SaveConfigFile(filename, params) :
 
 def SaveSimulationParams(simParamName, simParams) :
     config = ConfigObj(simParams, interpolation=False)
-    #tLims = config.pop('tLims')
-    #config['frameCnt'] = max(tLims) - min(tLims) + 1
     config.filename = simParamName
     config.write()
-
-def ArgValidator(config) :
-    for keyName in config :
-        if keyName in ['seed', 'frameCnt', 'totalTracks'] :
-            # Grab single integer
-            config[keyName] = int(config[keyName])
-        elif keyName in ['endTrackProb'] :
-            # Grab single float
-	        config[keyName] = float(config[keyName])
-        elif keyName in ['xLims', 'yLims', 'tLims'] :
-            # Grab array of floats, from a spliting by whitespace
-            config[keyName] = map(float, config[keyName])
 
 def Read_MultiSim_Params(filename) :
     if not (os.path.isfile(filename) and os.access(filename, os.R_OK)) :
@@ -74,34 +60,38 @@ def ReadSimulationParams(simParamName) :
     config = ConfigObj(simParamName, interpolation=False)
 
     vdtor = Validator()
-    config.configspec = ConfigObj(dict(frameCnt="integer(min=1, default=%d)" % simDefaults['frameCnt'],
-                                       totalTracks="integer(min=0, default=%d)" % simDefaults['totalTracks'],
-                                       seed="integer(default=%d)" % simDefaults['seed'],
-                                       simTrackFile="string(default=%s)" % simDefaults['simTrackFile'],
-                                       noisyTrackFile="string(default=%s)" % simDefaults['noisyTrackFile'],
-                                       simConfFile="string(default=%s)" % simDefaults['simConfFile'],
-                                       endTrackProb="float(min=0.0, max=1.0, default=%f)" % simDefaults['endTrackProb'],
-                                       tLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['tLims']),
-                                       xLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['xLims']),
-                                       yLims="float_list(min=2, max=2, default=list(%f, %f))" % tuple(simDefaults['yLims']),
+    config.configspec = ConfigObj(
+        dict(frameCnt="integer(min=1, default=%d)" % simDefaults['frameCnt'],
+             totalTracks="integer(min=0, default=%d)" %
+                                                 simDefaults['totalTracks'],
+             seed="integer(default=%d)" % simDefaults['seed'],
+             simTrackFile="string(default=%s)" % simDefaults['simTrackFile'],
+             noisyTrackFile="string(default=%s)" %
+                                                 simDefaults['noisyTrackFile'],
+             simConfFile="string(default=%s)" % simDefaults['simConfFile'],
+             endTrackProb="float(min=0.0, max=1.0, default=%f)" %
+                                                 simDefaults['endTrackProb'],
+             tLims="float_list(min=2, max=2, default=list(%f, %f))" %
+                                                 tuple(simDefaults['tLims']),
+             xLims="float_list(min=2, max=2, default=list(%f, %f))" %
+                                                 tuple(simDefaults['xLims']),
+             yLims="float_list(min=2, max=2, default=list(%f, %f))" %
+                                                 tuple(simDefaults['yLims']),
 
-                                       trackers="force_list()",
-                                       corner_file="string(default=%s)" % trackerDefaults['corner_file'],
-                                       inputDataFile = "string(default=%s)" % trackerDefaults['inputDataFile'],
-                                       result_file = "string(default=%s)" % trackerDefaults['result_file'],
-                                       trackerparams="string(default=%s)" % trackerDefaults['trackerparams'],
-                                       analysis_stem="string(default=%s)" % trackerDefaults['analysis_stem']),
-                                 list_values=False,
-                                 _inspec=True)
+             trackers="force_list()",
+             corner_file="string(default=%s)" % trackerDefaults['corner_file'],
+             inputDataFile = "string(default=%s)" %
+                                            trackerDefaults['inputDataFile'],
+             result_file = "string(default=%s)" %
+                                            trackerDefaults['result_file'],
+             trackerparams="string(default=%s)" %
+                                            trackerDefaults['trackerparams'],
+             analysis_stem="string(default=%s)" %
+                                            trackerDefaults['analysis_stem'],
+             times="float_list(default=None)"),
+             list_values=False,
+             _inspec=True)
     
-    #ArgValidator(config)
-
-    #simParams = simDefaults.copy()
-    #simParams.update(trackerDefaults)
-    #simParams.update(config)
-
-    #frameCnt = simParams.pop('frameCnt')
-    #simParams['tLims'] = (1, frameCnt)
     res = config.validate(vdtor, preserve_errors=True)
     flatErrs = flatten_errors(config, res)
     _ShowErrors(flatErrs)
@@ -109,7 +99,7 @@ def ReadSimulationParams(simParamName) :
     return config
 
 def _ShowErrors(flatErrs, skipMissing=False) :
-    hasErrs = False
+    errmsgs = []
     for (section_list, key, error) in flatErrs :
         isErr = False
         if key is not None :
@@ -118,17 +108,18 @@ def _ShowErrors(flatErrs, skipMissing=False) :
         elif skipMissing is False :
             isErr = True
             section_list.append('[missing key/section]')
+
         section_string = ', '.join(section_list)
         if error == False :
             error = 'Missing value or section.'
 
         if isErr :
-            hasErrs = True
-            print section_string, ' = ', error
+            errmsgs.append(section_string + ' = ' + error)
         
-    if hasErrs :
+    if len(errmsgs) > 0 :
         # TODO: Make an exception class for errors in reading param files
-        raise Exception("Invalid data in configuration")
+        raise Exception("Invalid data in configuration:\n" +
+                        "\n".join(errmsgs))
 
 def LoadTrackerParams(filenames, trackers=None) :
     trackConfs = ConfigObj(interpolation=False)
