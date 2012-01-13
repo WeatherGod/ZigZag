@@ -6,22 +6,28 @@ import numpy as np
 
 
 def GenerateNewTimes(startFrame, endFrame, frameCnt, skipCnt,
-                     startTime, endTime) :
+                     startTime, endTime, times=None) :
     newFrames = np.arange(startFrame, endFrame + 1, skipCnt + 1)
 
-    if frameCnt < 2 :
-        timeStep = 0.0
+    if times is not None :
+        start, end = np.searchsorted(times, [startTime, endTime])
+        newTimes = times[start:end+1:skipCnt+1]
     else :
-        timeStep = (endTime - startTime) / float(frameCnt - 1)
+        if frameCnt < 2 :
+            timeStep = 0.0
+        else :
+            timeStep = (endTime - startTime) / float(frameCnt - 1)
 
-    newTimes = startTime + timeStep * (newFrames - startFrame)
+        newTimes = startTime + timeStep * (newFrames - startFrame)
+
+    assert len(newFrames) == len(newTimes), "Length of newFrames and newTimes do not match."
 
     return newFrames, newTimes
 
-def _downsample(volData, tLims, skipCnt) :
+def _downsample(volData, tLims, skipCnt, times=None) :
     frames = [aVol['frameNum'] for aVol in volData]
     newFrames, newTimes = GenerateNewTimes(min(frames), max(frames), len(frames), skipCnt,
-                                           tLims[0], tLims[1])
+                                           tLims[0], tLims[1], times=times)
 
     # Resample the volumes, keeping only the selected frames.
     newVols = [aVol for aVol in volData if aVol['frameNum'] in newFrames]
@@ -32,8 +38,23 @@ def _downsample(volData, tLims, skipCnt) :
 
     return newVols, newFrames, newTimes
 
+def _save_downsample(simParams, newName, newVols, newFrames, newTimes,
+                     path='.') :
+    simParams['frameCnt'] = len(newFrames)
+    simParams['tLims'] = (min(newTimes), max(newTimes))
+    simParams['simName'] = newName
+    simParams['trackers'] = []
+    if simParams['times'] is not None :
+        simParams['times'] = newTimes
 
-def DownsampleCorners(skipCnt, simName, newName, simParams, volData, path='.') :
+    ParamUtils.SaveSimulationParams(os.path.join(path, 'simParams.conf'),
+                                    simParams)
+    SaveCorners(os.path.join(path, simParams['inputDataFile']),
+                simParams['corner_file'], newVols, path=path)
+
+
+def DownsampleCorners(skipCnt, simName, newName, simParams, volData,
+                      path='.') :
     # Create the simulation directory.
     newPath = os.path.join(path, newName, '')
     if not os.path.exists(newPath) :
@@ -41,17 +62,12 @@ def DownsampleCorners(skipCnt, simName, newName, simParams, volData, path='.') :
     else :
         raise ValueError("%s is an existing simulation!" % newPath)
 
-    newVols, newFrames, newTimes = _downsample(volData, simParams['tLims'], skipCnt)
+    newVols, newFrames, newTimes = _downsample(volData, simParams['tLims'],
+                                               skipCnt,
+                                               times=simParams['times'])
 
-    simParams['frameCnt'] = len(newFrames)
-    simParams['tLims'] = (min(newTimes), max(newTimes))
-    simParams['simName'] = newName
-    simParams['trackers'] = []
-
-    dirName = os.path.join(path, simParams['simName'])
-    ParamUtils.SaveSimulationParams(os.path.join(dirName, 'simParams.conf'), simParams)
-    SaveCorners(os.path.join(dirName, simParams['inputDataFile']),
-                simParams['corner_file'], newVols, path=dirName)
+    _save_downsample(simParams, newName, newVols, newFrames, newTimes,
+                     path=newPath)
 
 def DownsampleTracks(skipCnt, simName, newName, simParams,
                      origTracks, tracks, volData,
@@ -64,24 +80,11 @@ def DownsampleTracks(skipCnt, simName, newName, simParams,
     else :
         raise ValueError("%s is an existing simulation!" % newPath)
 
-    # FIXME: This isn't quite right, but it might be easily fixed.
-    #        Heck, it might actually already be right.
-    #        The question is that do we assume that we always know
-    #        what the range of frame numbers are from knowing the
-    #        frameCnt, or do we always derive it from the tracks?
-    #        It might be better to assume it from the frameCnt
-    #        and grab it from the frameCnt...
-    #xLims, yLims, frameLims = DomainFromTracks(*tracks)
-    #newFrames, newTimes = GenerateNewTimes(frameLims[0], frameLims[1], simParams['frameCnt'], skipCnt,
-    #                                       simParams['tLims'][0], simParams['tLims'][1])
-
-    # Trying another approach...
     newVols, newFrames, newTimes = _downsample(volData, simParams['tLims'],
-                                               skipCnt)
-    tLims = (newTimes.min(), newTimes.max())
+                                               skipCnt,
+                                               times=simParams['times'])
     replaceFrames = {frame:(index + 1) for
                       index, frame in enumerate(newFrames)}
-
 
     newTracks = [FilterTrack(aTrack, newFrames) for
                  aTrack in tracks[0]]
@@ -91,8 +94,6 @@ def DownsampleTracks(skipCnt, simName, newName, simParams,
                        aTrack in origTracks[0]]
     origFAlarms_down = [FilterTrack(aTrack, newFrames) for
                         aTrack in origTracks[1]]
-
-
 
     if not retain_framenums :
         ReplaceFrameInfo(newTracks, replaceFrames)
@@ -108,27 +109,14 @@ def DownsampleTracks(skipCnt, simName, newName, simParams,
 
     # Maybe set if a new bbox is requested?
     #xLims, yLims, tLims = DomainFromTracks(newTracks, newFAlarms)
-
-    # Commenting it out for the new approach
-    #volData = CreateVolData(newTracks, newFAlarms,
-    #                        newFrames, tLims, xLims, yLims)
-
-    simParams['frameCnt'] = len(newFrames)
-    # Maybe set if a new bbox is requested?
     #simParams['xLims'] = xLims
     #simParams['yLims'] = yLims
-    simParams['tLims'] = tLims
-    simParams['simName'] = newName
-    simParams['trackers'] = []
 
+    SaveTracks(os.path.join(newPath, simParams['simTrackFile']),
+               origTracks_down, origFAlarms_down)
+    SaveTracks(os.path.join(newPath, simParams['noisyTrackFile']),
+               newTracks, newFAlarms)
 
-    dirName = os.path.join(path, simParams['simName'])
-    ParamUtils.SaveSimulationParams(os.path.join(dirName, "simParams.conf"), simParams)
-    SaveTracks(os.path.join(dirName, simParams['simTrackFile']), origTracks_down,
-                                                                 origFAlarms_down)
-    SaveTracks(os.path.join(dirName, simParams['noisyTrackFile']), newTracks,
-                                                                   newFAlarms)
-    SaveCorners(os.path.join(dirName, simParams['inputDataFile']),
-                simParams['corner_file'], newVols, path=dirName)
-
+    _save_downsample(simParams, newName, newVols, newFrames, newTimes,
+                     path=newPath)
 
