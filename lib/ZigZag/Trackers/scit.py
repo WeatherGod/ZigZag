@@ -8,10 +8,15 @@ from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 
 # Place some startup stuff here, maybe?
 
-def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
-# strmHist is a vector containing info for what happened at each time-step
-# volume_Data contains the current volume's storm cells
-# strmAdap parameterizes the algorithm
+def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data,
+                   deltaT, frameOffset=0) :
+    # strmHist is a vector containing info for what happened at each time-step
+    # volume_Data contains the current volume's storm cells
+    # strmAdap parameterizes the algorithm
+
+    if deltaT >= strmAdap['max_timestep'] :
+        # Too large a timestep... reset the tracker.
+        EndTracks(stateHist, strmTracks)
 
     strmCnt = len(volume_Data['stormCells'])
     # The volume data has only xLocs and yLocs,
@@ -29,10 +34,12 @@ def TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, volume_Data) :
                                             identifier_dtype)],
                                    usemask=False)
 
-    BestLocs(stateHist, strmTracks, infoTracks, volume_Data['frameNum'])
-    Correl_Storms(strmAdap, currStrms, volume_Data['frameNum'],
-                  stateHist, strmTracks, infoTracks)
-    Compute_Speed(strmAdap, currStrms, strmTracks, infoTracks)
+    BestLocs(stateHist, strmTracks, infoTracks, deltaT)
+    Correl_Storms(strmAdap, currStrms,
+                  stateHist, strmTracks, infoTracks, deltaT)
+    Compute_Speed(strmAdap, currStrms, strmTracks, infoTracks, deltaT,
+                  np.array([frame['volTime'] for frame in stateHist] +
+                           [volume_Data['volTime']]), frameOffset)
     (tracksToEnd,
      tracksToKeep,
      tracksToAdd) = EndTracks(stateHist, strmTracks, currStrms)
@@ -95,22 +102,27 @@ def EndTracks(stateHist, strmTracks, currStrms=None) :
     return tracksToEnd, tracksToKeep, tracksToAdd
 
 
-def Correl_Storms(strmAdap, currStorms, volTime,
-                  stateHist, strmTracks, infoTracks) :
+def Correl_Storms(strmAdap, currStorms,
+                  stateHist, strmTracks, infoTracks, deltaT) :
 
     newTracks = []
     contTracks = []
+    distThresh = (strmAdap['spdThresh'] * deltaT) ** 2
 
     # Looping over the current storms to compare against the previous storms
     for newCell in currStorms :
         bestMatch = {'prevIndx': None, 
-                     'dist': strmAdap['distThresh']**2}
+                     'dist': distThresh}
+
+        #if len(infoTracks) != len(strmTracks) :
+        #    print "WARNING in Correl_Storms()"
 
         for trackID, (infoTrack, track) in enumerate(zip(infoTracks,
                                                          strmTracks)) :
             # equal to 'U' means that storm hasn't been matched yet.
             if track['types'][-1] == 'U':
                 """
+                ### --- Outdated consistency check --- ###
                 if track['frameNums'][-1] != (volTime - 1) :
                     print "WARNING! Expected frame num: ", volTime - 1
                     print "New Cell:", newCell
@@ -194,14 +206,12 @@ def CalcDistSqrd(cellA, cellB) :
             (cellA['yLocs'] - cellB['yLocs'])**2 )
 
 
-def BestLocs(stateHist, strmTracks, infoTracks, volTime) :
+def BestLocs(stateHist, strmTracks, infoTracks, deltaT) :
     """
     Forecast where the active tracks will go.
     """
     # No need to do a forecast if the history is empty
     if len(stateHist) > 0 :
-        deltaFrame = volTime - stateHist[-1]['frameNum']
-
         # Look over all the storm cells in the previous frame.
         # Any storm cell that is part of an active track has a
         # positive trackID value.
@@ -210,18 +220,17 @@ def BestLocs(stateHist, strmTracks, infoTracks, volTime) :
                         stateHist[-1]['stormCells'] if
                         stormCell['trackID'] >= 0])
         for index in trackIDs :
-            #print "BestLocs:", stormCell
             info = infoTracks[index]
             strm = strmTracks[index]
-            #stormCell['corFlag'] = False
             info['fcasts'].append({'xLocs': strm['xLocs'][-1] +
-                                           (info['speed_x'][-1] * deltaFrame),
+                                           (info['speed_x'][-1] * deltaT),
                                    'yLocs': strm['yLocs'][-1] +
-                                           (info['speed_y'][-1] * deltaFrame)})
+                                           (info['speed_y'][-1] * deltaT)})
 
 
 
-def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
+def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks,
+                  deltaT, times, frameOffset=0) :
     """
     Updates the speed for all of the current, active tracks.
     Also initiates all new tracks with the average speed of all
@@ -235,21 +244,23 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
     # Gonna first calculate the track speed for all established tracks
     # in order to determine an overall average speed to use for initializing
     # the speed for un-established tracks.
-    trackIDs = set([stormCell['trackID'] for stormCell in currStorms if
-                    stormCell['trackID'] >= 0])
+    trackIDs = [stormCell['trackID'] for stormCell in currStorms if
+                stormCell['trackID'] >= 0]
+    #strmIDs = [stormCell['cornerIDs'] for stormCell in currStorms if
+    #           stormCell['trackID'] >= 0]
     for index in trackIDs :
-        #print "CurrStorm..."
 
         theTrackInfo = infoTracks[index]
-        aTrack = strmTracks[index][-framesBack:]
-        #trackLen = len(theTrackInfo['track'])
+        aTrack = strmTracks[index][-framesBack:] \
+                 if framesBack > 0 else \
+                 strmTracks[index][0:0]     # return empty array
 
         if len(aTrack) > 1 :
             xAvg = np.mean(aTrack['xLocs'])
             yAvg = np.mean(aTrack['yLocs'])
-            tAvg = np.mean(aTrack['frameNums'].astype(float))
+            tAvg = np.mean(times[aTrack['frameNums'] - frameOffset])
 
-            tDev = aTrack['frameNums'] - tAvg
+            tDev = times[aTrack['frameNums'] - frameOffset] - tAvg
             xtVar = np.sum((aTrack['xLocs'] - xAvg) * tDev)
             ytVar = np.sum((aTrack['yLocs'] - yAvg) * tDev)
             ttVar = np.sum(tDev**2)
@@ -269,8 +280,15 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
         direction = np.radians(strmAdap.get("default_dir", 0.0) + 180.0)
         speed = strmAdap.get("default_spd", 0.0)
 
-        systemAvg = {'speed_x': speed * np.cos(direction),
-                     'speed_y': speed * np.sin(direction)}
+        systemAvg = {'speed_x': speed * np.sin(direction),
+                     'speed_y': speed * np.cos(direction)}
+
+    #print "AVG SPEED: %8.5f  AVG DIRECTION: %6.2f" %\
+    #                 (np.hypot(systemAvg['speed_x'],
+    #                           systemAvg['speed_y']) * (60.0 / 1.852),
+    #                  (np.degrees(np.arctan2(systemAvg['speed_x'],
+    #                                         systemAvg['speed_y'])) +
+    #                   180.0) % 360.0)
 
     # Now initialize any unestablished tracks with the system average
     for index in trackIDs :
@@ -278,6 +296,9 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks) :
         if len(theTrackInfo['speed_x']) == 0 :
             theTrackInfo['speed_x'].append(systemAvg['speed_x'])
             theTrackInfo['speed_y'].append(systemAvg['speed_y'])
+
+        #if len(theTrackInfo['speed_x']) != len(strmTracks[index]) :
+        #    print "WARNING! Track len doesn't match trackinfo len!", index
 
 if __name__ == '__main__' :
     import os.path
@@ -298,15 +319,22 @@ if __name__ == '__main__' :
                                                     dirPath, "noise_tracks")))
 
     frameLims = (0, len(cornerVol))
-    strmAdap = {'distThresh': 5.0,
-                'framesBack': 10}
+    strmAdap = {'spdThresh': 5.0,
+                'framesBack': 10,
+                'default_spd': 1.0,
+                'default_dir': 225.0,
+                'max_timestep': 15.0}
     stateHist = []
     strmTracks = []
     infoTracks = []
     print frameLims[1]
 
+    deltaT = cornerVol[1]['volTime'] - cornerVol[0]['volTime']
+    frameOffset = cornerVol[0]['frameNum']
+
     for aVol in cornerVol :
-        TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol)
+        TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol,
+                       deltaT, frameOffset)
 
     EndTracks(stateHist, strmTracks)
 

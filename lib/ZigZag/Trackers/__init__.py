@@ -30,43 +30,78 @@ def _load_times(simParams, volumes) :
     if len(volumes) != len(times) :
         raise Exception("The times and the frame data do not match up!")
 
-    # Use the median time delta as a starting point for the loop.
-    lasttime = times[0] - np.median(np.diff(times))
+    # Making sure that the volumes have the right time information
+    for aVol, aTime in zip(volumes, times) :
+        aVol['volTime'] = aTime
 
-    return times, lasttime
-   
+    # Use the median time delta as a starting point for the loop.
+    lasttime = times[0] - np.median(np.diff(times)) if len(times) > 1 else np.nan
+
+    return lasttime
+
+
+def track_wrap(f) :
+    def perform_tracking(trackRun, simParams,
+                         trackParams, returnResults=True, path='.') :
+        dirName = path
+        cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName,
+                                                    simParams['inputDataFile']),
+                                                path=dirName)
+
+    if len(cornerInfo['volume_data']) <= 1 :
+        raise Exception("Not enough frames for tracking: %d" %
+                        len(cornerInfo['volume_data']))
+
+    lasttime = _load_times(simParams, cornerInfo['volume_data'])
+
+    tracks, falarms = f(trackParams, lasttime)
+
+    TrackUtils.CleanupTracks(tracks, falarms)
+    TrackFileUtils.SaveTracks(os.path.join(dirName,
+                                     simParams['result_file'] + "_" + trackRun),
+                              tracks, falarms)
+
+    if returnResults :
+        return tracks, falarms
+
 
 def SCIT_Track(trackRun, simParams, trackParams, returnResults=True, path='.') :
-    import scit
+
     dirName = path
     cornerInfo = TrackFileUtils.ReadCorners(os.path.join(dirName,
                                                  simParams['inputDataFile']),
                                             path=dirName)
+    if simParams['frameCnt'] <= 1 :
+        raise Exception("Not enough frames for tracking: %d" %
+                         simParams['frameCnt'])
+
+    lasttime = _load_times(simParams, cornerInfo['volume_data'])
+
+    import scit
+
     speedThresh = float(trackParams['speedThresh'])
     framesBack = int(trackParams['framesBack'])
     default_dir = float(trackParams['default_dir'])
     default_spd = float(trackParams['default_spd'])
 
-    if simParams['frameCnt'] <= 1 :
-        raise Exception("Not enough frames for tracking: %d" %
-                         simParams['frameCnt'])
-
-    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
-
     stateHist = []
     strmTracks = []
     infoTracks = []
 
-    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
-        # Technically, distThresh and default_spd are actually speeds,
-        # just with units of distance per frame
+    strmAdap = {'spdThresh': speedThresh,
+                'framesBack': framesBack,
+                'default_dir': default_dir,
+                'default_spd': default_spd,
+                'max_timestep': 15.0}
+
+    frameOffset = cornerInfo['volume_data'][0]['frameNum']
+
+    for aVol in cornerInfo['volume_data'] :
+        currtime = aVol['volTime']
         tDelta = currtime - lasttime
         lasttime = currtime
-        strmAdap = {'distThresh': speedThresh * tDelta,
-                    'framesBack': framesBack,
-                    'default_dir': default_dir,
-                    'default_spd': default_spd * tDelta}
-        scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol)
+        scit.TrackStep_SCIT(strmAdap, stateHist, strmTracks, infoTracks, aVol,
+                            tDelta, frameOffset)
 
     scit.EndTracks(stateHist, strmTracks)
 
@@ -148,10 +183,11 @@ def TITAN_Track(trackRun, simParams, trackParams,
         raise Exception("Not enough frames for tracking: %d" %
                          simParams['frameCnt'])
 
-    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
+    lasttime = _load_times(simParams, cornerInfo['volume_data'])
 
     t = titan.TITAN()
-    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
+    for aVol in cornerInfo['volume_data'] :
+        currtime = aVol['volTime']
         tDelta = currtime - lasttime
         t.distThresh = speedThresh * tDelta
         t.TrackStep(aVol)
@@ -186,15 +222,16 @@ def ASCIT_Track(trackRun, simParams, trackParams,
         raise Exception("Not enough frames for tracking: %d" %
                          simParams['frameCnt'])
 
-    times, lasttime = _load_times(simParams, cornerInfo['volume_data'])
+    lasttime = _load_times(simParams, cornerInfo['volume_data'])
 
     t = ascit.ASCIT(framesBack=int(trackParams['framesBack']),
                     default_dir=float(trackParams['default_dir']))
-    for aVol, currtime in zip(cornerInfo['volume_data'], times) :
+    for aVol in cornerInfo['volume_data'] :
+        currtime = aVol['volTime']
         tDelta = currtime - lasttime
         t.distThresh = speedThresh * tDelta
         t._default_spd = default_spd * tDelta
-        t.TrackStep(aVol)
+        t.TrackStep(aVol, tDelta)
         lasttime = currtime
 
 

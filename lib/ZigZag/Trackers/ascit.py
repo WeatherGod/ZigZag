@@ -197,7 +197,7 @@ class ASCIT(object) :
             else :
                 self.tracks[trackID]['types'][-1] = 'M'
 
-    def TrackStep(self, volume_data) :
+    def TrackStep(self, volume_data, dT) :
         """
         Perform tracking with a new frame of data.
 
@@ -205,10 +205,8 @@ class ASCIT(object) :
         """
         if len(self.stateHist) > 0 :
             self._prevCells = self.stateHist[-1]['stormCells']
-            dT = volume_data['frameNum'] - self.stateHist[-1]['frameNum']
         else :
             self._prevCells = np.array([], dtype=volume_dtype)
-            dT = 0
 
         self._currCells = volume_data['stormCells']
         frameNum = volume_data['frameNum']
@@ -246,14 +244,25 @@ class ASCIT(object) :
                                 len(self.prevStorms) > 0 else
                             ((), ()))
 
-        self._fcasts, _ = self.forecast_tracks(dT, trckIDs)
+        speeds = self.compute_speeds(trckIDs)
+        self._fcasts = self.forecast_tracks(dT, trckIDs, speeds)
 
         return strms_end, strms_keep, strms_start
 
-    def forecast_tracks(self, deltaT, trackIDs) :
-        frames_back = self._frames_back
+    def forecast_tracks(self, deltaT, trackIDs, trackSpds) :
+        assert len(trackIDs) == len(trackSpds)
 
         fcasts = [None] * len(trackIDs)
+        for fIndex, (trckID, trkSpd) in enumerate(zip(trackIDs, trackSpds)) :
+            fcasts[fIndex] = (self.tracks[trckID]['xLocs'][-1] +
+                               trkSpd['xLocs'] * deltaT,
+                              self.tracks[trckID]['yLocs'][-1] +
+                               trkSpd['yLocs'] * deltaT)
+        return np.array(fcasts, dtype=[('xLocs', 'f4'), ('yLocs', 'f4')])
+
+    def compute_speeds(self, trackIDs) :
+        frames_back = self._frames_back
+
         trends = [None] * len(trackIDs)
 
         tot_x_spd = 0.0
@@ -261,7 +270,9 @@ class ASCIT(object) :
         trackCnt = 0
 
         for fIndex, trackIndex in enumerate(trackIDs) :
-            track = self.tracks[trackIndex][-frames_back:]
+            track = self.tracks[trackIndex][-frames_back:] \
+                    if frames_back > 0 else \
+                    self.tracks[trackIndex][0:0]    # return empty array
 
             if len(track) <= 1 :
                 continue
@@ -293,22 +304,16 @@ class ASCIT(object) :
             systemAvg = (tot_x_spd / trackCnt,
                          tot_y_spd / trackCnt)
         else :
-            systemAvg = (self._default_spd * np.cos(self._default_dir),
-                         self._default_spd * np.sin(self._default_dir))
+            systemAvg = (self._default_spd * np.sin(self._default_dir),
+                         self._default_spd * np.cos(self._default_dir))
 
         # Any newly established tracks will be initialized
         # with the average speed of all the existing tracks
-        # Also perform all final forecasts.
         for fIndex, trckID in enumerate(trackIDs) :
             if trends[fIndex] is None :
                 trends[fIndex] = systemAvg
 
-            fcasts[fIndex] = (self.tracks[trckID]['xLocs'][-1] +
-                               trends[fIndex][0] * deltaT,
-                              self.tracks[trckID]['yLocs'][-1] +
-                               trends[fIndex][1] * deltaT)
-        return (np.array(fcasts, dtype=[('xLocs', 'f4'), ('yLocs', 'f4')]),
-                np.array(trends, dtype=[('xLocs', 'f4'), ('yLocs', 'f4')]))
+        return np.array(trends, dtype=[('xLocs', 'f4'), ('yLocs', 'f4')])
 
     @staticmethod
     def reverse_lookup(strms_end, strms_keep, strms_start) :
@@ -355,7 +360,7 @@ if __name__ == '__main__' :
     t = ASCIT(distThresh=5)
 
     for aVol in cornerVol :
-        t.TrackStep(aVol)
+        t.TrackStep(aVol, 1.0)
 
     t.finalize()
 

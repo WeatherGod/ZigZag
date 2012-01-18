@@ -382,10 +382,10 @@ class TITAN(object) :
         """
         if len(self.stateHist) > 0 :
             self._prevCells = self.stateHist[-1]['stormCells']
-            dT = volume_data['frameNum'] - self.stateHist[-1]['frameNum']
+            dF = volume_data['frameNum'] - self.stateHist[-1]['frameNum']
         else :
             self._prevCells = np.array([], dtype=volume_dtype)
-            dT = 0
+            dF = 0
 
         self._currCells = volume_data['stormCells']
         frameNum = volume_data['frameNum']
@@ -414,8 +414,8 @@ class TITAN(object) :
                                         C, len(self._prevCells),
                                            len(self._currCells))
 
-        merge_into = self.find_merges(dT, strms_end, strms_keep, strms_start)
-        split_from = self.find_splits(dT, strms_end, strms_keep, strms_start)
+        merge_into = self.find_merges(dF, strms_end, strms_keep, strms_start)
+        split_from = self.find_splits(dF, strms_end, strms_keep, strms_start)
         self._handle_merges(strms_end, strms_keep, strms_start, merge_into)
         self._handle_splits(strms_end, strms_keep, strms_start, split_from)
 
@@ -471,8 +471,13 @@ class TITAN(object) :
 
             # Grab only the variables you want for at most the past
             # *frames_back* frames.
-            x = track[params][-frames_back:]
-            dT = np.diff(track['frameNums'][-frames_back:])
+            x = track[params][-frames_back:] \
+                if frames_back > 0 else \
+                track[params][0:0]      # return empty array
+
+            dF = np.diff(track['frameNums'][-frames_back:]) \
+                 if frames_back > 0 else \
+                 np.zeros((0,))
 
             trnd = np.zeros((1,), dtype=x.dtype)
 
@@ -480,7 +485,8 @@ class TITAN(object) :
                 tmp = np.empty((1,), dtype=x.dtype)
 
                 for p in params :
-                    s, trnd[p] = self._double_exp_smoothing(x[p], dT, alpha, alpha)
+                    s, trnd[p] = self._double_exp_smoothing(x[p], dF, alpha,
+                                                                      alpha)
                     tmp[p] = s + trnd[p]*deltaT
                 fcasts[fIndex] = np.array(tmp[0])
 
