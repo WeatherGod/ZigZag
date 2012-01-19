@@ -94,9 +94,19 @@ def CreateVolData(tracks, falarms, frames, tLims=None, xLims=None, yLims=None) :
     so it is possible to reconstruct the (clipped) track data using
     this output.
     """
-    volData = []
-    allCells = Tracks2Cells(tracks, falarms)
 
+    allCells = Tracks2Cells(tracks, falarms)
+    return Cells2VolData(allCells, frames,
+                         tlims=tLims, xLims=xLims, yLims=yLims)
+
+
+def Cells2VolData(allCells, frames, tLims=None, xLims=None, yLims=None) :
+    """
+    Convert a flat numpy array of dtype volume_dtype into a list of
+    dicts (one for each frame). The dicts contain the frame index, volume time,
+    and the storm cells.
+    """
+    volData = []
     # Note, this is a mask in the opposite sense from a numpy masked array.
     #       True means that this is a value to keep.
     xMask = ((allCells['xLocs'] >= min(xLims)) &
@@ -117,7 +127,7 @@ def CreateVolData(tracks, falarms, frames, tLims=None, xLims=None, yLims=None) :
                         'frameNum': frameIndex,
                         'stormCells': allCells[domainMask & tMask]})
 
-    return(volData)
+    return volData
 
 
 def ClipTracks(tracks, falarms, xLims, yLims, frameLims) :
