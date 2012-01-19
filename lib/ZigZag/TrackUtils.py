@@ -381,6 +381,7 @@ def _compare_segs(realSegs, predSegs) :
     which of the real segments has a matching predicted
     segment.
     """
+
     predData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs]
     realData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
 
@@ -432,68 +433,18 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
-    assocs_Correct = []
-    falarms_Correct = []
-    assocs_Wrong = []
-    falarms_Wrong = []
+    trkSegs_results = MakeContingency(predSegs + predFAlarmSegs,
+                                      realSegs + realFAlarmSegs)
 
-    unmatchedPredTrackSegs = range(len(predSegs))
-
-    if len(predSegs) > 0 :
-        predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs])
-        trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
-
-        if len(realSegs) > 0 :
-            closestMatches = predTree.query(trueData)
-        else :
-            closestMatches = []
+    missed = []
+    for bad_seg in trkSegs_results['assocs_Wrong'] :
+        pass
 
 
-        for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
-            if is_eq(realSegs[trueIndex], predSegs[predIndex]) :
-                assocs_Correct.append(predSegs[predIndex])
-                # To make sure that I don't compare against that item again.
-                del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
-            else :
-                # This segment represents those that were completely
-                # missed by the tracking algorithm.
-                falarms_Wrong.append(realSegs[trueIndex])
-
-    # Anything left from the predicted segments must be unmatched with reality,
-    # therefore, these segments belong in the "assocs_Wrong" array.
-    assocs_Wrong = [predSegs[index] for index in unmatchedPredTrackSegs]
-
-    if len(predFAlarmSegs) > 0 :
-        predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predFAlarmSegs])
-        trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realFAlarmSegs]
-
-        if len(realFAlarmSegs) > 0 :
-            closestMatches = predTree.query(trueData)
-        else :
-            closestMatches = []
-
-        # Now for the falarms...
-        for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
-            if is_eq(realFAlarmSegs[trueIndex], predFAlarmSegs[predIndex]) :		
-                falarms_Correct.append(realFAlarmSegs[trueIndex])
-
-        # This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
-        # Well... technically, it just means that the tracking algorithm did not declare it
-        #         as a false alarm.  Maybe it did not declare it as anything?
-        # TODO: Not sure if there is anything I want to do about these for now...
-        #       They might already have been accounted for earlier.
-#        if not foundMatch :
-#            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
-
-    # Anything left from the predicted non-associations are unmatched with reality.
-    # therefore, these segments belong in the "falarms_Wrong" array.
-    # NOTE: however, these might have already been accounted for...
-#    for index in unmatchedPredFAlarms :
-#   print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
-#    print "assocs_Wrong: ", assocs_Wrong
-#    print "falarms_Wrong: ", falarms_Wrong
-    return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+    return {'assocs_Correct': trkSegs_results['assocs_Correct'],
+            'assocs_Wrong': trkSegs_results['assocs_Wrong'],
+            'falarms_Wrong': trkSegs_results['falarms_Wrong'] + missed,
+            'falarms_Correct': trkSegs_results['falarms_Correct']}
 
 
 
