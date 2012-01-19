@@ -7,20 +7,18 @@ from ZigZag.TrackUtils import DomainFromVolumes
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
-from BRadar.maputils import LatLonFrom
+from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
+from BRadar.radarsites import ByName
 
 import numpy as np
 
 def CoordinateTransform(centroids, cent_lon, cent_lat) :
     for cents in centroids :
-        # Purposely backwards to get bearing relative to 0 North
-        azi = np.rad2deg(np.arctan2(cents['xLocs'], cents['yLocs']))
-        dists = np.hypot(cents['xLocs'], cents['yLocs']) * 1000
-        lats, lons = LatLonFrom(cent_lat, cent_lon, dists, azi)
-        cents['xLocs'] = lons
-        cents['yLocs'] = lats
+        cents['xLocs'], cents['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
+                                                     cents['xLocs'],
+                                                     cents['yLocs'])
 
 def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
                     startFrame=None, endFrame=None, tail=None) :
@@ -92,6 +90,10 @@ def main(args) :
         raise ValueError("The number of TITLEs does not match the number"
                          " of INPUTFILEs.")
 
+    if args.statName is not None and args.statLonLat is None :
+        statData = ByName(args.statName)[0]
+        args.statLonLat = (statData['LON'], statData['LAT'])
+
     if args.layout is None :
         args.layout = (1, len(args.inputDataFiles))
 
@@ -117,6 +119,12 @@ def main(args) :
                               args.trackTitles, showMap, tail=args.tail,
                               startFrame=args.startFrame,
                               endFrame=args.endFrame)
+
+    if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_xlim(args.xlims)
+
+    if args.ylims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_ylim(args.ylims)
 
     if args.saveImgFile is not None :
         theAnim.save(args.saveImgFile)

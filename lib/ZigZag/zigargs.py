@@ -334,18 +334,31 @@ show_opts = [
      dict(dest="endFrame", type=int,
           help="The ending FRAME (Default: last frame in data)",
           metavar="FRAME", default=None)),
+    (("--xlims",),
+     dict(dest="xlims", type=float, nargs=2,
+          help="Constrain x-axis to these limits. Default: auto",
+          metavar="X", default=None)),
+    (("--ylims",),
+     dict(dest="ylims", type=float, nargs=2,
+          help="Constrain y-axis to these limits. Default: auto",
+          metavar="Y", default=None)),
    ]
 
 
 
 map_opts = [
-    (("--station",),
+    (("--origin",),
      dict(dest="statLonLat", type=float,
           nargs=2, help=("LON LAT of the origin (0, 0) of the track data. "
                          " When specified, the domain will change to"
                          " Longitude and Latitude, and map layers can be"
                          " displayed with '-m' switch."),
           metavar="COORDS", default=None)),
+    (("--station",),
+     dict(dest="statName", type=str,
+          help=("Convenience option for specifying the '--origin' option."
+                " Give the 4-character name of the radar site"),
+          metavar="STATION", default=None)),
     (("-m", "--map"),
      dict(dest="displayMap",
           action="store_true", help=("Turn on display of map layers."

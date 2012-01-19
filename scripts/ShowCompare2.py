@@ -7,9 +7,10 @@ from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks, CreateSegments,
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
-from BRadar.maputils import LatLonFrom
+from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
+from BRadar.radarsites import ByName
 from BRadar.io import LoadRastRadar
 from BRadar.plotutils import MakeReflectPPI
 
@@ -17,12 +18,9 @@ import numpy as np
 
 def CoordinateTransform(tracks, cent_lon, cent_lat) :
     for track in tracks :
-        # Purposely backwards to get bearing relative to 0 North
-        azi = np.rad2deg(np.arctan2(track['xLocs'], track['yLocs']))
-        dists = np.hypot(track['xLocs'], track['yLocs']) * 1000
-        lats, lons = LatLonFrom(cent_lat, cent_lon, dists, azi)
-        track['xLocs'] = lons
-        track['yLocs'] = lats
+        track['xLocs'], track['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
+                                                     track['xLocs'],
+                                                     track['yLocs'])
 
 def MakeComparePlots(grid, trackData, truthData, titles, showMap,
                      endFrame=None, tail=None) :
@@ -90,6 +88,10 @@ def main(args) :
             raise ValueError("The number of TITLEs does not match the number"
                              " of TRACKFILEs")
 
+    if args.statName is not None and args.statLonLat is None :
+        statData = ByName(args.statName)[0]
+        args.statLonLat = (statData['LON'], statData['LAT'])
+
     if args.layout is None :
         args.layout = (1, max(len(args.trackFiles),
                               len(args.truthTrackFile)))
@@ -146,6 +148,12 @@ def main(args) :
 
     MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap,
                      endFrame=args.endFrame, tail=args.tail)
+
+    if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_xlim(args.xlims)
+
+    if args.ylims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_ylim(args.ylims)
 
     if args.saveImgFile is not None :
         theFig.savefig(args.saveImgFile)

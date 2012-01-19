@@ -6,21 +6,18 @@ from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), Doma
 import ZigZag.ParamUtils as ParamUtils           # for ReadSimulationParams()
 from ZigZag.ListRuns import ExpandTrackRuns
 
-from BRadar.maputils import LatLonFrom
+from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
+from BRadar.radarsites import ByName
 
 import numpy as np
 
 def CoordinateTransform(tracks, cent_lon, cent_lat) :
     for track in tracks :
-        # Purposely backwards to get bearing relative to 0 North
-        azi = np.rad2deg(np.arctan2(track['xLocs'], track['yLocs']))
-        dists = np.hypot(track['xLocs'], track['yLocs']) * 1000
-        lats, lons = LatLonFrom(cent_lat, cent_lon, dists, azi)
-        track['xLocs'] = lons
-        track['yLocs'] = lats
-
+        track['xLocs'], track['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
+                                                     track['xLocs'],
+                                                     track['yLocs'])
 
 def main(args) :
     import os.path			# for os.path.join()
@@ -33,6 +30,10 @@ def main(args) :
     #        grabbed). Both situations can not be handled right now, though.
     trackFiles = []
     trackTitles = []
+
+    if args.statName is not None and args.statLonLat is None :
+        statData = ByName(args.statName)[0]
+        args.statLonLat = (statData['LON'], statData['LAT'])
 
     if args.simName is not None :
         dirName = os.path.join(args.directory, args.simName)
@@ -90,13 +91,14 @@ def main(args) :
         (true_tracks,
          true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
 
-        true_AssocSegs = CreateSegments(true_tracks)
-        true_FAlarmSegs = CreateSegments(true_falarms)
-
         if args.statLonLat is not None :
             CoordinateTransform(true_tracks + true_falarms,
                                 args.statLonLat[0],
                                 args.statLonLat[1])
+
+        true_AssocSegs = CreateSegments(true_tracks)
+        true_FAlarmSegs = CreateSegments(true_falarms)
+
 
         (xLims, yLims, frameLims) = DomainFromTracks(true_tracks + true_falarms)
     else :
@@ -169,6 +171,12 @@ def main(args) :
         else :
             curAxis.set_xlabel("Longitude (degrees)")
             curAxis.set_ylabel("Latitude (degrees)")
+
+    if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_xlim(args.xlims)
+
+    if args.ylims is not None and np.prod(grid.get_geometry()) > 0 :
+        grid[0].set_ylim(args.ylims)
 
     if args.saveImgFile is not None :
         animator.save(args.saveImgFile)
