@@ -199,23 +199,27 @@ def CleanupTracks(tracks, falarms) :
 
 
 
-def CreateSegments(tracks, retindices=False) :
+def CreateSegments(tracks, retindices=False, lastFrame=None) :
     """
     Breaks up a list of the tracks (or falarms) into an array of segments.
     Each element in the arrays represents the start and end point of a segment.
+
+    If you want to impose a finite timeline, and therefore, exclude
+    any segments that start on or after *lastFrame*.
     """
     segs = []
     indices = []
     for trackID, aTrack in enumerate(tracks) :
-        trackLen = len(aTrack)
-        if trackLen > 1 :
-            tmpSegs = [np.hstack(aSeg) for aSeg in zip(aTrack[0:trackLen - 1],
-                                                       aTrack[1:trackLen])]
+        if len(aTrack) > 1 :
+            tmpSegs = [np.hstack(aSeg) for aSeg in zip(aTrack[:-1],
+                                                       aTrack[1:]) if
+                       (lastFrame is None or
+                        aSeg[0]['frameNums'] < lastFrame)]
             segs.extend(tmpSegs)
             indices.extend([trackID] * len(tmpSegs))
 
-        elif trackLen == 1 :
-            segs.append(aTrack)
+        if lastFrame is None or aTrack[-1]['frameNums'] < lastFrame :
+            segs.append(aTrack[-1:])
             indices.append(trackID)
 
     if retindices :
@@ -278,24 +282,96 @@ def MakeTruthTable(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
     CompareSegments() yet because it is valuable in producing the data
     necessary to display the track plots (although it still needs fixing...).
 
-    This method will be a mathematically, margin-sum correct method of creating
-    a contingency table, however it is not useful for producing track plots.
+    This method will be a mathematically, margin-sum correct
+    method of creating a contingency table, however it is not
+    useful for producing track plots.
     """
     # Do comparisons between the real track segments and
     # the predicted segments.
-    (assocs_Correct, assocs_Wrong,
-     assocs_Correct_indices, assocs_Wrong_indices) = _compare_segs(realSegs, predSegs)
+    (assocs_Correct,
+     assocs_Wrong,
+     assocs_Correct_indices,
+     assocs_Wrong_indices) = _compare_segs(realSegs, predSegs)
 
     # Now, do comparisons between the real false alarms and the
     # predicted false alarms.
-    (falarms_Correct, falarms_Wrong,
-     falarms_Correct_indices, falarms_Wrong_indices) = _compare_segs(realFAlarmSegs, predFAlarmSegs)
+    (falarms_Correct,
+     falarms_Wrong,
+     falarms_Correct_indices,
+     falarms_Wrong_indices) = _compare_segs(realFAlarmSegs, predFAlarmSegs)
 
-    return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct,
+    return {'assocs_Correct': assocs_Correct,
+            'assocs_Wrong': assocs_Wrong,
+            'falarms_Wrong': falarms_Wrong,
+            'falarms_Correct': falarms_Correct,
             'correct_indices': assocs_Correct_indices + falarms_Correct_indices,
             'wrong_indices': assocs_Wrong_indices + falarms_Wrong_indices}
-    
+
+def MakeContingency(obvSegs, trkSegs) :
+    """
+    Revamped version of :func:`MakeTruthTable`.  I am not willing
+    to replace 'MakeTruthTable' until I fully understand the implications
+    with this second revamp.
+
+    This method will be a mathematically, margin-sum correct
+    method of creating a contingency table, however it is not
+    useful for producing track plots.
+    """
+    if len(obvSegs) != len(trkSegs) :
+        print "WARNING: Segment count mismatch: " \
+              "%d vs. %d" % (len(obvSegs), len(trkSegs))
+
+    # Create a dictionary to map the cornerID for the first
+    # part of each tracking segment to the index number
+    # in the trkSegs list.
+    mapper = {}
+    for i, aSeg in enumerate(trkSegs) :
+        mapper[aSeg['cornerIDs'][0]] = i
+
+    # Dictionaries mapped to tuples of bools: (isAssoc, isCorrect)
+    # (True, True) == Correct Association
+    # (True, False) == Incorrect Association
+    # (False, True) == Correct Non-Association
+    # (False, False) == Incorrect Non-Association
+    segs = {(True, True) : [], (True, False) : [],
+            (False, True): [], (False, False): []}
+    seg_indices = {(True, True) : [], (True, False) : [],
+                   (False, True): [], (False, False): []}
+
+    # Now, go through each observed segments, seeking out
+    # the trkSeg that has the same cornerID for the first
+    # part of the segment as the obvserved segment.
+    # Then compare the cornerID of the last part of the
+    # observed segment with the last part of the tracking
+    # segment.
+    # Note that I am not saying to match against the second
+    # part, because some segments can be of length one.
+    #
+    # If the length of the observed segment do not
+    # match the length of the tracking segment, that's
+    # ok because the second part of the longer segment
+    # will never have the same cornerID as the first
+    # part of the shorter segment, because the corner
+    # ids for a segment are never the same, and the
+    # corner id for the first part already matched the
+    # corner id of the short segment.
+    for i, aSeg in enumerate(obvSegs) :
+        is_assoc = (len(aSeg) == 2)
+        obv_corners = aSeg['cornerIDs']
+        trkseg_id = mapper[obv_corners[0]]
+        trk_corners = trkSegs[trkseg_id]['cornerIDs']
+        is_correct = (obv_corners[-1] == trk_corners[-1])
+
+        segs[(is_assoc, is_correct)].append(aSeg)
+        seg_indices[(is_assoc, is_correct)].append(trkseg_id)
+
+    return {'assocs_Correct': segs[(True, True)],
+            'assocs_Wrong': segs[(True, False)],
+            'falarms_Wrong': segs[(False, False)],
+            'falarms_Correct': segs[(False, True)],
+            'assocs_should': seg_indices[(True, False)],
+            'falarms_should': seg_indices[(False, False)]}
+   
 
 def _compare_segs(realSegs, predSegs) :
     """
@@ -304,6 +380,7 @@ def _compare_segs(realSegs, predSegs) :
     which of the real segments has a matching predicted
     segment.
     """
+
     predData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs]
     realData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
 
@@ -355,68 +432,20 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
-    assocs_Correct = []
-    falarms_Correct = []
-    assocs_Wrong = []
-    falarms_Wrong = []
+    trkSegs = realSegs + realFAlarmSegs
+    trkSegs_results = MakeContingency(predSegs + predFAlarmSegs,
+                                      realSegs + realFAlarmSegs)
 
-    unmatchedPredTrackSegs = range(len(predSegs))
+    missed = []
+    for segID in (trkSegs_results['assocs_should'] +
+                  trkSegs_results['falarms_should']) :
+        if len(trkSegs[segID]) == 2 :
+            missed.append(trkSegs[segID])
 
-    if len(predSegs) > 0 :
-        predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predSegs])
-        trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realSegs]
-
-        if len(realSegs) > 0 :
-            closestMatches = predTree.query(trueData)
-        else :
-            closestMatches = []
-
-
-        for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
-            if is_eq(realSegs[trueIndex], predSegs[predIndex]) :
-                assocs_Correct.append(predSegs[predIndex])
-                # To make sure that I don't compare against that item again.
-                del unmatchedPredTrackSegs[unmatchedPredTrackSegs.index(predIndex)]
-            else :
-                # This segment represents those that were completely
-                # missed by the tracking algorithm.
-                falarms_Wrong.append(realSegs[trueIndex])
-
-    # Anything left from the predicted segments must be unmatched with reality,
-    # therefore, these segments belong in the "assocs_Wrong" array.
-    assocs_Wrong = [predSegs[index] for index in unmatchedPredTrackSegs]
-
-    if len(predFAlarmSegs) > 0 :
-        predTree = KDTree([(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in predFAlarmSegs])
-        trueData = [(aSeg['xLocs'][0], aSeg['yLocs'][0]) for aSeg in realFAlarmSegs]
-
-        if len(realFAlarmSegs) > 0 :
-            closestMatches = predTree.query(trueData)
-        else :
-            closestMatches = []
-
-        # Now for the falarms...
-        for trueIndex, (dist, predIndex) in enumerate(zip(*closestMatches)) :
-            if is_eq(realFAlarmSegs[trueIndex], predFAlarmSegs[predIndex]) :		
-                falarms_Correct.append(realFAlarmSegs[trueIndex])
-
-        # This FAlarm represents those that may have been falsely associated (assocs_Wrong)...
-        # Well... technically, it just means that the tracking algorithm did not declare it
-        #         as a false alarm.  Maybe it did not declare it as anything?
-        # TODO: Not sure if there is anything I want to do about these for now...
-        #       They might already have been accounted for earlier.
-#        if not foundMatch :
-#            print "<<<< Falsely Associated! ", realFAlarmXLoc, realFAlarmYLoc, realFAlarmFrameNum, " >>>>"
-
-    # Anything left from the predicted non-associations are unmatched with reality.
-    # therefore, these segments belong in the "falarms_Wrong" array.
-    # NOTE: however, these might have already been accounted for...
-#    for index in unmatchedPredFAlarms :
-#   print "<<<< Falsely Non-Associated! ", index, predFAlarmSegs['xLocs'][index][0], predFAlarmSegs['yLocs'][index][0], predFAlarmSegs['frameNums'][index][0], " >>>>"
-#    print "assocs_Wrong: ", assocs_Wrong
-#    print "falarms_Wrong: ", falarms_Wrong
-    return {'assocs_Correct': assocs_Correct, 'assocs_Wrong': assocs_Wrong,
-            'falarms_Wrong': falarms_Wrong, 'falarms_Correct': falarms_Correct}
+    return {'assocs_Correct': trkSegs_results['assocs_Correct'],
+            'assocs_Wrong': trkSegs_results['assocs_Wrong'],
+            'falarms_Wrong': trkSegs_results['falarms_Wrong'] + missed,
+            'falarms_Correct': trkSegs_results['falarms_Correct']}
 
 
 

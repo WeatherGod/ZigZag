@@ -100,13 +100,7 @@ _zigargs['MultiDownsample'] = ["multiSim",
 
 _zigargs['DoTracking'] = ["simName", "trackconfs", "-t", "-d"]
 _zigargs['MultiTracking'] = ["multiSim", "trackconfs", "-t", "-d"]
-_zigargs['AnalyzeTracking'] = ["simName", "-t", "-d",
-    (("--cache",), 
-     dict(dest="cacheOnly",
-          help="Only bother with processing for the purpose"
-               " of caching results.",
-          action="store_true", default=False)),
-    ]
+_zigargs['AnalyzeTracking'] = ["simName", "-t", "-d"]
 
 _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
     (("--titles",),
@@ -118,13 +112,6 @@ _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
      dict(dest="ticklabels",
           nargs="+", help="Tick labels.  Default is to use the run names.",
           metavar="LABEL", default=None)),
-
-
-    (("--cache",),
-     dict(dest="cacheOnly",
-          help="Only bother with processing for the purpose of"
-               " caching results.",
-          action="store_true", default=False)),
     "-d",
 
     (("--compare",), 
@@ -176,11 +163,6 @@ _zigargs['MultiScenarioAnalysis'] = ["multiSims", "-s", "-t",
      dict(dest="plotlabels",
           nargs="+", help="TrackRun Labels.  Default is to use the run names",
           metavar="LABEL", default=None)),
-
-    (("--cache",), 
-     dict(dest="cacheOnly",
-          help="Only bother with processing for the purpose of caching results.",
-          action="store_true", default=False)),
     "-d",
 
     (("--save",), 

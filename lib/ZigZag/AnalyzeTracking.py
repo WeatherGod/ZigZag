@@ -1,6 +1,6 @@
 import os.path
-from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments
-from ZigZag.TrackFileUtils import ReadTracks, ReadTruthTable
+from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments, MakeContingency
+from ZigZag.TrackFileUtils import ReadTracks
 import ZigZag.Trackers as Trackers
 import ZigZag.ParamUtils as ParamUtils
 import numpy as np
@@ -93,11 +93,11 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
     labels = [skillNames, trackRuns]
     
     for trackerIndex, tracker in enumerate(trackRuns) :
-        (truthTable,
-         finalTracks, finalFAlarms) = ReadTruthTable(tracker, simParams,
-                                                     true_AssocSegs,
-                                                     true_FAlarmSegs,
-                                                     path=dirName)
+        obvFilename = os.path.join(dirName, simParams['result_file'] +
+                                            "_" + tracker)
+        (obvTracks, obvFAlarms) = FilterMHTTracks(*ReadTracks(obvFilename))
+        trk_segs = CreateSegments(obvTracks + obvFAlarms)
+        truthTable = MakeContingency(true_AssocSegs + true_FAlarmSegs, trk_segs)
 
         print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
                                    len(truthTable['assocs_Wrong']) +
@@ -107,7 +107,7 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex,
                      trackerIndex] = Analyzers.skillcalcs[skill](
-                                       tracks=finalTracks, falarms=finalFAlarms,
+                                       tracks=obvTracks, falarms=obvFAlarms,
                                        truthTable=truthTable,
                                        true_tracks=true_tracks,
                                        true_falarms=true_falarms,

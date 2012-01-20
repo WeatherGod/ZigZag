@@ -31,9 +31,9 @@ def CalcPercentCorrect(truthTable, **kwargs) :
     Percent Correct from "Statistical Methods in the Atmospheric Sciences"
     by Daniel S. Wilks (2nd Edition) on page 262.
 
-    PC = (a + d) / n
+    PC = ((a + d) / n) * 100
 
-    A forecast is better when closer to 1, and at its worst when zero.
+    A forecast is better when closer to 100, and at its worst when zero.
 
     This skill score is probably better suited for scoring tracking algorithms.
     This is because the majority of the data will be the track associations,
@@ -46,7 +46,7 @@ def CalcPercentCorrect(truthTable, **kwargs) :
     a, b, c, d = _breakup_truthtable(truthTable)
 
     n = float(a + b + c + d)
-    return (a + d) / n
+    return ((a + d) / n) * 100
 
 _register_trackskill(CalcPercentCorrect, 'PC')
 CalcPercentCorrect.__doc__ += _contingency_diagram
