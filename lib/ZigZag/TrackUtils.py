@@ -358,20 +358,19 @@ def MakeContingency(obvSegs, trkSegs) :
     for i, aSeg in enumerate(obvSegs) :
         is_assoc = (len(aSeg) == 2)
         obv_corners = aSeg['cornerIDs']
-        trk_corners = trkSegs[mapper[obv_corners[0]]]['cornerIDs']
+        trkseg_id = mapper[obv_corners[0]]
+        trk_corners = trkSegs[trkseg_id]['cornerIDs']
         is_correct = (obv_corners[-1] == trk_corners[-1])
 
         segs[(is_assoc, is_correct)].append(aSeg)
-        seg_indices[(is_assoc, is_correct)].append(i)    
+        seg_indices[(is_assoc, is_correct)].append(trkseg_id)
 
     return {'assocs_Correct': segs[(True, True)],
             'assocs_Wrong': segs[(True, False)],
             'falarms_Wrong': segs[(False, False)],
             'falarms_Correct': segs[(False, True)],
-            'correct_indices': (seg_indices[(True, True)] +
-                                seg_indices[(False, True)]),
-            'wrong_indices': (seg_indices[(True, False)] +
-                              seg_indices[(False, False)])}
+            'assocs_should': seg_indices[(True, False)],
+            'falarms_should': seg_indices[(False, False)]}
    
 
 def _compare_segs(realSegs, predSegs) :
@@ -433,13 +432,15 @@ def CompareSegments(realSegs, realFAlarmSegs, predSegs, predFAlarmSegs) :
        False     |  falarms_Wrong  | falarms_Correct |
     -------------+-----------------+-----------------+
     """
+    trkSegs = realSegs + realFAlarmSegs
     trkSegs_results = MakeContingency(predSegs + predFAlarmSegs,
                                       realSegs + realFAlarmSegs)
 
     missed = []
-    for bad_seg in trkSegs_results['assocs_Wrong'] :
-        pass
-
+    for segID in (trkSegs_results['assocs_should'] +
+                  trkSegs_results['falarms_should']) :
+        if len(trkSegs[segID]) == 2 :
+            missed.append(trkSegs[segID])
 
     return {'assocs_Correct': trkSegs_results['assocs_Correct'],
             'assocs_Wrong': trkSegs_results['assocs_Wrong'],

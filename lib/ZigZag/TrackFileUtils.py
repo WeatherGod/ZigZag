@@ -142,16 +142,6 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     dataFile.close()
 
 
-def SaveTruthTable(trackrun, filestem, truthTable) :
-    SaveTracks(filestem + "_" + trackrun + "_Correct.segs",
-               truthTable['assocs_Correct'],
-               truthTable['falarms_Correct'])
-    SaveTracks(filestem + "_" + trackrun + "_Wrong.segs",
-               truthTable['assocs_Wrong'],
-               truthTable['falarms_Wrong'])
-    np.savetxt(filestem + '_' + trackrun + "_Correct.ind", truthTable['correct_indices'], fmt='%d')
-    np.savetxt(filestem + '_' + trackrun + "_Wrong.ind", truthTable['wrong_indices'], fmt='%d')
-
 def _loadtxtfile(filename, loadkwargs, arraykwargs) :
     """
     Stupid wrapper to deal with stupid numpy loadtxt bug where it
@@ -179,57 +169,6 @@ def _loadtxtfile(filename, loadkwargs, arraykwargs) :
 
     return data
 
-
-def ReadTruthTable(trackrun, simParams, true_AssocSegs, true_FAlarmSegs, path='.') :
-    """
-    NOTE: This is not suitable yet for getting truth tables for Track Plotting!
-    """
-    """
-    correctFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Correct.segs")
-    wrongFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Wrong.segs")
-    corrIndsFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Correct.ind")
-    wrongIndsFilename = os.path.join(path, simParams['analysis_stem'] + "_" + trackrun + "_Wrong.ind")
-    """
-    resultFilename = os.path.join(path, simParams['result_file'] + "_" + trackrun)
-    (finalTracks, finalFAlarms) = TrackUtils.FilterMHTTracks(*ReadTracks(resultFilename))
-
-    #result_mtime = os.path.getmtime(resultFilename)
-
-    if True : #(not (os.path.exists(correctFilename) and os.path.exists(wrongFilename)
-             #and os.path.exists(corrIndsFilename) and os.path.exists(wrongIndsFilename))
-       #or (os.path.getmtime(correctFilename) < result_mtime)
-       #or (os.path.getmtime(wrongFilename) < result_mtime)
-       #or (os.path.getmtime(corrIndsFilename) < result_mtime)
-       #or (os.path.getmtime(wrongIndsFilename) < result_mtime)) :
-        # rebuild the correct and wrong segments files because they either
-        # don't exist or the result file is newer than one of the segments files.
-        trk_segs = TrackUtils.CreateSegments(finalTracks + finalFAlarms)
-
-        #truthTable = TrackUtils.CompareSegments(true_AssocSegs, true_FAlarmSegs,
-        #                                        trackerAssocSegs, trackerFAlarmSegs)
-        truthTable = TrackUtils.MakeContingency(true_AssocSegs + true_FAlarmSegs,
-                                                trk_segs)
-
-        #SaveTruthTable(trackrun, os.path.join(path, simParams['analysis_stem']), truthTable)
-
-    else :
-        pass
-        """
-        # Ok, the results are not newer than the cached truth table segments file, so the
-        # cached truth table segments files are valid. So load the cache.
-        assocs_Correct, falarms_Correct = TrackUtils.FilterMHTTracks(*ReadTracks(correctFilename))
-        assocs_Wrong, falarms_Wrong = TrackUtils.FilterMHTTracks(*ReadTracks(wrongFilename))
-        correct_indices = _loadtxtfile(corrIndsFilename, dict(), dict(dtype=np.int)).tolist()
-        wrong_indices = _loadtxtfile(wrongIndsFilename, dict(), dict(dtype=np.int)).tolist()
-        
-
-        truthTable = {'assocs_Correct': assocs_Correct, 'falarms_Correct': falarms_Correct,
-                      'assocs_Wrong': assocs_Wrong, 'falarms_Wrong': falarms_Wrong,
-                      'correct_indices': correct_indices,
-                      'wrong_indices': wrong_indices}
-        """
-
-    return truthTable, finalTracks, finalFAlarms
 
 
 def ReadCorners(inputDataFile, path='.') :
