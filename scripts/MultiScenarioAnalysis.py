@@ -8,6 +8,7 @@ import numpy as np
 import la
 from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
 import ZigZag.bootstrap as btstrp
+import matplotlib.pyplot as plt
 
 from multiprocessing import Pool
 
@@ -280,10 +281,7 @@ def main(args) :
     #if len(args.multiSims) < 2 :
     #    raise ValueError("Need at least 2 scenarios to analyze")
 
-    if args.cacheOnly :
-        args.skillNames = []
-    else :
-        import matplotlib.pyplot as plt
+
 
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
@@ -304,69 +302,68 @@ def main(args) :
      skills_ci_lower) = MultiScenarioAnalyze(args.multiSims, args.skillNames,
                                              trackRuns, n_boot, ci_alpha,
                                              path=args.directory)
-    if not args.cacheOnly :
-        display = {disp:data for disp, data in
-                    zip(['fig', 'plot', 'ticks'],
-                        [args.fig_disp, args.plot_disp, args.tick_disp])}
+    display = {disp:data for disp, data in
+               zip(['fig', 'plot', 'ticks'],
+                   [args.fig_disp, args.plot_disp, args.tick_disp])}
 
-        defaultLabels = {'skills' : args.skillNames,
-                         'trackruns' : trackRuns,
-                         'scenarios' : args.multiSims}
+    defaultLabels = {'skills' : args.skillNames,
+                     'trackruns' : trackRuns,
+                     'scenarios' : args.multiSims}
 
-        groupinfo = (None if args.groupby is None else
-                     dict(group=args.groupby[0],
-                          into=args.groupby[1],
-                          by=args.groupby[2]))
+    groupinfo = (None if args.groupby is None else
+                 dict(group=args.groupby[0],
+                      into=args.groupby[1],
+                      by=args.groupby[2]))
 
-        #groupinfo = {'group' : 'trackruns',
-        #             'into' : 'scenarios',
-        #             'by' : 'framesBack'}
+    #groupinfo = {'group' : 'trackruns',
+    #             'into' : 'scenarios',
+    #             'by' : 'framesBack'}
 
-        # Default labels may be modified by Regroup()
-        (meanSkills,
-         skills_ci_upper,
-         skills_ci_lower) = Regroup(groupinfo, defaultLabels, meanSkills,
-                                                              skills_ci_upper,
-                                                              skills_ci_lower)
+    # Default labels may be modified by Regroup()
+    (meanSkills,
+     skills_ci_upper,
+     skills_ci_lower) = Regroup(groupinfo, defaultLabels, meanSkills,
+                                                          skills_ci_upper,
+                                                          skills_ci_lower)
 
-        #print meanSkills.shape
-        #print len(defaultLabels['scenarios']), len(defaultLabels['skills']),\
-        #      len(defaultLabels['trackruns'])
+    #print meanSkills.shape
+    #print len(defaultLabels['scenarios']), len(defaultLabels['skills']),\
+    #      len(defaultLabels['trackruns'])
 
-        (meanSkills,
-         skills_ci_upper,
-         skills_ci_lower) = Rearrange(display, meanSkills,
-                                               skills_ci_upper,
-                                               skills_ci_lower)
+    (meanSkills,
+     skills_ci_upper,
+     skills_ci_lower) = Rearrange(display, meanSkills,
+                                           skills_ci_upper,
+                                           skills_ci_lower)
 
-        #print meanSkills.shape
+    #print meanSkills.shape
 
-        tickLabels = args.ticklabels if args.ticklabels is not None else \
-                     defaultLabels[display['ticks']]
-        figTitles = args.titles if args.titles is not None else \
-                    defaultLabels[display['fig']]
-        plotLabels = args.plotlabels if args.plotlabels is not None else \
-                     defaultLabels[display['plot']]
+    tickLabels = args.ticklabels if args.ticklabels is not None else \
+                 defaultLabels[display['ticks']]
+    figTitles = args.titles if args.titles is not None else \
+                defaultLabels[display['fig']]
+    plotLabels = args.plotlabels if args.plotlabels is not None else \
+                 defaultLabels[display['plot']]
 
-        #print len(tickLabels), len(figTitles), len(plotLabels)
+    #print len(tickLabels), len(figTitles), len(plotLabels)
 
-        figs = [plt.figure(figsize=args.figsize) for title in figTitles]
-        legs = DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
-                                  meanSkills, skills_ci_upper, skills_ci_lower,
-                                  figs, dispMode=args.dispMode)
+    figs = [plt.figure(figsize=args.figsize) for title in figTitles]
+    legs = DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
+                              meanSkills, skills_ci_upper, skills_ci_lower,
+                              figs, dispMode=args.dispMode)
 
 
-        for aFig, legend, title in zip(figs, legs,
-                                       defaultLabels[display['fig']]) :
-            aFig.gca().set_xlabel(args.xlabel)
-            if args.saveImgFile is not None :
-                aFig.savefig("%s_%s.%s" % (args.saveImgFile,
-                                           title, args.imageType),
-                             bbox_inches='tight', pad_inches=0.25,
-                             bbox_extra_artists=[legend])
+    for aFig, legend, title in zip(figs, legs,
+                                   defaultLabels[display['fig']]) :
+        aFig.gca().set_xlabel(args.xlabel)
+        if args.saveImgFile is not None :
+            aFig.savefig("%s_%s.%s" % (args.saveImgFile,
+                                       title, args.imageType),
+                         bbox_inches='tight', pad_inches=0.25,
+                         bbox_extra_artists=[legend])
 
-        if args.doShow :
-            plt.show()
+    if args.doShow :
+        plt.show()
 
 
 if __name__ == '__main__' :
