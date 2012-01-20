@@ -34,6 +34,8 @@ def SaveConfigFile(filename, params) :
 def SaveSimulationParams(simParamName, simParams) :
     config = ConfigObj(simParams, interpolation=False)
     config.filename = simParamName
+    if config.get('times', None) is None :
+        config.pop('times', None)
     config.write()
 
 def Read_MultiSim_Params(filename) :
@@ -58,6 +60,8 @@ def ReadSimulationParams(simParamName) :
     if not (os.path.isfile(simParamName) and os.access(simParamName, os.R_OK)):
         raise Exception("Can not find or read config file: %s" % simParamName)
     config = ConfigObj(simParamName, interpolation=False)
+    if config.get('times', None) == 'None' :
+        config.pop('times', None)
 
     vdtor = Validator()
     config.configspec = ConfigObj(
@@ -114,7 +118,7 @@ def _ShowErrors(flatErrs, skipMissing=False) :
             error = 'Missing value or section.'
 
         if isErr :
-            errmsgs.append(section_string + ' = ' + error)
+            errmsgs.append(section_string + ' = ' + str(error))
         
     if len(errmsgs) > 0 :
         # TODO: Make an exception class for errors in reading param files
