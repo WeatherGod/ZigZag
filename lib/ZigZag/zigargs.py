@@ -345,7 +345,16 @@ map_opts = [
      dict(dest="displayMap",
           action="store_true", help=("Turn on display of map layers."
                                      " Only valid with '--station' option."),
-          default=False))
+          default=False)),
+    (("--radar",),
+     dict(dest="radarFile", type=str, nargs='+',
+          help="A rasterized radar data file to use to"
+               " display reflectivities under the plots. This option only"
+               " works if '--origin' option is given (or '--station')."
+               " If multiple files are given for static plots, and '--end',"
+               " then that frame number file will be used. This is to make"
+               " it easy to select the right file for the requested frame.",
+         metavar="RADFILE", default=None)),
     ]
 
 

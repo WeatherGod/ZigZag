@@ -108,6 +108,11 @@ def main(args) :
     # Can only do this if all other data being displayed will be in
     # lon/lat coordinates
     if args.radarFile is not None  and args.statLonLat is not None :
+        if len(args.radarFile) > 1 and args.endFrame is not None :
+            args.radarFile = args.radarFile[args.endFrame]
+        else :
+            args.radarFile = args.radarFile[-1]
+
         data = LoadRastRadar(args.radarFile)
         for ax in grid :
             MakeReflectPPI(data['vals'][0], data['lats'], data['lons'],
@@ -139,12 +144,6 @@ if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description="Produce a plain display of"
                                                  " the tracks")
     AddCommandParser('ShowTracks2', parser)
-    parser.add_argument("--radar", dest="radarFile", type=str,
-                        help="A rasterized radar data file to use to"
-                             " display reflectivities under the tracks."
-                             " This option only works if '--station' option"
-                             " is given.",
-                        metavar="RADFILE", default=None)
     args = parser.parse_args()
 
     main(args)

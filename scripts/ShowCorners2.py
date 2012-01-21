@@ -11,6 +11,7 @@ from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
 from BRadar.radarsites import ByName
+from BRadar.plotutils import RadarAnim
 
 import numpy as np
 
@@ -21,11 +22,10 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
                                                      cents['yLocs'])
 
 def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
-                    startFrame=None, endFrame=None, tail=None) :
+                    startFrame=None, endFrame=None, tail=None,
+                    radarFiles=None) :
     volumes = []
-    frameCnts = []
     for volData in cornerVolumes :
-        #frameCnts.append(len(volData))
         volumes.extend(volData)
 
     # the info in frameLims is completely useless because we
@@ -39,7 +39,23 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
         endFrame = frameLims[1]
 
     if tail is None :
-        tail = endFrame - startFrame
+        tail = 0
+
+    # A common event_source for synchronizing all the animations
+    theTimer = None
+
+    if radarFiles is not None and args.statLonLat is not None :
+        if endFrame - frameLims[0] >= len(radarFiles) :
+            # Not enough radar files, so truncate the tracks.
+            endFrame = (len(radarFiles) + frameLims[0]) - 1
+        files = radarFiles[startFrame - frameLims[0]:(endFrame + 1) -
+                                                     frameLims[0]]
+        radAnim = RadarAnim(fig, files)
+        theTimer = radAnim.event_source
+        for ax in grid :
+            radAnim.add_axes(ax, alpha=0.6, zorder=0)
+    else :
+        radAnim = None
 
     if showMap :
         bmap = Basemap(projection='cyl', resolution='l',
@@ -48,11 +64,12 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
     theAnim = CornerAnimation(fig, endFrame - startFrame + 1,
-                              tail=tail, interval=250, blit=True)
+                              tail=tail, interval=250, blit=False,
+                              event_source=theTimer)
 
     for ax, volData, title in zip(grid, cornerVolumes, titles) :
         if showMap :
-            PlotMapLayers(bmap, mapLayers, ax)
+            PlotMapLayers(bmap, mapLayers, ax, zorder=0.1)
             ax.set_xlabel("Longitude")
             ax.set_ylabel("Latitude")
         else :
@@ -74,7 +91,7 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
 
         theAnim.AddCornerVolume(corners)
 
-    return theAnim
+    return theAnim, radAnim
 
 def main(args) :
     import os.path
@@ -105,9 +122,11 @@ def main(args) :
                      for inFileName in args.inputDataFiles]
 
     if args.statLonLat is not None :
-        CoordinateTransform(cornerVolumes,
-                            args.statLonLat[0],
-                            args.statLonLat[1])
+        for vols in cornerVolumes :
+            for vol in vols :
+                CoordinateTransform(vol['stormCells'],
+                                    args.statLonLat[0],
+                                    args.statLonLat[1])
 
     showMap = (args.statLonLat is not None and args.displayMap)
 
@@ -115,10 +134,12 @@ def main(args) :
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
                             share_all=True, axes_pad=0.32)
 
-    theAnim = MakeCornerPlots(theFig, grid, cornerVolumes,
-                              args.trackTitles, showMap, tail=args.tail,
-                              startFrame=args.startFrame,
-                              endFrame=args.endFrame)
+    theAnim, radAnim = MakeCornerPlots(theFig, grid, cornerVolumes,
+                                       args.trackTitles, showMap,
+                                       tail=args.tail,
+                                       startFrame=args.startFrame,
+                                       endFrame=args.endFrame,
+                                       radarFiles=args.radarFile)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

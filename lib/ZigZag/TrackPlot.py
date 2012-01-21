@@ -1,43 +1,38 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.collections as mcoll
 from matplotlib.animation import FuncAnimation
 
 #################################
 #		Segment Plotting        #
 #################################
-def PlotSegment(lineSegs, tLims, axis=None, **kwargs) :
-    if (axis is None) :
+def PlotSegment(lineSegs, fLims, axis=None, **kwargs) :
+    if axis is None :
        axis = plt.gca()
 
-    tLower = min(tLims)
-    tUpper = max(tLims)
+    fLower = min(fLims)
+    fUpper = max(fLims)
 
     lines = []
     for aSeg in lineSegs :
-        mask = np.logical_and(tUpper >= aSeg['frameNums'],
-                              tLower <= aSeg['frameNums'])
+        mask = np.logical_and(fUpper >= aSeg['frameNums'],
+                              fLower <= aSeg['frameNums'])
 	lines.append(axis.plot(aSeg['xLocs'][mask], aSeg['yLocs'][mask],
 			       **kwargs)[0])
 
     return lines
 
-def PlotSegments(truthTable, tLims,
-                 axis=None, width=4.0, **kwargs) :
-    if axis is None :
-        axis = plt.gca()
-
+def PlotSegments(truthTable, fLims, axis=None, width=4.0, **kwargs) :
     tableSegs = {}
 
     # Correct Stuff
     tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'],
-                                              tLims, axis,
+                                              fLims, axis,
                                               linewidth=width, color= 'green',
                                               marker=' ',
                                               zorder=1, **kwargs)
     tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'],
-                                               tLims, axis,
+                                               fLims, axis,
                                                color='lightgreen',
                                                linestyle=' ',
                                                marker='.', markersize=2*width,
@@ -45,29 +40,22 @@ def PlotSegments(truthTable, tLims,
 
     # Wrong Stuff
     tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'],
-                                             tLims, axis,
+                                             fLims, axis,
                                              linewidth=width, color='gray',
                                              linestyle='-.',
                                              dash_capstyle = 'round',
                                              marker=' ', #markersize = 2*width,
                                              zorder=2, **kwargs)
     tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'],
-                                            tLims, axis,
+                                            fLims, axis,
                                             linewidth=width, color='red',
                                             marker=' ',
                                             zorder=2, **kwargs)
 
     return tableSegs
 
-def Animate_Segments(truthTable, tLims, axis=None, figure=None,
-                     event_source=None, **kwargs) :
-    if figure is None :
-        figure = plt.gcf()
-
-    if axis is None :
-        axis = figure.gca()
-
-    tableLines = PlotSegments(truthTable, tLims, axis=axis, animated=False) 
+def Animate_Segments(truthTable, fLims, axis=None, **kwargs) :
+    tableLines = PlotSegments(truthTable, fLims, axis=axis, animated=False) 
 
     theLines = []
     theSegs = []
@@ -77,7 +65,6 @@ def Animate_Segments(truthTable, tLims, axis=None, figure=None,
         theSegs += truthTable[keyname]
 
     return theLines, theSegs
-    #return AnimateLines(theLines, theSegs, min(tLims), max(tLims), axis=axis, figure=figure, event_source=None, **kwargs)
 
 #############################################
 #           Corner Plotting                 #
@@ -97,8 +84,22 @@ def PlotCorners(volData, tLims, axis=None, **kwargs) :
                                         **kwargs))
     return corners
 
+#############################################
+#           Animation Code                  #
+#############################################
 class CornerAnimation(FuncAnimation) :
     def __init__(self, figure, frameCnt, tail=0, **kwargs) :
+        """
+        Create an animation of the 'corners' (the centroids of detections).
+
+        *figure*            The matplotlib Figure object
+        *frameCnt*          The number of frames for the animation loop
+        *tail*              The number of frames to hold older corners
+
+        All other :class:`FuncAnimation` kwargs are available.
+
+        TODO: Add usage information.
+        """
         self._allcorners = []
         self._flatcorners = []
         self._myframeCnt = frameCnt
@@ -124,18 +125,33 @@ class CornerAnimation(FuncAnimation) :
         for aColl in self._flatcorners :
             aColl.set_visible(False)
 
-#############################################
-#           Animation Code                  #
-#############################################
+
 class SegAnimator(FuncAnimation) :
-    def __init__(self, fig, startFrame, endFrame, tail) :
+    def __init__(self, fig, startFrame, endFrame, tail, **kwargs) :
+        """
+        Create an animation of track segments.
+
+        *fig*               matplotlib Figure object
+        *startFrame*        The frame number to start animation loop at
+        *endFrame*          The frame number to end the loop at
+        *tail*              How many frames to keep older segments in view
+
+        All other :class:`FuncAnimation` constructor  kwargs are available
+        except *frames* and *fargs*.
+
+        TODO: Add usage info.
+        """
         self._lineData = []
         self._lines = []
+        if 'frames' in kwargs :
+            raise KeyError("Do not specify 'frames' for the constructor"
+                           " of SegAnimator")
+
         FuncAnimation.__init__(self, fig, self.update_lines,
                                      endFrame - startFrame + 1,
                                      fargs=(self._lineData, self._lines,
                                             startFrame, endFrame, tail),
-                                     interval=250, blit=False)
+                                     **kwargs)
 
     def update_lines(self, idx, lineData, lines, firstFrame, lastFrame, tail) :
         theHead = min(idx + firstFrame, lastFrame)
@@ -148,38 +164,6 @@ class SegAnimator(FuncAnimation) :
             line.set_xdata(aSeg['xLocs'][mask])
             line.set_ydata(aSeg['yLocs'][mask])
         return lines
-
-
-
-def AnimateLines(lines, lineData, startFrame, endFrame, 
-                 figure=None, axis=None,
-                 speed=1.0, loop_hold=2.0, tail=None, event_source=None) :
-
-    if figure is None :
-        figure = plt.gcf()
-
-    if axis is None :
-        axis = figure.gca()
-
-    if tail is None :
-        tail = endFrame - startFrame
-
-    def update_lines(idx, lineData, lines, firstFrame, lastFrame, tail) :
-        theHead = min(idx + firstFrame, lastFrame)
-        startTail = max(theHead - tail, firstFrame)
-            
-        for (index, (line, aSeg)) in enumerate(zip(lines, lineData)) :
-            mask = np.logical_and(aSeg['frameNums'] <= theHead,
-                                  aSeg['frameNums'] >= startTail)
-		
-            line.set_xdata(aSeg['xLocs'][mask])
-            line.set_ydata(aSeg['yLocs'][mask])
-        return lines
-
-    return FuncAnimation(figure, update_lines, endFrame - startFrame + 1,
-                         fargs=(lineData, lines, startFrame, endFrame, tail),
-                         interval=250, blit=True, event_source=event_source)
-
 
 ###################################################
 #		Track Plotting                            #
@@ -262,16 +246,9 @@ def PlotPlainTracks(tracks, falarms,
 
 
 
-def Animate_Tracks(true_tracks, model_tracks, tLims, 
-                   axis=None, figure=None, event_source=None, **kwargs) :
-    if figure is None :
-        figure = plt.gcf()
-
-    if axis is None :
-        axis = figure.gca()
-
-    startFrame = min(tLims)
-    endFrame = max(tLims)
+def Animate_Tracks(true_tracks, model_tracks, fLims, axis=None) :
+    startFrame = min(fLims)
+    endFrame = max(fLims)
 
     # create the initial lines    
     theLines = PlotTracks(true_tracks, model_tracks, startFrame, endFrame, 
@@ -280,22 +257,9 @@ def Animate_Tracks(true_tracks, model_tracks, tLims,
     return (theLines['trueLines'] + theLines['modelLines'],
             true_tracks + model_tracks)
 
-    #return AnimateLines(theLines['trueLines'] + theLines['modelLines'],
-    #                    true_tracks + model_tracks, startFrame, endFrame,
-    #                    axis=axis, figure=figure, event_source=event_source,
-    #                    **kwargs)
-
-
-def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
-                        axis=None, event_source=None, **kwargs) :
-    if figure is None :
-        figure = plt.gcf()
-
-    if axis is None :
-        axis = figure.gca()
-
-    startFrame = min(tLims)
-    endFrame = max(tLims)
+def Animate_PlainTracks(tracks, falarms, fLims, axis=None) :
+    startFrame = min(fLims)
+    endFrame = max(fLims)
 
     # Create the initial lines
     theLines = PlotPlainTracks(tracks, falarms, startFrame, endFrame,
@@ -303,9 +267,3 @@ def Animate_PlainTracks(tracks, falarms, tLims, figure=None,
 
     return (theLines['trackLines'] + theLines['falarmLines'],
             tracks + falarms)
-
-    #return AnimateLines(theLines['trackLines'] + theLines['falarmLines'],
-    #                    tracks + falarms, startFrame, endFrame,
-    #                    axis=axis, figure=figure, event_source=event_source,
-    #                    **kwargs)
-

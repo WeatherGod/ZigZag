@@ -10,6 +10,7 @@ from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
 from BRadar.radarsites import ByName
+from BRadar.plotutils import RadarAnim
 
 import numpy as np
 
@@ -84,9 +85,6 @@ def main(args) :
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,# aspect=False,
                             share_all=True, axes_pad=0.45)
 
-    # A common timer for all animations for syncing purposes.
-    theTimer = None
-
     if args.truthTrackFile is not None :
         (true_tracks,
          true_falarms) = FilterMHTTracks(*ReadTracks(args.truthTrackFile))
@@ -123,6 +121,22 @@ def main(args) :
     if tail is None :
         tail = endFrame - startFrame
 
+    # A common timer for all animations for syncing purposes.
+    theTimer = None
+
+    if args.radarFile is not None and args.statLonLat is not None :
+        if endFrame - frameLims[0] >= len(args.radarFile) :
+            # Not enough radar files, so truncate the tracks.
+            endFrame = (len(args.radarFile) + frameLims[0]) - 1
+        files = args.radarFile[startFrame - frameLims[0]:(endFrame + 1) -
+                                                         frameLims[0]]
+        radAnim = RadarAnim(theFig, files)
+        theTimer = radAnim.event_source
+        for ax in grid :
+            radAnim.add_axes(ax, alpha=0.6, zorder=0)
+    else :
+        radAnim = None
+
     showMap = (args.statLonLat is not None and args.displayMap)
 
     if showMap :
@@ -131,13 +145,15 @@ def main(args) :
                        llcrnrlat=yLims[0], llcrnrlon=xLims[0],
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
-    animator = SegAnimator(theFig, startFrame, endFrame, tail)
+
+    animator = SegAnimator(theFig, startFrame, endFrame, tail,
+                           event_source=theTimer)
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]
 
         if showMap :
-            PlotMapLayers(bmap, mapLayers, curAxis)
+            PlotMapLayers(bmap, mapLayers, curAxis, zorder=0.1)
 
         if true_AssocSegs is not None and true_FAlarmSegs is not None :
             trackAssocSegs = CreateSegments(aTracker[0])
@@ -145,23 +161,14 @@ def main(args) :
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                          trackAssocSegs, trackFAlarmSegs)
             l, d = Animate_Segments(truthtable, (startFrame, endFrame),
-                                    axis=curAxis,
-                                    speed=0.1, loop_hold=3.0,
-                                    event_source=theTimer)
+                                    axis=curAxis)
         else :
             l, d = Animate_PlainTracks(aTracker[0], aTracker[1],
-                                       (startFrame, endFrame), axis=curAxis,
-                                       speed=0.1, loop_hold=3.0,
-                                       event_source=theTimer)
+                                       (startFrame, endFrame), axis=curAxis)
 
         animator._lines.extend(l)
         animator._lineData.extend(d)
-            
-        if theTimer is None :
-            theTimer = animator.event_source
 
-        #curAxis.set_xlim(xLims)
-        #curAxis.set_ylim(yLims)
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")
         curAxis.set_title(trackTitles[index])

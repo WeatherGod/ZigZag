@@ -9,6 +9,7 @@ from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
 from BRadar.maputils import PlotMapLayers, mapLayers
 from BRadar.radarsites import ByName
+from BRadar.plotutils import RadarAnim
 
 import numpy as np
 
@@ -59,8 +60,11 @@ def main(args) :
                      for inFileName in inputDataFiles]
 
     if args.statLonLat is not None :
-        CoordinateTransform(cornerVolumes, args.statLonLat[0],
-                                           args.statLonLat[1])
+        for vols in cornerVolumes :
+            for vol in vols :
+                CoordinateTransform(vol['stormCells'],
+                                    args.statLonLat[0],
+                                    args.statLonLat[1])
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
@@ -106,15 +110,31 @@ def main(args) :
     if tail is None :
         tail = 0
 
+    # A common event_source for synchronizing all the animations
+    theTimer = None
+
+    if args.radarFile is not None and args.statLonLat is not None :
+        if endFrame - frameLims[0] >= len(args.radarFile) :
+            # Not enough radar files, so truncate the tracks.
+            endFrame = (len(args.radarFile) + frameLims[0]) - 1
+        files = args.radarFile[startFrame - frameLims[0]:(endFrame + 1) -
+                                                         frameLims[0]]
+        radAnim = RadarAnim(theFig, files)
+        theTimer = radAnim.event_source
+        for ax in grid :
+            radAnim.add_axes(ax, alpha=0.6, zorder=0)
+    else :
+        radAnim = None
 
     theAnim = CornerAnimation(theFig, endFrame - startFrame + 1,
-                              tail=tail, interval=250, blit=False)
+                              tail=tail, interval=250, blit=False,
+                              event_source=theTimer)
 
     for (index, volData) in enumerate(cornerVolumes) :
         curAxis = grid[index]
 
         if showMap :
-            PlotMapLayers(bmap, mapLayers, curAxis)
+            PlotMapLayers(bmap, mapLayers, curAxis, zorder=0.1)
 
         volFrames = [frameVol['frameNum'] for frameVol in volData]
         startIdx = volFrames.index(startFrame)
@@ -125,8 +145,6 @@ def main(args) :
 
         corners = PlotCorners(volData, (startT, endT), axis=curAxis)
 
-        #curAxis.set_xlim(xLims)
-        #curAxis.set_ylim(yLims)
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")
         curAxis.set_title(titles[index])

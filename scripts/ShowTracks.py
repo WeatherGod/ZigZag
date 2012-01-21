@@ -129,6 +129,11 @@ def main(args) :
     showMap = (args.statLonLat is not None and args.displayMap)
 
     if args.radarFile is not None and args.statLonLat is not None :
+        if len(args.radarFile) > 1 and args.endFrame is not None :
+            args.radarFile = args.radarFile[args.endFrame]
+        else :
+            args.radarFile = args.radarFile[-1]
+
         raddata = LoadRastRadar(args.radarFile)
     else :
         raddata = None
@@ -144,7 +149,7 @@ def main(args) :
         curAxis = grid[index]
 
         if raddata is not None :
-            MakeReflectPPI(raddata['vals'][0], data['lats'], data['lons'],
+            MakeReflectPPI(raddata['vals'][0], raddata['lats'], raddata['lons'],
                            meth='pcmesh', ax=curAxis, colorbar=False,
                            axis_labels=False, zorder=0, alpha=0.6)
 
@@ -196,12 +201,6 @@ if __name__ == '__main__' :
     parser = argparse.ArgumentParser(description="Produce a display of"
                                                  " the tracks")
     AddCommandParser('ShowTracks', parser)
-    parser.add_argument("--radar", dest="radarFile", type=str,
-                        help="A rasterized radar data file to use to"
-                             " display reflectivities under the tracks."
-                             " This option only works if '--station' option"
-                             " is given.",
-                        metavar="RADFILE", default=None)
     args = parser.parse_args()
 
     main(args)
