@@ -113,6 +113,9 @@ def main(args) :
     # A common event_source for synchronizing all the animations
     theTimer = None
 
+    # Make the corners big
+    big = False
+
     if args.radarFile is not None and args.statLonLat is not None :
         if endFrame - frameLims[0] >= len(args.radarFile) :
             # Not enough radar files, so truncate the tracks.
@@ -123,6 +126,9 @@ def main(args) :
         theTimer = radAnim.event_source
         for ax in grid :
             radAnim.add_axes(ax, alpha=0.6, zorder=0)
+
+        # Radar images make it difficult to see corners, so make 'em big
+        big = True
     else :
         radAnim = None
 
@@ -143,7 +149,8 @@ def main(args) :
         startT = volTimes[startIdx]
         endT = volTimes[endIdx]
 
-        corners = PlotCorners(volData, (startT, endT), axis=curAxis)
+        corners = PlotCorners(volData, (startT, endT), axis=curAxis,
+                              big=big)
 
         #curAxis.set_aspect("equal", 'datalim')
         #curAxis.set_aspect("equal")

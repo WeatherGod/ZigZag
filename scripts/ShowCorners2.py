@@ -86,7 +86,9 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles,
         startT = volTimes[startIdx]
         endT = volTimes[endIdx]
 
-        corners = PlotCorners(volData, (startT, endT), axis=ax)
+        # big=showRadar because radar maps make it difficult to see regular
+        # corners.
+        corners = PlotCorners(volData, (startT, endT), axis=ax, big=showRadar)
 
         ax.set_title(title)
 

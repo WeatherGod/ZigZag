@@ -78,9 +78,14 @@ def Animate_Segments(truthTable, fLims, axis=None, fade=False, **kwargs) :
 #############################################
 #           Corner Plotting                 #
 #############################################
-def PlotCorners(volData, tLims, axis=None, fade=False, **kwargs) :
+def PlotCorners(volData, tLims, axis=None, fade=False, big=False, **kwargs) :
     if axis is None :
         axis = plt.gca()
+
+    cornerStyle = (dict(s=1, c='k') if not big else
+                   dict(s=10, facecolor='c', edgecolor='k'))
+    # This approach allows the user to override the above styles
+    cornerStyle.update(kwargs)
 
     corners = []
     startT = min(tLims)
@@ -94,8 +99,8 @@ def PlotCorners(volData, tLims, axis=None, fade=False, **kwargs) :
                 make_alpha = 1.0
             corners.append(axis.scatter(aVol['stormCells']['xLocs'],
                                         aVol['stormCells']['yLocs'],
-                                        s=1, c='k', alpha=make_alpha,
-                                        **kwargs))
+                                        alpha=make_alpha,
+                                        **cornerStyle))
     return corners
 
 #############################################
