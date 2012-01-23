@@ -21,7 +21,8 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
                                                      cents['xLocs'],
                                                      cents['yLocs'])
 
-def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
+def MakeCornerPlots(fig, grid, cornerVolumes, titles,
+                    showMap=False, showRadar=False,
                     startFrame=None, endFrame=None, tail=None,
                     radarFiles=None) :
     volumes = []
@@ -44,7 +45,7 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles, showMap,
     # A common event_source for synchronizing all the animations
     theTimer = None
 
-    if radarFiles is not None and args.statLonLat is not None :
+    if showRadar :
         if endFrame - frameLims[0] >= len(radarFiles) :
             # Not enough radar files, so truncate the tracks.
             endFrame = (len(radarFiles) + frameLims[0]) - 1
@@ -129,13 +130,14 @@ def main(args) :
                                     args.statLonLat[1])
 
     showMap = (args.statLonLat is not None and args.displayMap)
+    showRadar = (args.statLonLat is not None and args.radarFile is not None)
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
                             share_all=True, axes_pad=0.32)
 
     theAnim, radAnim = MakeCornerPlots(theFig, grid, cornerVolumes,
-                                       args.trackTitles, showMap,
+                                       args.trackTitles, showMap, showRadar,
                                        tail=args.tail,
                                        startFrame=args.startFrame,
                                        endFrame=args.endFrame,
