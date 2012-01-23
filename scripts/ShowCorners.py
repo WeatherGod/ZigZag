@@ -128,7 +128,7 @@ def main(args) :
 
     theAnim = CornerAnimation(theFig, endFrame - startFrame + 1,
                               tail=tail, interval=250, blit=False,
-                              event_source=theTimer)
+                              event_source=theTimer, fade=args.fade)
 
     for (index, volData) in enumerate(cornerVolumes) :
         curAxis = grid[index]

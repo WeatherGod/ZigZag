@@ -147,7 +147,7 @@ def main(args) :
 
 
     animator = SegAnimator(theFig, startFrame, endFrame, tail,
-                           event_source=theTimer)
+                           event_source=theTimer, fade=args.fade)
 
     for (index, aTracker) in enumerate(trackerData) :
         curAxis = grid[index]

@@ -24,7 +24,7 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
 def MakeCornerPlots(fig, grid, cornerVolumes, titles,
                     showMap=False, showRadar=False,
                     startFrame=None, endFrame=None, tail=None,
-                    radarFiles=None) :
+                    radarFiles=None, fade=False) :
     volumes = []
     for volData in cornerVolumes :
         volumes.extend(volData)
@@ -66,7 +66,7 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles,
 
     theAnim = CornerAnimation(fig, endFrame - startFrame + 1,
                               tail=tail, interval=250, blit=False,
-                              event_source=theTimer)
+                              event_source=theTimer, fade=fade)
 
     for ax, volData, title in zip(grid, cornerVolumes, titles) :
         if showMap :
@@ -141,7 +141,8 @@ def main(args) :
                                        tail=args.tail,
                                        startFrame=args.startFrame,
                                        endFrame=args.endFrame,
-                                       radarFiles=args.radarFile)
+                                       radarFiles=args.radarFile,
+                                       fade=args.fade)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

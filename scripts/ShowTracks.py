@@ -161,10 +161,12 @@ def main(args) :
             trackFAlarmSegs = CreateSegments(aTracker[1])
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                          trackAssocSegs, trackFAlarmSegs)
-            PlotSegments(truthtable, (startFrame, endFrame), axis=curAxis)
+            PlotSegments(truthtable, (startFrame, endFrame), axis=curAxis,
+                         fade=args.fade)
         else :
             PlotPlainTracks(aTracker[0], aTracker[1],
-                            startFrame, endFrame, axis=curAxis)
+                            startFrame, endFrame, axis=curAxis,
+                            fade=args.fade)
 
         #curAxis.set_xlim(xLims)
         #curAxis.set_ylim(yLims)

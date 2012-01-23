@@ -312,6 +312,10 @@ show_opts = [
           help="Length of lagging tail in frames. Default depends on"
                " the program.",
           metavar='N', default=None)),
+    (("--fade",),
+     dict(dest='fade',
+          action='store_true', help="Turn on fading of old features/tracks",
+          default=False)),
     (("--end",),
      dict(dest="endFrame", type=int,
           help="The ending FRAME (Default: last frame in data)",

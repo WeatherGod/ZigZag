@@ -23,7 +23,7 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
 
 
 def MakeTrackPlots(grid, trackData, titles, showMap,
-                   endFrame=None, tail=None) :
+                   endFrame=None, tail=None, fade=False) :
     """
     *grid*              axes_grid object
     *trackData*         a list of the lists of tracks
@@ -32,6 +32,7 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
     *endFrame*          Display tracks as of *frame* number. Default: last
     *tail*              How many frames to include prior to *frame* to display
                         Default: all
+    *fade*              Whether or not to 'fade' old tracks
     """
     stackedTracks = []
     for aTracker in trackData :
@@ -65,7 +66,7 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
             ax.set_ylabel("Y")
 
         PlotPlainTracks(aTracker[0], aTracker[1],
-                        startFrame, endFrame, axis=ax)
+                        startFrame, endFrame, axis=ax, fade=fade)
 
         ax.set_title(title)
 
@@ -120,7 +121,7 @@ def main(args) :
                            axis_labels=False, zorder=0, alpha=0.6)
 
     MakeTrackPlots(grid, trackerData, args.trackTitles, showMap,
-                   endFrame=args.endFrame, tail=args.tail)
+                   endFrame=args.endFrame, tail=args.tail, fade=args.fade)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

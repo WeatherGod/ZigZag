@@ -23,7 +23,7 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
                                                      track['yLocs'])
 
 def MakeComparePlots(grid, trackData, truthData, titles, showMap,
-                     endFrame=None, tail=None) :
+                     endFrame=None, tail=None, fade=False) :
     true_AssocSegs = None
     true_FAlarmSegs = None
     frameLims = None
@@ -65,7 +65,8 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap,
         trackFAlarmSegs = CreateSegments(aTracker[1])
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackAssocSegs, trackFAlarmSegs)
-        PlotSegments(truthtable, (this_startFrame, this_endFrame), axis=ax)
+        PlotSegments(truthtable, (this_startFrame, this_endFrame), axis=ax,
+                     fade=fade)
 
         ax.set_title(title)
         if not showMap :
@@ -152,7 +153,7 @@ def main(args) :
                            axis_labels=False, zorder=0, alpha=0.6)
 
     MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap,
-                     endFrame=args.endFrame, tail=args.tail)
+                     endFrame=args.endFrame, tail=args.tail, fade=args.fade)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)
