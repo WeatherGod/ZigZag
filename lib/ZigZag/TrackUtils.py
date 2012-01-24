@@ -97,7 +97,7 @@ def CreateVolData(tracks, falarms, frames, tLims=None, xLims=None, yLims=None) :
 
     allCells = Tracks2Cells(tracks, falarms)
     return Cells2VolData(allCells, frames,
-                         tlims=tLims, xLims=xLims, yLims=yLims)
+                         tLims=tLims, xLims=xLims, yLims=yLims)
 
 
 def Cells2VolData(allCells, frames, tLims=None, xLims=None, yLims=None) :
