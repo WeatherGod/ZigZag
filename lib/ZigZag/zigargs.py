@@ -100,7 +100,7 @@ _zigargs['MultiDownsample'] = ["multiSim",
 
 _zigargs['DoTracking'] = ["simName", "trackconfs", "-t", "-d"]
 _zigargs['MultiTracking'] = ["multiSim", "trackconfs", "-t", "-d"]
-_zigargs['AnalyzeTracking'] = ["simName", "-t", "-d"]
+_zigargs['AnalyzeTracking'] = ["simName", "skillNames", "-t", "-d"]
 
 _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
     (("--titles",),
