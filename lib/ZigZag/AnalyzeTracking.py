@@ -81,10 +81,15 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
     dirName = os.path.join(path, simName)
     trackFile = os.path.join(dirName, simParams['noisyTrackFile'])
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(trackFile))
+    lastFrame = (max(trk['frameNums'][-1] for trk in
+                    (true_tracks + true_falarms)) if
+                 len(true_tracks) + len(true_falarms) > 0 else 0)
     true_AssocSegs, trackIndices = CreateSegments(true_tracks,
-                                                  retindices=True)
+                                                  retindices=True,
+                                                  lastFrame=lastFrame)
     true_FAlarmSegs, falarmIndices = CreateSegments(true_falarms,
-                                                    retindices=True)
+                                                    retindices=True,
+                                                    lastFrame=lastFrame)
 
     # Initializing the analysis data, which will hold a table of analysis
     # results for this simulation
@@ -96,13 +101,13 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
         obvFilename = os.path.join(dirName, simParams['result_file'] +
                                             "_" + tracker)
         (obvTracks, obvFAlarms) = FilterMHTTracks(*ReadTracks(obvFilename))
-        trk_segs = CreateSegments(obvTracks + obvFAlarms)
+        trk_segs = CreateSegments(obvTracks + obvFAlarms, lastFrame=lastFrame)
         truthTable = MakeContingency(true_AssocSegs + true_FAlarmSegs, trk_segs)
 
-        print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
-                                   len(truthTable['assocs_Wrong']) +
-                                   len(truthTable['falarms_Wrong']) +
-                                   len(truthTable['falarms_Correct']))
+        #print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
+        #                           len(truthTable['assocs_Wrong']) +
+        #                           len(truthTable['falarms_Wrong']) +
+        #                           len(truthTable['falarms_Correct']))
 
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex,
