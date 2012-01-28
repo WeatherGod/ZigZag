@@ -1,7 +1,12 @@
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
-from scikits.learn.utils.hungarian import _Hungarian
+
+try :
+    from scikits.learn.utils.hungarian import _Hungarian
+except ImportError :
+    from sklearn.utils.hungarian import _Hungarian
+
 from collections import defaultdict
 
 class ASCIT(object) :
