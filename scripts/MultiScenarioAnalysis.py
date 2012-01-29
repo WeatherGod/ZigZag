@@ -88,6 +88,10 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
 _dispFmt = {'cat' : '.',
             'ordinal' : '-'}
 
+_graphTypes = {'cat' : 'line',
+               'ordinal' : 'line',
+               'bar' : 'bar'}
+
 
 def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
                               meanSkills, skills_ci_upper, skills_ci_lower,
@@ -98,21 +102,26 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
     *dispMode*  ['cat' | 'ordinal']
         Categorical or ordinal mode for the x-axis
     """
+    # Some modes don't require a "format".
     fmt = _dispFmt.get(dispMode, None)
+    # But all modes require a graph type
+    graphType = _graphTypes[dispMode]
+
     leg_objs = []
+    spaceWidth = 1.0 / (len(plotLabels) + 1.0)
 
     for figIndex, (fig, title) in enumerate(zip(figs, figTitles)) :
         ax = figs[figIndex].gca()
 
         for plotIndex, label in enumerate(plotLabels) :
-            startLoc = 0.5 if dispMode in ('ordinal', 'bar') else \
-                       ((plotIndex + 1) / (len(plotLabels) + 1.0))
+            startLoc = 0.5 if dispMode == 'ordinal' else \
+                       ((plotIndex + 1) * spaceWidth)
 
             MakeErrorBars(meanSkills[:, figIndex, plotIndex],
                           (skills_ci_upper[:, figIndex, plotIndex],
                            skills_ci_lower[:, figIndex, plotIndex]),
                           ax, startLoc=startLoc, label=label,
-                          fmt=fmt)
+                          fmt=fmt, graphType=graphType, width=spaceWidth)
 
         ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
         ax.set_xticklabels(tickLabels)
@@ -375,12 +384,13 @@ if __name__ == '__main__' :
                                             ' multiple storm-track simulations')
     AddCommandParser('MultiScenarioAnalysis', parser)
     parser.add_argument("--mode", dest="dispMode",
-                        help="Mode for x-axis (categorical (default) or"
-                             " ordinal). In categorical mode, error bars are"
-                             " unconnected and non-overlapping. In ordinal"
-                             " mode, the errorbars for each plot are"
-                             " connected, and are overlapping in the x-axis.",
-                        choices=['cat', 'ordinal'], default='cat')
+                        help="Mode for x-axis (categorical (default),"
+                             " ordinal, or bar). In categorical mode, error"
+                             " bars are unconnected and non-overlapping. In"
+                             " ordinal  mode, the errorbars for each plot are"
+                             " connected, and are overlapping in the x-axis."
+                             " For bar, bars are used with errorbars.",
+                        choices=['cat', 'ordinal', 'bar'], default='cat')
     parser.add_argument("--xlabel", dest="xlabel", type=str,
                         help="Label for the x-axis.  Default: '%(default)s'",
                         default='')
