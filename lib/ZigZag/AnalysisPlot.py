@@ -19,6 +19,7 @@ def MakeErrorBars(bootMeans, bootCIs, ax, label=None, startLoc=0.5,
         ax.errorbar(xlocs, bootMeans,
                     yerr=yerr, fmt=fmt, label=label, **error_kw)
     elif graphType == 'bar' :
+        error_kw.update(dict(ecolor='k', elinewidth=1.0, mew=1.0))
         ax.bar(xlocs, bootMeans, width=width, yerr=yerr, label=label,
                error_kw=error_kw, align='center')
 
