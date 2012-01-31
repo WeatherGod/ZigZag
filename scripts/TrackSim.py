@@ -10,7 +10,7 @@ import ZigZag.ParamUtils as ParamUtils     # for SaveSimulationParams(), SetupPa
 from ZigZag.TrackFileUtils import *		# for writing the track data
 
 
-#####################################################################################
+###################################################
 #  Track Maker Functions
 trackMakers = {}
 
@@ -20,7 +20,7 @@ def MakeTrack(cornerID, initModel, motionModel, deltaT, probTrackEnds, maxLen) :
     return np.fromiter(aPoint, TrackUtils.track_dtype)
 
 trackMakers['MakeTrack'] = MakeTrack
-###################################################################################
+#################################################
 
 
 def MakeTracks(trackGens, noiseModels,
@@ -66,11 +66,12 @@ def MakeTracks(trackGens, noiseModels,
         #   any splitting/merging done upon them.
         # This will also allow for noise models to be applied to specific
         #   subsets of the tracks.
-        subTracks, subFAlarms, cornerID = MakeTracks(trackGens, noiseModels,
-                                                     procParams[aGen],
-                                                     trackGens[aGen], trackCnt,
-                                                     deltaT, prob_track_ends, maxTrackLen,
-                                                     cornerID, currState)
+        (subTracks, subFAlarms,
+         cornerID) = MakeTracks(trackGens, noiseModels,
+                                procParams[aGen],
+                                trackGens[aGen], trackCnt,
+                                deltaT, prob_track_ends, maxTrackLen,
+                                cornerID, currState)
 
         # Add this branch's tracks to this node's set of tracks
         theTracks.extend(subTracks)
@@ -85,7 +86,7 @@ def MakeTracks(trackGens, noiseModels,
     return theTracks, theFAlarms, cornerID
 
 
-###################################################################################################
+#############################################
 
 def MakeModels(modParams, modelList) :
     models = {}
@@ -101,7 +102,8 @@ def MakeModels(modParams, modelList) :
 
     return models
 
-def MakeGenModels(modParams, initModels, motionModels, gen_modelList, trackMakers) :
+def MakeGenModels(modParams, initModels, motionModels,
+                  gen_modelList, trackMakers) :
     models = {}
     defMotion = modParams.get("motion", None)
     defInit = modParams.get("init", None)
@@ -139,8 +141,8 @@ def TrackSim(simConfs, frameCnt, tLims,
              totalTracks, endTrackProb,
              **simParams) :
     """
-    totalTracks acts as the top-most default value to use for the sim generators.
-    prob_track_ends also acts as the top-most default value.
+    totalTracks acts as the top-most default value to use for the
+    sim generators. prob_track_ends also acts as the top-most default value.
     """
     initModels = MakeModels(simConfs['InitModels'], Sim.init_modelList)
     motionModels = MakeModels(simConfs['MotionModels'], Sim.motion_modelList)
@@ -166,7 +168,8 @@ def TrackSim(simConfs, frameCnt, tLims,
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
                                                      rootNode, rootGenerator,
 					                                 trackCnt,
-                                                     deltaT, endTrackProb, maxTrackLen)
+                                                     deltaT, endTrackProb,
+                                                     maxTrackLen)
 
     return true_tracks, true_falarms
 
@@ -180,10 +183,11 @@ def SingleSimulation(simConfs, frameCnt,
     true_tracks, true_falarms = TrackSim(simConfs, frameCnt, tLims, **simParams)
 
     # Clip tracks to the domain
-    clippedTracks, clippedFAlarms = TrackUtils.ClipTracks(true_tracks,
-                                                          true_falarms,
-                                                          xLims, yLims,
-                                                          frameLims=(1, frameCnt))
+    (clippedTracks,
+     clippedFAlarms) = TrackUtils.ClipTracks(true_tracks,
+                                             true_falarms,
+                                             xLims, yLims,
+                                             frameLims=(1, frameCnt))
 
     
     volume_data = TrackUtils.CreateVolData(true_tracks, true_falarms,
@@ -211,10 +215,12 @@ def SaveSimulation(theSimulation, simParams, simConfs,
         if automake :
             os.makedirs(simDir)
         else :
-            raise ValueError("%s does not exist and automake==False in SaveSimulation()" % simDir)
+            raise ValueError("%s does not exist and automake==False"
+                             " in SaveSimulation()" % simDir)
     else :
         if not autoreplace :
-            raise ValueError("%s already exists and autoreplace==False in SaveSimulation()" % simDir)
+            raise ValueError("%s already exists and autoreplace==False"
+                             " in SaveSimulation()" % simDir)
     
     ParamUtils.SaveSimulationParams(simDir + "simParams.conf", simParams)
     SaveTracks(os.path.join(simDir, simParams['simTrackFile']),
