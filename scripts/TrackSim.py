@@ -26,7 +26,7 @@ trackMakers['MakeTrack'] = MakeTrack
 def MakeTracks(trackGens, noiseModels,
                procParams, currGen, trackCnt,
                deltaT, prob_track_ends, maxTrackLen,
-               cornerID=0, simState=None) :
+               cornerID=0, simState=None, trackTags=None) :
     theTracks = []
     theFAlarms = []
 
@@ -41,8 +41,12 @@ def MakeTracks(trackGens, noiseModels,
                     'theTrackLens': []}
 
     # Generate this model's set of tracks
+    startID = cornerID
     tracks, falarms, cornerID = currGen(cornerID, trackCnt, simState,
                                         deltaT, prob_track_ends, maxTrackLen)
+    if trackTags is not None :
+        trackTags['ids'] = range(startID, cornerID)
+
     TrackUtils.CleanupTracks(tracks, falarms)
     trackLens = [len(aTrack) for aTrack in tracks]
 
@@ -57,7 +61,7 @@ def MakeTracks(trackGens, noiseModels,
     currState = {'theTracks': simState['theTracks'] + tracks,
                  'theFAlarms': simState['theFAlarms'] + falarms,
                  'theTrackLens': simState['theTrackLens'] + trackLens}
-    
+
     # Loop over the node's sub-branch generators
     for aGen in procParams.sections :
         # Recursively perform track simulations using this loop's simulation
@@ -66,12 +70,17 @@ def MakeTracks(trackGens, noiseModels,
         #   any splitting/merging done upon them.
         # This will also allow for noise models to be applied to specific
         #   subsets of the tracks.
+        subTags = {} if trackTags is not None else None
+
         (subTracks, subFAlarms,
          cornerID) = MakeTracks(trackGens, noiseModels,
                                 procParams[aGen],
                                 trackGens[aGen], trackCnt,
                                 deltaT, prob_track_ends, maxTrackLen,
-                                cornerID, currState)
+                                cornerID, currState, trackTags=subTags)
+
+        if trackTags is not None :
+            trackTags[aGen] = subTags
 
         # Add this branch's tracks to this node's set of tracks
         theTracks.extend(subTracks)
@@ -164,14 +173,16 @@ def TrackSim(simConfs, frameCnt, tLims,
     else :
         deltaT = (tLims[1] - tLims[0]) / float(frameCnt - 1)
 
+    trackTags = {}
 
     true_tracks, true_falarms, cornerID = MakeTracks(simGens, noiseModels,
                                                      rootNode, rootGenerator,
 					                                 trackCnt,
                                                      deltaT, endTrackProb,
-                                                     maxTrackLen)
+                                                     maxTrackLen,
+                                                     trackTags=trackTags)
 
-    return true_tracks, true_falarms
+    return true_tracks, true_falarms, trackTags
 
 def SingleSimulation(simConfs, frameCnt,
                      xLims, yLims, tLims,
@@ -180,7 +191,8 @@ def SingleSimulation(simConfs, frameCnt,
     # Seed the PRNG
     np.random.seed(seed)
 
-    true_tracks, true_falarms = TrackSim(simConfs, frameCnt, tLims, **simParams)
+    (true_tracks, true_falarms,
+     trackTags) = TrackSim(simConfs, frameCnt, tLims, **simParams)
 
     # Clip tracks to the domain
     (clippedTracks,
@@ -199,7 +211,8 @@ def SingleSimulation(simConfs, frameCnt,
 
     return {'true_tracks': true_tracks, 'true_falarms': true_falarms,
             'noisy_tracks': clippedTracks, 'noisy_falarms': clippedFAlarms,
-            'true_volumes': volume_data, 'noisy_volumes': noise_volData}
+            'true_volumes': volume_data, 'noisy_volumes': noise_volData,
+            'trackTags': trackTags}
 
 
 
@@ -232,6 +245,12 @@ def SaveSimulation(theSimulation, simParams, simConfs,
                 path=simDir)
     ParamUtils.SaveConfigFile(os.path.join(simDir, simParams['simConfFile']),
                               simConfs)
+
+    res = theSimulation['trackTags'].pop('ids', [])
+    assert len(res) == 0, "The base tag list shouldn't have anything!"
+
+    ParamUtils.SaveConfigFile(os.path.join(simDir, simParams['simTagFile']),
+                              theSimulation['trackTags'])
 
 
 def main(args) :

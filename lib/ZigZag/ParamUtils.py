@@ -11,6 +11,7 @@ simDefaults = dict( frameCnt = 12,
         		    simTrackFile = "true_tracks",
 		            noisyTrackFile = "noise_tracks",
                     simConfFile = "simulation.ini",
+                    simTagFile = "simTags.ini",
 		            endTrackProb = 0.1,
                     tLims = [1, 12],
         		    xLims = [0.0, 255.0],
@@ -141,13 +142,15 @@ def LoadTrackerParams(filenames, trackers=None) :
         configSpec[aTrackRun] = param_confList[algo]
 
     vdtor = Validator()
-    trackConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+    trackConfs.configspec = ConfigObj(configSpec,
+                                      list_values=False, _inspec=True)
     res = trackConfs.validate(vdtor, preserve_errors=True)
     flatErrs = flatten_errors(trackConfs, res)
     _ShowErrors(flatErrs)
 
     if trackers is not None :
-        raise NotImplementedError("Selecting trackers have not been implemented yet...")
+        raise NotImplementedError("Selecting trackers have not been"
+                                  " implemented yet...")
 
     return trackConfs
 
@@ -177,10 +180,11 @@ def LoadSimulatorConf(filenames) :
             configSpec[name][key] = modelList[theType][1]
 
     # Lastly, adding the config spec for the SimModels section.
-    configSpec['SimModels'] = {'__many__' : dict(prob_track_ends="float(min=0, max=1)",
-                                                 maxTrackLen="integer(min=0)",
-                                                 cnt="integer(min=0)",
-                                                 noises="force_list()")}
+    configSpec['SimModels'] = {'__many__' :
+                                 dict(prob_track_ends="float(min=0, max=1)",
+                                      maxTrackLen="integer(min=0)",
+                                      cnt="integer(min=0)",
+                                      noises="force_list()")}
     vdtor = Validator()
     simConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
 
@@ -212,7 +216,6 @@ def SimGroup(parser) :
 		     help="Initialize RNG with SEED. (default: %(default)s)",
 		     metavar="SEED", default = simDefaults['seed'])
 
-    
     group.add_argument("--simconffile", dest="simConfFile", type=str,
 		     help="Save simulation conf to FILE. (default: %(default)s)", 
 		     metavar="FILE",
@@ -229,8 +232,14 @@ def SimGroup(parser) :
 		     metavar="FILE",
 		     default=simDefaults['noisyTrackFile'])
 
+    group.add_argument("--tagfile", dest="simTagFile", type=str,
+             help="Output cornerIDs to FILE for tagging."
+                  " (default: %(default)s)",
+             metavar="FILE", default=simDefaults['simTagFile'])
+
     group.add_argument("--trackend", dest="endTrackProb", type=float,
-		     help="Probability a track will end for a given frame. (default: %(default)s)",
+		     help="Probability a track will end for a given frame."
+                  " (default: %(default)s)",
 		     metavar="ENDPROB", default=simDefaults['endTrackProb'])
 
     group.add_argument("--xlims", dest="xLims", type=float,
@@ -254,15 +263,7 @@ def SimGroup(parser) :
 
 def TrackerGroup(parser) :
     group = parser.add_argument_group("Tracker Options",
-                        "Options for controlling the input and output of the trackers.")
-
-    # Commenting this out for now because I think I want this to be
-    # controled by the Tracking programs to update the parameters on
-    # which trackers were used.
-#    group.add_argument("-t", "--tracker", dest="trackers", type=str,
-#		     action="append",
-#                     help="Tracking models to use. (Ex: MHT, SCIT)",
-#                     metavar="TRACKER", default = trackerDefaults['trackers'])
+                "Options for controlling the input and output of the trackers.")
 
     group.add_argument("--corner", dest="corner_file", type=str,
 		     help="Corner filename stem. (default = %(default)s)",
@@ -277,18 +278,21 @@ def TrackerGroup(parser) :
 		     metavar="RESULT", default=trackerDefaults['result_file'])
 
     group.add_argument("--paramstore", dest="trackerparams", type=str,
-                       help="Filename to use for storing the parameters for each trackrun. (default = %(default)s)",
+                       help="Filename to use for storing the parameters"
+                            " for each trackrun. (default = %(default)s)",
                        metavar="FILE", default=trackerDefaults['trackerparams'])
 
     group.add_argument("--analysis", dest="analysis_stem", type=str,
-                       help="Filename stem for the analysis of track run results. (default = %(default)s)",
-                       metavar="ANALYSIS", default=trackerDefaults['analysis_stem'])
+                       help="Filename stem for the analysis of track run"
+                            " results. (default = %(default)s)",
+                       metavar="ANALYSIS",
+                       default=trackerDefaults['analysis_stem'])
 
     return group
 
 
 
-def ParamsFromOptions(options, simName = None) :
+def ParamsFromOptions(options, simName=None) :
     # NOTE: Couldn't I now use the ConfigObj loader to do this validation?
     # NOTE: I do NOT modify the contents of the
     #       options object! This is important for
@@ -301,10 +305,12 @@ def ParamsFromOptions(options, simName = None) :
         parser.error("ERROR: Invalid FrameCnt value: %d" % (options.frameCnt))
 
     if options.totalTracks < 0 :
-        parser.error("ERROR: Invalid TrackCnt value: %d" % (options.totalTracks))
+        parser.error("ERROR: Invalid TrackCnt"
+                     " value: %d" % (options.totalTracks))
 
     if options.endTrackProb < 0. :
-        parser.error("ERROR: End Track Prob must be positive! Value: %d" % (options.endTrackProb))
+        parser.error("ERROR: End Track Prob must be"
+                     " positive! Value: %d" % (options.endTrackProb))
 
     # TODO: Maybe this can be turned into a dict comprehension?
     return dict(corner_file = options.corner_file,
@@ -315,11 +321,8 @@ def ParamsFromOptions(options, simName = None) :
         simTrackFile = options.simTrackFile,
 		noisyTrackFile = options.noisyTrackFile,
         simConfFile = options.simConfFile,
+        simTagFile = options.simTagFile,
         simName = simName,
-        # Commenting this out for now to examine the possibility
-        # of internally handling this value, so we will set
-        # it to an empty list for now.
-		#trackers = options.trackers,
         trackers = [],
         totalTracks = options.totalTracks,
         endTrackProb = options.endTrackProb,
