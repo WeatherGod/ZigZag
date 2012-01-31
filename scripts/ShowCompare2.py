@@ -128,11 +128,9 @@ def main(args) :
         trkMult = max(int(len(truthData) // len(trackerData)), 1)
         trthMult = max(int(len(trackerData) // len(truthData)), 1)
 
-        (trackerData,
-         truthData,
-         args.trackTitles) = zip(trackerData * trkMult,
-                                 truthData * trthMult,
-                                 args.trackTitles * trkMult)
+        trackerData = trackerData * trkMult
+        truthData = truthData * trthMult
+        args.trackTitles = args.trackTitles * trkMult
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout, aspect=False,
