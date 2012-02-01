@@ -67,7 +67,7 @@ def _find_names(conf) :
 
     return names
 
-def process_tag_filters(simTags, filters) :
+def process_tag_filters(simTags, filters, ignore_missing=True) :
     if filters is None or simTags is None :
         return None
 
@@ -78,8 +78,6 @@ def process_tag_filters(simTags, filters) :
 
     keepers = set()
 
-
-
     if len(in_tags) == 0 :
         # Assume we mean that we want all of the generators
         in_tags = _find_names(simTags)
@@ -87,14 +85,18 @@ def process_tag_filters(simTags, filters) :
     for name in in_tags :
         ids = _recurse_find(simTags, name)
         if ids is None :
-            raise ValueError("%s is not in the simTags" % name)
-        keepers.update(ids)
+            if not ignore_missing :
+                raise ValueError("%s is not in the simTags" % name)
+        else :
+            keepers.update(ids)
 
     for name in ex_tags :
         ids = _recurse_find(simTags, name)
         if ids is None :
-            raise ValueError("%s is not in the simTags" % name)
-        keepers.difference_update(ids)
+            if not ignore_missing :
+                raise ValueError("%s is not in the simTags" % name)
+        else :
+            keepers.difference_update(ids)
 
     return keepers
 
