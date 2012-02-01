@@ -72,6 +72,19 @@ _common_args["--filter"] = (("--filter",),
                              " default set. Default: Include everything.",
              metavar="GENERATOR", default=None))
 
+_common_args["--tagfile"] = (("--tagfile",),
+        dict(dest="simTagFile", type=str,
+             help="TAGFILE containing cornerID tags. If none is given,"
+                  " but a SIM is provided, then use the sim's tagFile."
+                  " A tag file is needed for the --filter option.",
+             metavar="TAGFILE", default=None))
+
+_common_args["--tagfiles"] = (("--tagfiles",),
+        dict(dest="simTagFiles", type=str, nargs='+',
+             help="TAGFILEs containing cornerID tags. If none is given,"
+                  " but a SIM is provided, then use the sim's tagFile."
+                  " Tag files are needed for the --filter option.",
+             metavar="TAGFILE"))
 
 
 _zigargs['TrackSim'] = ["simName", "-d", "-c"]
@@ -378,6 +391,8 @@ _zigargs['ShowTracks2'] = [
      dict(nargs='+',
           help="TRACKFILEs to use for display",
           metavar="TRACKFILE")),
+    "--filter",
+    "--tagfiles",
     ] + show_opts + map_opts
 
 
@@ -390,6 +405,8 @@ _zigargs['ShowCompare2'] = [
      dict(dest="truthTrackFile", nargs='+',
           help="Use TRUTHFILE for true track data",
           metavar="TRUTHFILE")),
+    "--filter",
+    "--tagfiles",
    ] + show_opts + map_opts
 
 _zigargs['ShowCorners2'] = [
@@ -401,6 +418,8 @@ _zigargs['ShowCorners2'] = [
      dict(dest="startFrame", type=int,
           help="The starting FRAME (Default: first frame in data)",
           metavar="FRAME", default=None)),
+    "--filter",
+    "--tagfiles",
     ] + show_opts + map_opts
 
 _zigargs['ShowTracks'] = [
@@ -422,6 +441,8 @@ _zigargs['ShowTracks'] = [
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
     "-d",
+    "--filter",
+    "--tagfile",
    ] + show_opts + map_opts
 
 
@@ -444,6 +465,8 @@ _zigargs['ShowAnims'] = [
           help="Use data from the simulation SIMNAME",
           metavar="SIMNAME", default=None)),
     "-d",
+    "--filter",
+    "--tagfile",
     (("--start",),
      dict(dest="startFrame", type=int,
           help="The starting FRAME (Default: first frame in data)",
@@ -465,6 +488,8 @@ _zigargs['ShowCorners'] = [
           help="Use data from the simulation SIMNAME.",
           metavar="SIMNAME", default=None)),
     "-d",
+    "--filter",
+    "--tagfiles",
     (("--start",),
      dict(dest="startFrame", type=int,
           help="The starting FRAME (Default: first frame in data)",

@@ -54,6 +54,9 @@ def main(args) :
             args.truthTrackFile = os.path.join(dirName,
                                                simParams['noisyTrackFile'])
 
+        if args.simTagFile is None :
+            args.simTagFile = os.path.join(dirName, simParams['simTagFile'])
+
     trackFiles += args.trackFiles
 
     if args.trackTitles is None :
@@ -80,6 +83,12 @@ def main(args) :
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for
                    trackFile in trackFiles]
 
+    keeperIDs = None
+
+    if args.simTagFile is not None :
+        simTags = ParamUtils.ReadSimTagFile(args.simTagFile)
+        keeperIDs = ParamUtils.process_tag_filters(simTags, args.filters)
+
     if args.statLonLat is not None :
         for aTracker in trackerData :
             CoordinateTransform(aTracker[0] + aTracker[1],
@@ -103,6 +112,10 @@ def main(args) :
 
         true_AssocSegs = CreateSegments(true_tracks)
         true_FAlarmSegs = CreateSegments(true_falarms)
+
+        if keeperIDs is not None :
+            true_AssocSegs = FilterSegments(keeperIDs, true_AssocSegs)
+            true_FAlarmSegs = FilterSegments(keeperIDs, true_FAlarmSegs)
 
 
         (xLims, yLims, frameLims) = DomainFromTracks(true_tracks + true_falarms)
@@ -145,7 +158,7 @@ def main(args) :
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
 
-    for (index, aTracker) in enumerate(trackerData) :
+    for index, (tracks, falarms) in enumerate(trackerData) :
         curAxis = grid[index]
 
         if raddata is not None :
@@ -157,14 +170,25 @@ def main(args) :
             PlotMapLayers(bmap, mapLayers, curAxis)
 
         if true_AssocSegs is not None and true_FAlarmSegs is not None :
-            trackAssocSegs = CreateSegments(aTracker[0])
-            trackFAlarmSegs = CreateSegments(aTracker[1])
+            trackAssocSegs = CreateSegments(tracks)
+            trackFAlarmSegs = CreateSegments(falarms)
+
+            if keeperIDs is not None :
+                trackAssocSegs = FilterSegments(keeperIDs, trackAssocSegs)
+                trackFAlarmSegs = FilterSegments(keeperIDs, trackFAlarmSegs)
+
             truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                          trackAssocSegs, trackFAlarmSegs)
             PlotSegments(truthtable, (startFrame, endFrame), axis=curAxis,
                          fade=args.fade)
         else :
-            PlotPlainTracks(aTracker[0], aTracker[1],
+            if keeperIDs is not None :
+                filtFunc = lambda trk: FilterTrack(trk, cornerIDs=keeperIDs)
+                tracks = map(filtFunc, tracks)
+                falarms = map(filtFunc, falarms)
+                CleanupTracks(tracks, falarms)
+
+            PlotPlainTracks(tracks, falarms,
                             startFrame, endFrame, axis=curAxis,
                             fade=args.fade)
 

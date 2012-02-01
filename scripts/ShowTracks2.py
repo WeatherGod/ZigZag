@@ -2,7 +2,9 @@
 
 from ZigZag.TrackPlot import PlotPlainTracks
 from ZigZag.TrackFileUtils import ReadTracks
-from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks
+from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks, FilterTrack, \
+                              CleanupTracks
+from ZigZag.ParamUtils import ReadSimTagFile, process_tag_filters
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
@@ -23,7 +25,8 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
 
 
 def MakeTrackPlots(grid, trackData, titles, showMap,
-                   endFrame=None, tail=None, fade=False) :
+                   endFrame=None, tail=None, fade=False,
+                   multiTags=None, tag_filters=None) :
     """
     *grid*              axes_grid object
     *trackData*         a list of the lists of tracks
@@ -34,6 +37,10 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
                         Default: all
     *fade*              Whether or not to 'fade' old tracks
     """
+
+    if multiTags is None :
+        multiTags = [None] * len(trackData)
+
     stackedTracks = []
     for aTracker in trackData :
         stackedTracks += aTracker[0] + aTracker[1]
@@ -56,7 +63,8 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
                        urcrnrlat=yLims[1], urcrnrlon=xLims[1])
 
 
-    for ax, aTracker, title in zip(grid, trackData, titles) :
+    for ax, (tracks, falarms), title, simTags in zip(grid, trackData,
+                                                     titles, multiTags) :
         if showMap :        
             PlotMapLayers(bmap, mapLayers, ax)
             ax.set_xlabel("Longitude")
@@ -65,7 +73,14 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
-        PlotPlainTracks(aTracker[0], aTracker[1],
+        if simTags is not None :
+            keeperIDs = process_tag_filters(simTags, tag_filters)
+            filtFunc = lambda trk: FilterTrack(trk, cornerIDs=keeperIDs)
+            tracks = map(filtFunc, tracks)
+            falarms = map(filtFunc, falarms)
+            CleanupTracks(tracks, falarms)
+
+        PlotPlainTracks(tracks, falarms,
                         startFrame, endFrame, axis=ax, fade=fade)
 
         ax.set_title(title)
@@ -100,6 +115,16 @@ def main(args) :
                                 args.statLonLat[0],
                                 args.statLonLat[1])
 
+    if len(args.simTagFiles) == 0 :
+        args.simTagFiles = [None]
+
+    multiTags = [ReadSimTagFile(fname) for fname in args.simTagFiles]
+
+    if len(trackerData) > len(multiTags) :
+        # Very rudimentary broadcasting of multiTags to match trackerData
+        tagMult = max(int(len(trackerData) // len(multiTags)), 1)
+        multiTags = multiTags * tagMult
+
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout, aspect=False,
                             share_all=True, axes_pad=0.45)
@@ -121,7 +146,8 @@ def main(args) :
                            axis_labels=False, zorder=0, alpha=0.6)
 
     MakeTrackPlots(grid, trackerData, args.trackTitles, showMap,
-                   endFrame=args.endFrame, tail=args.tail, fade=args.fade)
+                   endFrame=args.endFrame, tail=args.tail, fade=args.fade,
+                   multiTags=multiTags, tag_filters=args.filters)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

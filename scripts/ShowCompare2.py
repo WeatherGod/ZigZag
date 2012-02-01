@@ -2,7 +2,9 @@
 
 from ZigZag.TrackPlot import PlotSegments
 from ZigZag.TrackFileUtils import ReadTracks
-from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks, CreateSegments, CompareSegments
+from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks,\
+                              CreateSegments, CompareSegments, FilterSegments
+from ZigZag.ParamUtils import ReadSimTagFile, process_tag_filters
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
@@ -23,14 +25,22 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
                                                      track['yLocs'])
 
 def MakeComparePlots(grid, trackData, truthData, titles, showMap,
-                     endFrame=None, tail=None, fade=False) :
+                     endFrame=None, tail=None, fade=False,
+                     multiTags=None, tag_filters=None) :
     true_AssocSegs = None
     true_FAlarmSegs = None
     frameLims = None
 
-    for ax, aTracker, truth, title in zip(grid, trackData, truthData, titles) :
+    if multiTags is None :
+        multiTags = [None] * len(trackData)
+
+    for ax, aTracker, truth, title, simTags in zip(grid, trackData, truthData,
+                                                   titles, multiTags) :
         this_endFrame = endFrame
         this_tail = tail
+
+        # Will return None if either simTags or filters are None
+        keeperIDs = process_tag_filters(simTags, tag_filters)
 
         # Either only do this for the first pass through,
         #  or do it for all passes
@@ -42,8 +52,13 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap,
             true_AssocSegs = CreateSegments(truth[0])
             true_FAlarmSegs = CreateSegments(truth[1])
 
+            if keeperIDs is not None :
+                true_AssocSegs = FilterSegments(keeperIDs, true_AssocSegs)
+                true_FAlarmSegs = FilterSegments(keeperIDs, true_FAlarmSegs)
+
             # TODO: gotta make this get the time limits!
-            xLims, yLims, frameLims = DomainFromTracks(truth[0] + truth[1])
+            xLims, yLims, frameLims = DomainFromTracks(true_AssocSegs,
+                                                       true_FAlarmSegs)
 
             if showMap :
                 bmap = Basemap(projection='cyl', resolution='i',
@@ -63,6 +78,11 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap,
 
         trackAssocSegs = CreateSegments(aTracker[0])
         trackFAlarmSegs = CreateSegments(aTracker[1])
+
+        if keeperIDs is not None :
+            trackAssocSegs = FilterSegments(keeperIDs, trackAssocSegs)
+            trackFAlarmSegs = FilterSegments(keeperIDs, trackFAlarmSegs)
+
         truthtable = CompareSegments(true_AssocSegs, true_FAlarmSegs,
                                      trackAssocSegs, trackFAlarmSegs)
         PlotSegments(truthtable, (this_startFrame, this_endFrame), axis=ax,
@@ -104,6 +124,10 @@ def main(args) :
                    trackFile in args.trackFiles]
     truthData = [FilterMHTTracks(*ReadTracks(trackFile)) for
                  trackFile in args.truthTrackFile]
+    multiTags = [ReadSimTagFile(fname) for fname in args.simTagFiles]
+
+    if len(multiTags) == 0 :
+        multiTags = [None]
 
     if args.statLonLat is not None :
         for aTracker in trackerData + truthData :
@@ -128,9 +152,15 @@ def main(args) :
         trkMult = max(int(len(truthData) // len(trackerData)), 1)
         trthMult = max(int(len(trackerData) // len(truthData)), 1)
 
+
         trackerData = trackerData * trkMult
         truthData = truthData * trthMult
+
+        tagMult = max(int(len(truthData) // len(multiTags)), 1)
+        multiTags = multiTags * tagMult
+
         args.trackTitles = args.trackTitles * trkMult
+
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout, aspect=False,
@@ -151,7 +181,8 @@ def main(args) :
                            axis_labels=False, zorder=0, alpha=0.6)
 
     MakeComparePlots(grid, trackerData, truthData, args.trackTitles, showMap,
-                     endFrame=args.endFrame, tail=args.tail, fade=args.fade)
+                     endFrame=args.endFrame, tail=args.tail, fade=args.fade,
+                     multiTags=multiTags, tag_filters=args.filters)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

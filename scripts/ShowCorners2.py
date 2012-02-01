@@ -2,7 +2,8 @@
 
 from ZigZag.TrackPlot import PlotCorners, CornerAnimation
 from ZigZag.TrackFileUtils import ReadCorners
-from ZigZag.TrackUtils import DomainFromVolumes
+from ZigZag.TrackUtils import DomainFromVolumes, FilterTrack
+from ZigZag.ParamUtils import ReadSimTagFile, process_tag_filters
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
@@ -24,7 +25,12 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
 def MakeCornerPlots(fig, grid, cornerVolumes, titles,
                     showMap=False, showRadar=False,
                     startFrame=None, endFrame=None, tail=None,
-                    radarFiles=None, fade=False) :
+                    radarFiles=None, fade=False,
+                    multiTags=None, tag_filters=None) :
+
+    if multiTags is None :
+        multiTags = [None] * len(cornerVolumes)
+
     volumes = []
     for volData in cornerVolumes :
         volumes.extend(volData)
@@ -68,7 +74,8 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles,
                               tail=tail, interval=250, blit=False,
                               event_source=theTimer, fade=fade)
 
-    for ax, volData, title in zip(grid, cornerVolumes, titles) :
+    for ax, volData, title, simTags in zip(grid, cornerVolumes,
+                                           titles, multiTags) :
         if showMap :
             PlotMapLayers(bmap, mapLayers, ax, zorder=0.1)
             ax.set_xlabel("Longitude")
@@ -76,6 +83,12 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles,
         else :
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
+
+        keeperIDs = process_tag_filters(simTags, tag_filters)
+        if keeperIDs is not None :
+            for frameVol in volData :
+                frameVol['stormCells'] = FilterTrack(frameVol['stormCells'],
+                                                     cornerIDs=keeperIDs)
 
         # TODO: Need to figure out a better way to handle this for
         # volume data that do not have the same number of frames
@@ -124,6 +137,16 @@ def main(args) :
                                  os.path.dirname(inFileName))['volume_data']
                      for inFileName in args.inputDataFiles]
 
+    multiTags = [ReadSimTagFile(fname) for fname in args.simTagFiles]
+
+    if len(multiTags) == 0 :
+        multiTags = [None]
+
+    if len(multiTags) < len(cornerVolumes) :
+        # Rudimentary broadcasting
+        tagMult = max(int(len(cornerVolumes) // len(multiTags)), 1)
+        multiTags = multiTags * tagMult
+
     if args.statLonLat is not None :
         for vols in cornerVolumes :
             for vol in vols :
@@ -144,7 +167,9 @@ def main(args) :
                                        startFrame=args.startFrame,
                                        endFrame=args.endFrame,
                                        radarFiles=args.radarFile,
-                                       fade=args.fade)
+                                       fade=args.fade,
+                                       multiTags=multiTags,
+                                       tag_filters=args.filters)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

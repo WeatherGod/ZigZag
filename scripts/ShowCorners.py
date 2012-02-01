@@ -2,8 +2,9 @@
 
 from ZigZag.TrackPlot import *			# for plotting tracks
 from ZigZag.TrackFileUtils import *		# for reading track files
-from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks()
-import ZigZag.ParamUtils as ZigZag          # for ReadSimulationParams()
+from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks(), FilterTrack()
+from ZigZag.ParamUtils import ReadSimulationParams, ReadSimTagFile,\
+                              process_tag_filters
 
 from BRadar.maputils import Cart2LonLat
 from mpl_toolkits.basemap import Basemap
@@ -26,6 +27,7 @@ def main(args) :
     
     inputDataFiles = []
     titles = []
+    simTagFiles = []
 
     if args.simName is not None :
         dirName = os.path.join(args.directory, args.simName)
@@ -33,10 +35,12 @@ def main(args) :
                                                     "simParams.conf"))
         inputDataFiles.append(os.path.join(dirName, simParams['inputDataFile']))
         titles.append(args.simName)
+        simTagFiles.append(os.path.join(dirName, simParams['simTagFile']))
 
     # Add on any files specified at the command-line
     inputDataFiles += args.inputDataFiles
     titles += args.inputDataFiles
+    simTagFiles += args.simTagFiles
 
     if len(inputDataFiles) == 0 :
         print "WARNING: No inputDataFiles given or found!"
@@ -44,6 +48,10 @@ def main(args) :
     if len(titles) != len(inputDataFiles) :
         raise ValueError("The number of TITLEs does not match the"
                          " number of INPUTFILEs.")
+
+    if len(simTagFiles) < len(inputDataFiles) :
+        # Not an error, just simply append None
+        simTagFiles.append([None] * (len(inputDataFiles) - len(simTagFiles)))
 
     if args.statName is not None and args.statLonLat is None :
         statData = ByName(args.statName)[0]
@@ -58,6 +66,18 @@ def main(args) :
     cornerVolumes = [ReadCorners(inFileName,
                                  os.path.dirname(inFileName))['volume_data']
                      for inFileName in inputDataFiles]
+
+    multiTags = [(ReadSimTagFile(fname) if fname is not None else None) for
+                 fname in simTagFiles]
+
+    for vols, simTags in zip(cornerVolumes, multiTags) :
+        keeperIDs = process_tag_filters(simTags, args.filters)
+        if keeperIDs is None :
+            continue
+
+        for vol in vols :
+            vol['stormCells'] = FilterTrack(vol['stormCells'],
+                                            cornerIDs=keeperIDs)
 
     if args.statLonLat is not None :
         for vols in cornerVolumes :
