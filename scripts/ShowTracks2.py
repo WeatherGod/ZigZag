@@ -75,10 +75,12 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
 
         if simTags is not None :
             keeperIDs = process_tag_filters(simTags, tag_filters)
-            filtFunc = lambda trk: FilterTrack(trk, cornerIDs=keeperIDs)
-            tracks = map(filtFunc, tracks)
-            falarms = map(filtFunc, falarms)
-            CleanupTracks(tracks, falarms)
+
+            if keeperIDs is not None :
+                filtFunc = lambda trk: FilterTrack(trk, cornerIDs=keeperIDs)
+                tracks = map(filtFunc, tracks)
+                falarms = map(filtFunc, falarms)
+                CleanupTracks(tracks, falarms)
 
         PlotPlainTracks(tracks, falarms,
                         startFrame, endFrame, axis=ax, fade=fade)
@@ -115,10 +117,11 @@ def main(args) :
                                 args.statLonLat[0],
                                 args.statLonLat[1])
 
-    if len(args.simTagFiles) == 0 :
+    if args.simTagFiles is None :
         args.simTagFiles = [None]
 
-    multiTags = [ReadSimTagFile(fname) for fname in args.simTagFiles]
+    multiTags = [ReadSimTagFile(fname) if fname is not None else None for
+                 fname in args.simTagFiles]
 
     if len(trackerData) > len(multiTags) :
         # Very rudimentary broadcasting of multiTags to match trackerData

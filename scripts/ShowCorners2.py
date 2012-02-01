@@ -133,6 +133,9 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
+    if args.simTagFiles is None :
+        args.simTagFiles = []
+
     cornerVolumes = [ReadCorners(inFileName,
                                  os.path.dirname(inFileName))['volume_data']
                      for inFileName in args.inputDataFiles]

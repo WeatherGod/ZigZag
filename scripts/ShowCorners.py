@@ -40,7 +40,8 @@ def main(args) :
     # Add on any files specified at the command-line
     inputDataFiles += args.inputDataFiles
     titles += args.inputDataFiles
-    simTagFiles += args.simTagFiles
+    if args.simTagFiles is not None :
+        simTagFiles += args.simTagFiles
 
     if len(inputDataFiles) == 0 :
         print "WARNING: No inputDataFiles given or found!"

@@ -120,6 +120,9 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
+    if args.simTagFiles is None :
+        args.simTagFiles = []
+
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for
                    trackFile in args.trackFiles]
     truthData = [FilterMHTTracks(*ReadTracks(trackFile)) for
