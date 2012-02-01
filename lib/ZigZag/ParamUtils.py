@@ -87,15 +87,13 @@ def process_tag_filters(simTags, filters) :
     for name in in_tags :
         ids = _recurse_find(simTags, name)
         if ids is None :
-            raise ValueError("%s is not in the simTags file %s" %
-                             (name, tagFile))
+            raise ValueError("%s is not in the simTags" % name)
         keepers.update(ids)
 
     for name in ex_tags :
         ids = _recurse_find(simTags, name)
         if ids is None :
-            raise ValueError("%s is not in the simTags file %s" %
-                             (name, tagFile))
+            raise ValueError("%s is not in the simTags" % name)
         keepers.difference_update(ids)
 
     return keepers
