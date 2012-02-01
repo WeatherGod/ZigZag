@@ -39,34 +39,37 @@ def SaveSimulationParams(simParamName, simParams) :
         config.pop('times', None)
     config.write()
 
-def Read_MultiSim_Params(filename) :
+
+def ReadConfigFile(filename) :
     if not (os.path.isfile(filename) and os.access(filename, os.R_OK)) :
         raise Exception("Can not find or read config file: %s" % filename)
 
-    config = ConfigObj(filename, interpolation=False)
+    return ConfigObj(filename, interpolation=False)
 
-    vdtor = Validator()
-    config.configspec = ConfigObj(dict(globalSeed="integer",
-                                       simCnt="integer(min=0)",
-                                       simName="string"),
-                                  list_values=False,
-                                  _inspec=True)
-    res = config.validate(vdtor)
-    flatErrs = flatten_errors(config, res)
-    _ShowErrors(flatErrs)
+def ReadSimTagFile(filename) :
+    conf = ReadConfigFile(filename)
+    def _make_spec(sect, key) :
+        return 'int_list()'
 
-    return config
+    confSpec = conf.walk(_make_spec)
+    return ConfValidation(conf, confSpec)
+
+def Read_MultiSim_Params(filename) :
+    config = ReadConfigFile(filename)
+
+    configSpec = dict(globalSeed="integer",
+                      simCnt="integer(min=0)",
+                      simName="string")
+    return ConfValidation(config, configSpec)
 
 def ReadSimulationParams(simParamName) :
-    if not (os.path.isfile(simParamName) and os.access(simParamName, os.R_OK)):
-        raise Exception("Can not find or read config file: %s" % simParamName)
-    config = ConfigObj(simParamName, interpolation=False)
+    config = ReadConfigFile(simParamName)
+
     if config.get('times', None) == 'None' :
         config.pop('times', None)
 
-    vdtor = Validator()
-    config.configspec = ConfigObj(
-        dict(frameCnt="integer(min=1, default=%d)" % simDefaults['frameCnt'],
+    configSpec = dict(
+             frameCnt="integer(min=1, default=%d)" % simDefaults['frameCnt'],
              totalTracks="integer(min=0, default=%d)" %
                                                  simDefaults['totalTracks'],
              seed="integer(default=%d)" % simDefaults['seed'],
@@ -74,6 +77,7 @@ def ReadSimulationParams(simParamName) :
              noisyTrackFile="string(default=%s)" %
                                                  simDefaults['noisyTrackFile'],
              simConfFile="string(default=%s)" % simDefaults['simConfFile'],
+             simTagFile="string(default=%s)" % simDefaults['simTagFile'],
              endTrackProb="float(min=0.0, max=1.0, default=%f)" %
                                                  simDefaults['endTrackProb'],
              tLims="float_list(min=2, max=2, default=list(%f, %f))" %
@@ -93,15 +97,9 @@ def ReadSimulationParams(simParamName) :
                                             trackerDefaults['trackerparams'],
              analysis_stem="string(default=%s)" %
                                             trackerDefaults['analysis_stem'],
-             times="float_list(default=None)"),
-             list_values=False,
-             _inspec=True)
-    
-    res = config.validate(vdtor, preserve_errors=True)
-    flatErrs = flatten_errors(config, res)
-    _ShowErrors(flatErrs)
+             times="float_list(default=None)")
 
-    return config
+    return ConfValidation(config, configSpec)
 
 def _ShowErrors(flatErrs, skipMissing=False) :
     errmsgs = []
@@ -129,9 +127,7 @@ def _ShowErrors(flatErrs, skipMissing=False) :
 def LoadTrackerParams(filenames, trackers=None) :
     trackConfs = ConfigObj(interpolation=False)
     for name in filenames :
-        if not (os.path.isfile(name) and os.access(name, os.R_OK)) :
-            raise Exception("Can not find or read config file: %s" % name)
-        partConf = ConfigObj(name, interpolation=False)
+        partConf = ReadConfigFile(name)
         trackConfs.merge(partConf)
 
     configSpec = {}
@@ -141,12 +137,8 @@ def LoadTrackerParams(filenames, trackers=None) :
         algo = trackConfs[aTrackRun]['algorithm']
         configSpec[aTrackRun] = param_confList[algo]
 
-    vdtor = Validator()
-    trackConfs.configspec = ConfigObj(configSpec,
-                                      list_values=False, _inspec=True)
-    res = trackConfs.validate(vdtor, preserve_errors=True)
-    flatErrs = flatten_errors(trackConfs, res)
-    _ShowErrors(flatErrs)
+
+    trackConfs = ConfValidation(trackConfs, configSpec)
 
     if trackers is not None :
         raise NotImplementedError("Selecting trackers have not been"
@@ -158,9 +150,7 @@ def LoadTrackerParams(filenames, trackers=None) :
 def LoadSimulatorConf(filenames) :
     simConfs = ConfigObj()
     for name in filenames :
-        if not (os.path.isfile(name) and os.access(name, os.R_OK)) :
-            raise Exception("Can not find or read config file: %s" % name)
-        partConf = ConfigObj(name)
+        partConf = ReadConfigFile(name)
         simConfs.merge(partConf)
 
     headerList = [('InitModels', init_modelList),
@@ -185,14 +175,18 @@ def LoadSimulatorConf(filenames) :
                                       maxTrackLen="integer(min=0)",
                                       cnt="integer(min=0)",
                                       noises="force_list()")}
-    vdtor = Validator()
-    simConfs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
 
-    res = simConfs.validate(vdtor)
-    flatErrs = flatten_errors(simConfs, res)
+    return ConfValidation(simConfs, configSpec)
+
+def ConfValidation(confs, configSpec) :
+    vdtor = Validator()
+    confs.configspec = ConfigObj(configSpec, list_values=False, _inspec=True)
+
+    res = confs.validate(vdtor)
+    flatErrs = flatten_errors(confs, res)
     _ShowErrors(flatErrs, skipMissing=True)
 
-    return simConfs
+    return confs
 
 def SetupParser(parser) :
     SimGroup(parser)

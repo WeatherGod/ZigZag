@@ -12,15 +12,23 @@ import matplotlib.pyplot as plt
 
 from multiprocessing import Pool
 
-def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
+def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir,
+                       tag_filters) :
     try :
         dirName = os.path.join(multiDir, simName)
         paramFile = os.path.join(dirName, "simParams.conf")
         print "Sim:", simName
         simParams = ParamUtils.ReadSimulationParams(paramFile)
+        tagFile = os.path.join(dirName, simParams['simTagFile'])
+
+        if os.path.exists(tagFile) :
+            simTags = ParamUtils.ReadConfigFile(tagFile)
+        else :
+            simTags = None
 
         analysis = AnalyzeTrackings(simName, simParams, skillNames,
-                                    trackRuns=trackRuns, path=multiDir)
+                                    trackRuns=trackRuns, path=multiDir,
+                                    tag_filters=tag_filters)
         analysis = analysis.insertaxis(axis=1, label=simName)
     except Exception as err :
         print err
@@ -29,7 +37,7 @@ def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir) :
 
 
 def MultiAnalyze(simNames, multiSim, skillNames,
-                 trackRuns, path='.') :
+                 trackRuns, path='.', tag_filters=None) :
     completeAnalysis = None
     multiDir = os.path.join(path, multiSim)
 
@@ -37,7 +45,8 @@ def MultiAnalyze(simNames, multiSim, skillNames,
 
     # Now, go through each simulation and analyze them.
     results = [p.apply_async(_analyze_trackings, (simName, multiSim, skillNames,
-                                                  trackRuns, multiDir)) for
+                                                  trackRuns, multiDir,
+                                                  tag_filters)) for
                simName in simNames]
 
     p.close()
@@ -55,7 +64,7 @@ def MultiAnalyze(simNames, multiSim, skillNames,
 
 
 def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
-                         n_boot, ci_alpha, path='.') :
+                         n_boot, ci_alpha, path='.', tag_filters=None) :
 
     skillMeans = np.empty((len(multiSims), len(skillNames), len(trackRuns)))
     means_ci_upper = np.empty_like(skillMeans)
@@ -65,11 +74,12 @@ def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
         simNames = Sims_of_MultiSim(aScenario, path)
         # (Skills x Sims x TrackRuns)
         analysis = MultiAnalyze(simNames, aScenario, skillNames,
-                                trackRuns, path=path)
+                                trackRuns, path=path, tag_filters=tag_filters)
 
         # Perform averages over the simulations for each skillscore
         for skillIndex, skillName in enumerate(skillNames) :
-            btmean, btci = Bootstrapping(n_boot, ci_alpha, analysis.lix[[skillName]].x)
+            btmean, btci = Bootstrapping(n_boot, ci_alpha,
+                                         analysis.lix[[skillName]].x)
             skillMeans[sceneIndex, skillIndex, :] = btmean
             means_ci_upper[sceneIndex, skillIndex, :] = btci[0]
             means_ci_lower[sceneIndex, skillIndex, :] = btci[1]
@@ -310,6 +320,7 @@ def main(args) :
      skills_ci_upper,
      skills_ci_lower) = MultiScenarioAnalyze(args.multiSims, args.skillNames,
                                              trackRuns, n_boot, ci_alpha,
+                                             tag_filters=args.filters,
                                              path=args.directory)
     display = {disp:data for disp, data in
                zip(['fig', 'plot', 'ticks'],

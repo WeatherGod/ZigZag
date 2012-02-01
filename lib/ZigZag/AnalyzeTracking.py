@@ -1,5 +1,6 @@
 import os.path
-from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments, MakeContingency
+from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments, MakeContingency,\
+                              FilterSegments
 from ZigZag.TrackFileUtils import ReadTracks
 import ZigZag.Trackers as Trackers
 import ZigZag.ParamUtils as ParamUtils
@@ -75,11 +76,69 @@ def DisplayAnalysis(analysis, skillName,
             print "Worst Run:", '  '.join(["%7d" % index for
                                            index in indices[0]])
 
+def _recurse_find(tags, name) :
+    res = None
+
+    for section in tags.sections :
+        if section == name :
+            return tags[section]['ids']
+        else :
+            res = _recurse_find(tags[section], name)
+            if res is not None :
+                return res
+
+    return res
+
+def _find_names(tags) :
+    names = []
+    for sect in tags.sections :
+        names.extend(_find_names(tags[sect]))
+    names.extend(tags.sections)
+
+    return names
+
+def process_tag_filters(tagFile, filters) :
+    if filters is None or not os.path.exists(tagFile) :
+        return None
+
+    # Split the list into "includes" and "excludes" based on the
+    # presence of a '+' or '-' sign at the end of each tagname.
+    in_tags = [name[:-1] for name in filters if name[-1] == '+']
+    ex_tags = [name[:-1] for name in filters if name[-1] == '-']
+
+    keepers = set()
+
+    simTags = ParamUtils.ReadSimTagFile(tagFile)
+
+    if len(in_tags) == 0 :
+        # Assume we mean that we want all of the generators
+        in_tags = _find_names(simTags)
+
+    for name in in_tags :
+        ids = _recurse_find(simTags, name)
+        if ids is None :
+            raise ValueError("%s is not in the simTags file %s" %
+                             (name, tagFile))
+        keepers.update(ids)
+
+    for name in ex_tags :
+        ids = _recurse_find(simTags, name)
+        if ids is None :
+            raise ValueError("%s is not in the simTags file %s" %
+                             (name, tagFile))
+        keepers.difference_update(ids)
+
+    return keepers
 
 
-def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
+def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.',
+                     tag_filters=None) :
     dirName = os.path.join(path, simName)
     trackFile = os.path.join(dirName, simParams['noisyTrackFile'])
+
+    tagFile = os.path.join(dirName, simParams['simTagFile'])
+    keeperIDs = process_tag_filters(tagFile, tag_filters)
+
     (true_tracks, true_falarms) = FilterMHTTracks(*ReadTracks(trackFile))
     lastFrame = (max(trk['frameNums'][-1] for trk in
                     (true_tracks + true_falarms)) if
@@ -87,9 +146,13 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
     true_AssocSegs, trackIndices = CreateSegments(true_tracks,
                                                   retindices=True,
                                                   lastFrame=lastFrame)
+    # TODO: need to filter trackIndices as well!
+    true_AssocSegs = FilterSegments(keeperIDs, true_AssocSegs)
+
     true_FAlarmSegs, falarmIndices = CreateSegments(true_falarms,
                                                     retindices=True,
                                                     lastFrame=lastFrame)
+    true_FAlarmSegs = FilterSegments(keeperIDs, true_FAlarmSegs)
 
     # Initializing the analysis data, which will hold a table of analysis
     # results for this simulation
@@ -102,6 +165,7 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.') :
                                             "_" + tracker)
         (obvTracks, obvFAlarms) = FilterMHTTracks(*ReadTracks(obvFilename))
         trk_segs = CreateSegments(obvTracks + obvFAlarms, lastFrame=lastFrame)
+        trk_segs = FilterSegments(keeperIDs, trk_segs)
         truthTable = MakeContingency(true_AssocSegs + true_FAlarmSegs, trk_segs)
 
         #print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +

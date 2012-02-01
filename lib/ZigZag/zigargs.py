@@ -62,6 +62,16 @@ _common_args["-s"] = (("-s", "--skills"),
              help="The skill measures to use (e.g., HSS)",
              metavar="SKILL"))
 
+_common_args["--filter"] = (("--filter",),
+        dict(dest="filters", type=str,
+             nargs='+', help="Exclude(-)/Include(+) features from GENERATOR."
+                             " Append each GENERATOR with a plus (+) or a"
+                             " minus (-) to indicate whether to include or"
+                             " exclude. If no inclusions are given, it is"
+                             " assumed that exclusions are done from the"
+                             " default set. Default: Include everything.",
+             metavar="GENERATOR", default=None))
+
 
 
 _zigargs['TrackSim'] = ["simName", "-d", "-c"]
@@ -100,7 +110,7 @@ _zigargs['MultiDownsample'] = ["multiSim",
 
 _zigargs['DoTracking'] = ["simName", "trackconfs", "-t", "-d"]
 _zigargs['MultiTracking'] = ["multiSim", "trackconfs", "-t", "-d"]
-_zigargs['AnalyzeTracking'] = ["simName", "skillNames", "-t", "-d"]
+_zigargs['AnalyzeTracking'] = ["simName", "skillNames", "-t", "-d", "--filter"]
 
 _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
     (("--titles",),
@@ -148,7 +158,7 @@ _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
           default=True))
     ]
 
-_zigargs['MultiScenarioAnalysis'] = ["multiSims", "-s", "-t",
+_zigargs['MultiScenarioAnalysis'] = ["multiSims", "-s", "-t", "--filter",
     (("--titles",),
      dict(dest="titles",
           nargs="+", help="Titles for the plots.  Default is to use the"

@@ -197,6 +197,24 @@ def CleanupTracks(tracks, falarms) :
             del falarms[trackIndex]
 
 
+def FilterSegments(idKeepers, segs) :
+    """
+    Filter a list of segments based on the cornerID value of the segment's
+    start point. *idKeepers* contains the cornerID values that are to be
+    kept.  If it is None, no filtering is done.
+
+    *others* are additional lists that may be parallel to *segs* and should
+    be filtered as well based on the results of comparison to *segs*. This
+    is intended for the "trackIndices" that can be returned by
+    :func:`CreateSegments`.
+    """
+    if idKeepers is None :
+        return segs
+#        return segs, *others
+
+    segs = [aSeg for aSeg in segs if aSeg[0]['cornerIDs'] in idKeepers]
+
+    return segs
 
 
 def CreateSegments(tracks, retindices=False, lastFrame=None) :
