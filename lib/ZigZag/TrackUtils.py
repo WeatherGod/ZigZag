@@ -156,10 +156,29 @@ def ClipTrack(track, xLims, yLims, frameLims) :
 
     return track[domainMask]
 
-def FilterTrack(track, frames) :
-    mask = np.array([(aFrame['frameNums'] in frames)
-                     for aFrame in track],
-                    dtype=bool)
+def FilterTrack(track, frames=None, **kwargs) :
+    """
+    Filter a track.
+
+    *kwargs* is a dictionary keyed by the name of the data to be compared
+             and the value is the list of valid values to keep that particular
+             part of the track.
+
+    *frames* is for backwards-compatibility (was a position argument)
+             and is equivalent to using 'frameNums' as a key.
+
+    Example:
+        track = FilterTrack(track, frameNums=frames)
+    """
+    if frames is not None :
+        kwargs['frameNums'] = frames
+
+    mask = np.ones((len(track),), dtype=bool)
+    for key, vals in kwargs.iteritems() :
+        mask &= np.array([(aFrame[key] in vals) for
+                          aFrame in track],
+                          dtype=bool)
+
     return track[mask]
 
 def ReplaceFrameInfo(tracks, replaceFrames) :
