@@ -147,6 +147,27 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
 
     return leg_objs
 
+def DisplayTableAnalysis(figTitles, plotLabels, tickLabels,
+                         meanSkills, skills_ci_upper, skills_ci_lower) :
+    np.set_string_function(
+            lambda x: '  '.join(["% 8.4f" % val for val in x]),
+            repr=True)
+
+    for figIndex, title in enumerate(figTitles) :
+        print "%50s" % title
+
+        print " " * 10,
+        print " ".join(["%9s"] * len(tickLabels)) % tuple(tickLabels)
+        print "-" * (11 + 10 * len(tickLabels))
+
+        for plotIndex, label in enumerate(plotLabels) :
+            print ("%10s|" % label),
+            print repr(meanSkills[:, figIndex, plotIndex])
+
+
+    # Restore the formatting state to the default
+    np.set_string_function(None, repr=True)
+
 dataAxes = {'scenarios' : 0,
             'skills'    : 1,
             'trackruns' : 2}
@@ -372,6 +393,10 @@ def main(args) :
                               meanSkills, skills_ci_upper, skills_ci_lower,
                               figs, dispMode=args.dispMode)
 
+    if args.showTables :
+        DisplayTableAnalysis(figTitles, plotLabels, tickLabels,
+                             meanSkills, skills_ci_upper, skills_ci_lower)
+
 
     for aFig, legend, title in zip(figs, legs,
                                    defaultLabels[display['fig']]) :
@@ -402,6 +427,9 @@ if __name__ == '__main__' :
                              " connected, and are overlapping in the x-axis."
                              " For bar, bars are used with errorbars.",
                         choices=['cat', 'ordinal', 'bar'], default='cat')
+    parser.add_argument("--tables", dest="showTables", action='store_true',
+                        help="Output tabulated results",
+                        default=False)
     parser.add_argument("--xlabel", dest="xlabel", type=str,
                         help="Label for the x-axis.  Default: '%(default)s'",
                         default='')
