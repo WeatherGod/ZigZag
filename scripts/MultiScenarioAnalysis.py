@@ -321,7 +321,15 @@ def main(args) :
     #if len(args.multiSims) < 2 :
     #    raise ValueError("Need at least 2 scenarios to analyze")
 
-
+    if args.groupby is not None :
+        # Perform substitution of the 'group' option with the 'into' value
+        # from --group
+        if args.fig_disp == 'group' :
+            args.fig_disp = args.groupby[1]
+        if args.plot_disp == 'group' :
+            args.plot_disp = args.groupby[1]
+        if args.tick_disp == 'group' :
+            args.tick_disp = args.groupby[1]
 
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
@@ -434,19 +442,25 @@ if __name__ == '__main__' :
                         help="Label for the x-axis.  Default: '%(default)s'",
                         default='')
     parser.add_argument("--fig", dest="fig_disp", type=str,
-                        help="Figures should be organized by... %(choices)s"
+                        help="Figures should be organized by... %(choices)s."
+                             " The 'group' option is a convenience option"
+                             " that can be used when --group is used."
                              " (Default: %(default)s)",
-                        choices=['skills', 'trackruns', 'scenarios'],
+                        choices=['skills', 'trackruns', 'scenarios', 'group'],
                         default='skills')
     parser.add_argument("--plot", dest="plot_disp", type=str,
-                        help="Plot errorbars by... %(choices)s (Default:"
-                             " %(default)s)",
-                        choices=['skills', 'trackruns', 'scenarios'],
+                        help="Plot errorbars by... %(choices)s."
+                             " The 'group' option is a convenience option"
+                             " that can be used when --group is used."
+                             " (Default: %(default)s)",
+                        choices=['skills', 'trackruns', 'scenarios', 'group'],
                         default='trackruns')
     parser.add_argument("--tick", dest="tick_disp", type=str,
-                        help="Values for the x-axis are from... %(choices)s"
+                        help="Values for the x-axis are from... %(choices)s."
+                             " The 'group' option is a convenience option"
+                             " that can be used when --group is used."
                              " (Default: %(default)s)",
-                        choices=['skills', 'trackruns', 'scenarios'],
+                        choices=['skills', 'trackruns', 'scenarios', 'group'],
                         default='scenarios')
     parser.add_argument("--group", dest="groupby", type=str, nargs=3,
                         help="Perform a 'groupby' of the data. The three"
