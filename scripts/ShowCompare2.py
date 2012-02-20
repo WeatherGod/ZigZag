@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ZigZag.TrackPlot import PlotSegments
+from ZigZag.TrackPlot import PlotSegments, BW_mode
 from ZigZag.TrackFileUtils import ReadTracks
 from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks,\
                               CreateSegments, CompareSegments, FilterSegments
@@ -97,6 +97,9 @@ def MakeComparePlots(grid, trackData, truthData, titles, showMap,
             ax.set_ylabel("Latitude")
 
 def main(args) :
+    if args.bw_mode :
+        BW_mode()
+
     if len(args.trackFiles) == 0 :
          print "WARNING: No trackFiles given!"
     if len(args.truthTrackFile) == 0 :

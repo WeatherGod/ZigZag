@@ -29,6 +29,22 @@ def PlotSegment(lineSegs, fLims, axis=None, fade=False, **kwargs) :
 
     return lines
 
+bw_mode = dict(seg_colors=dict(assocs_Correct='0.25',
+                               falarms_Correct='0.5',
+                               falarms_Wrong='0.75',
+                               assocs_Wrong='0.75'),
+               track_props=dict(color='0.25'),
+               falarm_props=dict(color='0.5'))
+def BW_mode() :
+    """
+    Call this function if you want your plots to automatically be
+    all in grayscale.
+    """
+    for key in bw_mode['seg_colors'] :
+        seg_colors[key] = bw_mode['seg_colors'][key]
+    track_props['color'] = bw_mode['track_props']['color']
+    falarm_props['color'] = bw_mode['falarm_props']['color']
+
 seg_colors = dict(assocs_Correct='green',
                   falarms_Correct='lightgreen',
                   falarms_Wrong='grey',

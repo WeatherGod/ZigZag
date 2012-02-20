@@ -14,8 +14,10 @@ def main(args) :
     n_boot = 100
     ci_alpha = 0.05
 
-    plt.rcParams['axes.color_cycle'] = ['k']
-    plt.rcParams['style.cycle'] = True
+    if args.bw_mode :
+        colors = ['0.25', '0.75', '0.5', '0.0']
+        plt.rcParams['axes.color_cycle'] = colors
+        plt.rcParams['style.cycle'] = True
 
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
     fullNames = [os.path.join(args.multiSim, aSim) for aSim in simNames]

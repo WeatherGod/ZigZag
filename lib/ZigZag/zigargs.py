@@ -86,6 +86,10 @@ _common_args["--tagfiles"] = (("--tagfiles",),
                   " Tag files are needed for the --filter option.",
              metavar="TAGFILE"))
 
+_common_args["--bw"] = (("--bw",),
+        dict(dest="bw_mode", action='store_true',
+             help="Graphs in grayscale"))
+
 
 _zigargs['TrackSim'] = ["simName", "-d", "-c"]
 _zigargs['MultiSim'] = ["multiSim", "simCnt", "-d", "-c"]
@@ -187,7 +191,7 @@ _zigargs['MultiScenarioAnalysis'] = ["multiSims", "-s", "-t", "--filter",
           nargs="+", help="TrackRun Labels.  Default is to use the run names",
           metavar="LABEL", default=None)),
     "-d",
-
+    "--bw",
     (("--save",), 
      dict(dest="saveImgFile", type=str,
           help="Save the resulting image using FILESTEM as the prefix. (e.g., saved file will be 'foo/bar_PC.png' for the PC skill scores and suffix of 'foo/bar').  Use --type to control which image format.",
@@ -306,6 +310,7 @@ _zigargs['ParamSearch'] = [
     ]
 
 show_opts = [
+    "--bw",
     (("--titles",),
      dict(dest='trackTitles', type=str,
           nargs='+', help=("Titles to use for the figure subplots. "

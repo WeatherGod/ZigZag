@@ -337,19 +337,19 @@ def main(args) :
             args.plot_disp = args.groupby[1]
         if args.tick_disp == 'group' :
             args.tick_disp = args.groupby[1]
-    colors = ['0.25', '0.75', '0.5']
-    if args.dispMode == 'bar' :
-        # Make the last one white
-        colors.append('1.0')
-    else :
-        # Make the last one black
-        colors.append('0.0')
 
+    if args.bw_mode :
+        colors = ['0.25', '0.75', '0.5']
+        if args.dispMode == 'bar' :
+            # Make the last one white
+            colors.append('1.0')
+        else :
+            # Make the last one black
+            colors.append('0.0')
 
-
-    plt.rcParams['axes.color_cycle'] = colors
-    plt.rcParams['style.cycle'] = True
-    plt.rcParams['cycle.hatch'] = True
+        plt.rcParams['axes.color_cycle'] = colors
+        plt.rcParams['style.cycle'] = True
+        plt.rcParams['cycle.hatch'] = True
 
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
