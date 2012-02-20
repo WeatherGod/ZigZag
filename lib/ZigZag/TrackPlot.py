@@ -29,37 +29,40 @@ def PlotSegment(lineSegs, fLims, axis=None, fade=False, **kwargs) :
 
     return lines
 
+seg_colors = dict(assocs_Correct='green',
+                  falarms_Correct='lightgreen',
+                  falarms_Wrong='grey',
+                  assocs_Wrong='red')
+
+seg_marker = dict(assocs_Correct=' ',
+                  falarms_Correct='.',
+                  falarms_Wrong=' ',
+                  assocs_Wrong=' ')
+
+seg_linestyle = dict(assocs_Correct='-',
+                     falarms_Correct=' ',
+                     falarms_Wrong='--',
+                     assocs_Wrong='-')
+
+seg_zorder = dict(assocs_Correct=1,
+                  falarms_Correct=1,
+                  falarms_Wrong=2,
+                  assocs_Wrong=2)
+
 def PlotSegments(truthTable, fLims, axis=None, width=4.0,
                  fade=False, **kwargs) :
     tableSegs = {}
 
-    # Correct Stuff
-    tableSegs['assocs_Correct'] = PlotSegment(truthTable['assocs_Correct'],
-                                              fLims, axis,
-                                              linewidth=width, color= 'green',
-                                              marker=' ',
-                                              zorder=1, fade=fade, **kwargs)
-    tableSegs['falarms_Correct'] = PlotSegment(truthTable['falarms_Correct'],
-                                               fLims, axis,
-                                               color='lightgreen',
-                                               linestyle=' ',
-                                               marker='.', markersize=2*width,
-                                               zorder=1, fade=fade, **kwargs)
-
-    # Wrong Stuff
-    tableSegs['falarms_Wrong'] = PlotSegment(truthTable['falarms_Wrong'],
-                                             fLims, axis,
-                                             linewidth=width, color='gray',
-                                             linestyle='-.',
-                                             dash_capstyle = 'round',
-                                             marker=' ', #markersize = 2*width,
-                                             zorder=2, fade=fade, **kwargs)
-    tableSegs['assocs_Wrong'] = PlotSegment(truthTable['assocs_Wrong'],
-                                            fLims, axis,
-                                            linewidth=width, color='red',
-                                            marker=' ',
-                                            zorder=2, fade=fade, **kwargs)
-
+    for segType in ['assocs_Correct', 'falarms_Correct',
+                    'falarms_Wrong', 'assocs_Wrong'] :
+        tableSegs[segType] = PlotSegment(truthTable[segType], fLims, axis,
+                                         linewidth=width, fade=fade,
+                                         color=seg_colors[segType],
+                                         zorder=seg_zorder[segType],
+                                         linestyle=seg_linestyle[segType],
+                                         marker=seg_marker[segType],
+                                         dash_capstyle='round',
+                                         **kwargs)
     return tableSegs
 
 def Animate_Segments(truthTable, fLims, axis=None, fade=False, **kwargs) :
@@ -270,6 +273,15 @@ def PlotTracks(true_tracks, model_tracks, startFrame=None, endFrame=None,
                            zorder=2, animated=animated, axis=axis, fade=fade)
     return {'trueLines': trueLines, 'modelLines': modelLines}
 
+track_props = dict(marker='.',
+                   markersize=6.0,
+                   color='k',
+                   linewidth=1.5)
+
+falarm_props = dict(marker='.',
+                    markersize=6.0,
+                    linestyle=' ',
+                    color='r')
 @PrepareFrameLims2
 def PlotPlainTracks(tracks, falarms,
                     startFrame=None, endFrame=None,
@@ -277,12 +289,10 @@ def PlotPlainTracks(tracks, falarms,
     if axis is None :
         axis = plt.gca()
 
-    trackLines = PlotTrack(tracks, startFrame, endFrame, axis=axis, marker='.',
-                           markersize=6.0, color='k', linewidth=1.5,
-                           animated=animated, fade=fade)
+    trackLines = PlotTrack(tracks, startFrame, endFrame, axis=axis,
+                           animated=animated, fade=fade, **track_props)
     falarmLines = PlotTrack(falarms, startFrame, endFrame, axis=axis,
-                            marker='.', markersize=6.0, linestyle=' ',
-                            color='r', animated=animated, fade=fade)
+                            animated=animated, fade=fade, **falarm_props)
 
     return {'trackLines': trackLines, 'falarmLines': falarmLines}
 
