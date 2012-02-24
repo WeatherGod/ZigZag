@@ -2,6 +2,7 @@ import os.path
 from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments, MakeContingency,\
                               FilterSegments
 from ZigZag.TrackFileUtils import ReadTracks
+from ZigZag.ListRuns import Sims_of_MultiSim
 import ZigZag.Trackers as Trackers
 import ZigZag.ParamUtils as ParamUtils
 import numpy as np
@@ -130,7 +131,81 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.',
                                        true_falarms=true_falarms,
                                        track_indices=trackIndices,
                                        falarm_indices=falarmIndices)
+    # (Skills x TrackRuns)
     return larry(analysis, labels)
+
+
+from multiprocessing import Pool
+
+def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir,
+                       tag_filters) :
+    try :
+        dirName = os.path.join(multiDir, simName)
+        paramFile = os.path.join(dirName, "simParams.conf")
+        print "Sim:", simName
+        simParams = ParamUtils.ReadSimulationParams(paramFile)
+        tagFile = os.path.join(dirName, simParams['simTagFile'])
+
+        if os.path.exists(tagFile) :
+            simTags = ParamUtils.ReadConfigFile(tagFile)
+        else :
+            simTags = None
+
+        analysis = AnalyzeTrackings(simName, simParams, skillNames,
+                                    trackRuns=trackRuns, path=multiDir,
+                                    tag_filters=tag_filters)
+        analysis = analysis.insertaxis(axis=1, label=simName)
+    except Exception as err :
+        print err
+        raise err
+
+    # (Skills x Sims x TrackRuns)
+    return analysis
+
+def MultiAnalyze(simNames, multiSim, skillNames,
+                 trackRuns, path='.', tag_filters=None) :
+    completeAnalysis = None
+    multiDir = os.path.join(path, multiSim)
+
+    p = Pool()
+
+    # Now, go through each simulation and analyze them.
+    results = [p.apply_async(_analyze_trackings, (simName, multiSim, skillNames,
+                                                  trackRuns, multiDir,
+                                                  tag_filters)) for
+               simName in simNames]
+
+    p.close()
+    p.join()
+
+    # FIXME: With the update larrys, this can probably be improved.
+    for res in results :
+        if completeAnalysis is None :
+            completeAnalysis = res.get()
+        else :
+            completeAnalysis = completeAnalysis.merge(res.get())
+
+    # (Skills x Sims x TrackRuns)
+    return completeAnalysis
+
+def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
+                         path='.', tag_filters=None) :
+    completeAnalysis = None
+    for aScenario in multiSims :
+        simNames = Sims_of_MultiSim(aScenario, path)
+
+        # (Skills x Sims x TrackRuns)
+        res = MultiAnalyze(simNames, aScenario, skillNames,
+                           trackRuns, path=path, tag_filters=tag_filters)
+        res = res.insertaxis(axis=0, label=aScenario)
+
+        if completeAnalysis is None :
+            completeAnalysis = res
+        else :
+            completeAnalysis = completeAnalysis.merge(res)
+
+    # (Scene x Skills x Sims x TrackRuns)
+    return completeAnalysis
 
 
 ###########################################

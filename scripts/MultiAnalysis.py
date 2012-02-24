@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from MultiScenarioAnalysis import MultiAnalyze, DisplayAnalysis, \
+from MultiScenarioAnalysis import DisplayAnalysis, \
                                   Bootstrapping
+from ZigZag.AnalyzeTracking import MultiAnalyze
 from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
 import os.path
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, Sims_of_MultiSim, CommonTrackRuns
 
-    n_boot = 100
+    n_boot = 1000
     ci_alpha = 0.05
 
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)

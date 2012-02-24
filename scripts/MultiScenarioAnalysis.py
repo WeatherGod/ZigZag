@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ZigZag.AnalyzeTracking import DisplayAnalysis, AnalyzeTrackings
+from ZigZag.AnalyzeTracking import DisplayAnalysis, MultiScenarioAnalyze
 from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
 import os.path
@@ -10,76 +10,21 @@ from ZigZag.ListRuns import CommonTrackRuns, Sims_of_MultiSim
 import ZigZag.bootstrap as btstrp
 import matplotlib.pyplot as plt
 
-from multiprocessing import Pool
 
-def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir,
-                       tag_filters) :
-    try :
-        dirName = os.path.join(multiDir, simName)
-        paramFile = os.path.join(dirName, "simParams.conf")
-        print "Sim:", simName
-        simParams = ParamUtils.ReadSimulationParams(paramFile)
-        tagFile = os.path.join(dirName, simParams['simTagFile'])
+def ProcessAnalysis(analysis, n_boot, ci_alpha, multiSims, skillNames) :
+    sceneCnt, skillCnt, simCnt, runCnt = analysis.shape
 
-        if os.path.exists(tagFile) :
-            simTags = ParamUtils.ReadConfigFile(tagFile)
-        else :
-            simTags = None
-
-        analysis = AnalyzeTrackings(simName, simParams, skillNames,
-                                    trackRuns=trackRuns, path=multiDir,
-                                    tag_filters=tag_filters)
-        analysis = analysis.insertaxis(axis=1, label=simName)
-    except Exception as err :
-        print err
-        raise err
-    return analysis
-
-
-def MultiAnalyze(simNames, multiSim, skillNames,
-                 trackRuns, path='.', tag_filters=None) :
-    completeAnalysis = None
-    multiDir = os.path.join(path, multiSim)
-
-    p = Pool()
-
-    # Now, go through each simulation and analyze them.
-    results = [p.apply_async(_analyze_trackings, (simName, multiSim, skillNames,
-                                                  trackRuns, multiDir,
-                                                  tag_filters)) for
-               simName in simNames]
-
-    p.close()
-    p.join()
-
-    # FIXME: With the update larrys, this can probably be improved.
-    for res in results :
-        if completeAnalysis is None :
-            completeAnalysis = res.get()
-        else :
-            completeAnalysis = completeAnalysis.merge(res.get())
-
-    return completeAnalysis
-
-
-
-def MultiScenarioAnalyze(multiSims, skillNames, trackRuns,
-                         n_boot, ci_alpha, path='.', tag_filters=None) :
-
-    skillMeans = np.empty((len(multiSims), len(skillNames), len(trackRuns)))
+    skillMeans = np.empty((sceneCnt, skillCnt, runCnt))
     means_ci_upper = np.empty_like(skillMeans)
     means_ci_lower = np.empty_like(skillMeans)
 
     for sceneIndex, aScenario in enumerate(multiSims) :
-        simNames = Sims_of_MultiSim(aScenario, path)
-        # (Skills x Sims x TrackRuns)
-        analysis = MultiAnalyze(simNames, aScenario, skillNames,
-                                trackRuns, path=path, tag_filters=tag_filters)
-
+        sclabel_indx = analysis.labelindex(aScenario, axis=0)
         # Perform averages over the simulations for each skillscore
         for skillIndex, skillName in enumerate(skillNames) :
+            sklabel_indx = analysis.labelindex(skillName, axis=1)
             btmean, btci = Bootstrapping(n_boot, ci_alpha,
-                                         analysis.lix[[skillName]].x)
+                                       analysis[sclabel_indx, sklabel_indx].x)
             skillMeans[sceneIndex, skillIndex, :] = btmean
             means_ci_upper[sceneIndex, skillIndex, :] = btci[0]
             means_ci_lower[sceneIndex, skillIndex, :] = btci[1]
@@ -91,7 +36,6 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
     booting = btstrp.bootstrap(n_boot, np.mean, analysisInfo, axis=0)
     btmean = booting.mean(axis=0)
     btci = btstrp.bootci(n_boot, np.mean, analysisInfo, alpha=ci_alpha, axis=0)
-
     return btmean, btci
 
 
@@ -315,7 +259,7 @@ def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, CommonTrackRuns, \
                                 MultiSims2Sims
 
-    n_boot = 100
+    n_boot = 1000
     ci_alpha = 0.05
 
     #if len(args.multiSims) < 2 :
@@ -344,13 +288,45 @@ def main(args) :
     commonTrackRuns = CommonTrackRuns(simNames, args.directory)
     trackRuns = ExpandTrackRuns(commonTrackRuns, args.trackRuns)
 
+    if args.signif_from is not None :
+        if args.signif_from in trackRuns :
+            trackRuns.remove(args.signif_from)
+
+        if len(trackRuns) == 0 :
+            raise ValueError("Need at least one other track run to measure"
+                             " the significance of the score difference")
+
+        # Make sure the signif_from trackrun is at the end.
+        trackRuns.append(args.signif_from)
+
+    # (Scenarios x Skills x Sims x TrackRuns)
+    analysis = MultiScenarioAnalyze(args.multiSims, args.skillNames,
+                                    trackRuns,
+                                    path=args.directory,
+                                    tag_filters=args.filters)
+
+    if args.signif_from is not None :
+        from scipy.stats import skewtest, kurtosistest, ttest_1samp
+        analysis = analysis[:, :, :, -1].x[..., None] - analysis[:, :, :, :-1]
+        trackRuns.pop()
+
+        #means = analysis.mean(axis=2)
+        #stddevs = analysis.std(axis=2)
+        #t = means / (stddevs / np.sqrt(analysis.shape[2]))
+        #print t
+        #print skewtest(analysis.x, axis=2)
+        #print kurtosistest(analysis.x, axis=2)
+        print ttest_1samp(analysis.x, 0.0, axis=2)
+
+    if analysis.label[-1] != trackRuns :
+        print "WARNING! The track runs labels aren't matching!"
+
     # meanSkills, and the ci's are 3D (scenarios x skills x trackruns)
     (meanSkills,
      skills_ci_upper,
-     skills_ci_lower) = MultiScenarioAnalyze(args.multiSims, args.skillNames,
-                                             trackRuns, n_boot, ci_alpha,
-                                             tag_filters=args.filters,
-                                             path=args.directory)
+     skills_ci_lower) = ProcessAnalysis(analysis, n_boot, ci_alpha,
+                                        args.multiSims, args.skillNames)
+
     display = {disp:data for disp, data in
                zip(['fig', 'plot', 'ticks'],
                    [args.fig_disp, args.plot_disp, args.tick_disp])}
@@ -427,6 +403,11 @@ if __name__ == '__main__' :
                                             ' of multiple scenarios of'
                                             ' multiple storm-track simulations')
     AddCommandParser('MultiScenarioAnalysis', parser)
+    parser.add_argument("--signif", dest="signif_from", type=str,
+                        help="Calculate the significance of the skill scores"
+                             " for FROM from the skill scores of the rest of"
+                             " the track runs. Default: None",
+                        metavar="FROM", default=None)
     parser.add_argument("--mode", dest="dispMode",
                         help="Mode for x-axis (categorical (default),"
                              " ordinal, or bar). In categorical mode, error"
