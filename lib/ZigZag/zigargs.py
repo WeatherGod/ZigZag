@@ -140,7 +140,7 @@ _zigargs['MultiAnalysis'] = ["multiSim", "skillNames", "-t",
           nargs="+", help="Tick labels.  Default is to use the run names.",
           metavar="LABEL", default=None)),
     "-d",
-
+    "--bw",
     (("--compare",), 
      dict(dest="compareTo", type=str,
           help="Compare other trackers to TRACKER",
