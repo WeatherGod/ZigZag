@@ -25,8 +25,31 @@ def bootstrap(N, bootfunc, inputData, *func_args, **func_kwargs) :
     return bstat
 
 def bootci(N, bootfunc, inputData, alpha=0.5, *func_args, **func_kwargs) :
-    stat = np.asanyarray(bootfunc(inputData, *func_args, **func_kwargs))
+    """
+    .. seealso::
+        :func:`bca_ci`      Core of this function.
+    """
     bstat = bootstrap(N, bootfunc, inputData, *func_args, **func_kwargs)
+    return bca_ci(bstat, bootfunc, inputData, alpha, *func_args, **func_kwargs)
+
+def bca_ci(bstat, bootfunc, inputData, alpha=0.5, *func_args, **func_kwargs) :
+    """
+    Calculate the confidence interval using the bias-corrected accelerated
+    (BCa) algorithm by Efron.
+
+    *bstat*     The replicates data for *inputData* from :func:`bootstrap`.
+    *bootfunc*  The stat function to apply to the data.
+    *alpha*     Alpha level for confidence
+
+    Returns:
+        (vals1, vals2)
+
+        *vals1* Values of the data that corresponds to the *alpha* confidence
+                level.
+        *vals2* Values of the data that corresponds to the 1-*alpha*
+                confidence level.
+    """
+    stat = np.asanyarray(bootfunc(inputData, *func_args, **func_kwargs))
     z_0 = fz0(bstat, stat)
 
     jstat = jackknife(bootfunc, inputData, *func_args, **func_kwargs)

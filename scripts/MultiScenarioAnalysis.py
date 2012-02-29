@@ -35,7 +35,8 @@ def ProcessAnalysis(analysis, n_boot, ci_alpha, multiSims, skillNames) :
 def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
     booting = btstrp.bootstrap(n_boot, np.mean, analysisInfo, axis=0)
     btmean = booting.mean(axis=0)
-    btci = btstrp.bootci(n_boot, np.mean, analysisInfo, alpha=ci_alpha, axis=0)
+    btci = btstrp.bca_ci(booting, np.mean, analysisInfo, alpha=ci_alpha, axis=0)
+
     return btmean, btci
 
 
@@ -259,7 +260,7 @@ def main(args) :
     from ZigZag.ListRuns import ExpandTrackRuns, CommonTrackRuns, \
                                 MultiSims2Sims
 
-    n_boot = 1000
+    n_boot = 5000
     ci_alpha = 0.05
 
     #if len(args.multiSims) < 2 :
@@ -306,17 +307,33 @@ def main(args) :
                                     tag_filters=args.filters)
 
     if args.signif_from is not None :
-        from scipy.stats import skewtest, kurtosistest, ttest_1samp
+        from scipy.stats import percentileofscore
         analysis = analysis[:, :, :, -1].x[..., None] - analysis[:, :, :, :-1]
         trackRuns.pop()
 
+        for skillIndex, skillName in enumerate(args.skillNames) :
+            print "Skill: ", skillName
+            sk_index = analysis.labelindex(skillName, axis=1)
+            for sceneIndex, aScenario in enumerate(args.multiSims) :
+                print "  Scenario:", aScenario
+                sc_index = analysis.labelindex(aScenario, axis=0)
+
+                # Cheating a bit because we aren't using the same replicates
+                # that will be used later for reporting the estimated mean
+                # and their confidence intervals.
+                replicates = btstrp.bootstrap(n_boot, np.mean,
+                                       analysis[sc_index, sk_index, :, :].x,
+                                       axis=0)
+                print "  ", [percentileofscore(replicates[:, i], 0.0) for
+                             i in xrange(len(trackRuns))]
+                print "  ", np.sum(analysis[sc_index, sk_index, :, :].x <= 0.0,
+                                   axis=0)
+
         #means = analysis.mean(axis=2)
         #stddevs = analysis.std(axis=2)
-        #t = means / (stddevs / np.sqrt(analysis.shape[2]))
-        #print t
         #print skewtest(analysis.x, axis=2)
         #print kurtosistest(analysis.x, axis=2)
-        print ttest_1samp(analysis.x, 0.0, axis=2)
+        #print "P-values", ttest_1samp(analysis.x, 0.0, axis=2)[1]
 
     if analysis.label[-1] != trackRuns :
         print "WARNING! The track runs labels aren't matching!"
