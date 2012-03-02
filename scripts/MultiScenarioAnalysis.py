@@ -109,7 +109,7 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
     """
     Display the error bars for the skill scores.
 
-    *dispMode*  ['cat' | 'ordinal']
+    *dispMode*  ['cat' (default) | 'ordinal', 'bar']
         Categorical or ordinal mode for the x-axis
     """
     extra_kwargs = {}
@@ -349,12 +349,12 @@ def main(args) :
 
         plt.rcParams['axes.color_cycle'] = colors
 
-        # These are experimental features in matplotlib and may not
-        # exist in the user's installation.
-        if 'style.cycle' in plt.rcParams :
-            plt.rcParams['style.cycle'] = True
-        if 'cycle.hatch' in plt.rcParams :
-            plt.rcParams['cycle.hatch'] = True
+    # These are experimental features in matplotlib and may not
+    # exist in the user's installation.
+    if 'style.cycle' in plt.rcParams :
+        plt.rcParams['style.cycle'] = True
+    if 'cycle.hatch' in plt.rcParams :
+        plt.rcParams['cycle.hatch'] = True
 
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
