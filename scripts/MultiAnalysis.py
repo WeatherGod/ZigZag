@@ -15,6 +15,15 @@ def main(args) :
     n_boot = 1000
     ci_alpha = 0.05
 
+    if args.bw_mode :
+        colors = ['0.25', '0.75', '0.5', '0.0']
+        plt.rcParams['axes.color_cycle'] = colors
+
+    if 'style.cycle' in plt.rcParams :
+        # This is an experimental feature in matplotlib, and may not
+        # exist in the user's installation
+        plt.rcParams['style.cycle'] = True
+
     simNames = Sims_of_MultiSim(args.multiSim, args.directory)
     fullNames = [os.path.join(args.multiSim, aSim) for aSim in simNames]
     commonTrackRuns = CommonTrackRuns(fullNames, args.directory)

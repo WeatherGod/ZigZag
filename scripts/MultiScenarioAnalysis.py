@@ -40,8 +40,8 @@ def Bootstrapping(n_boot, ci_alpha, analysisInfo) :
     return btmean, btci
 
 
-_dispFmt = {'cat' : '.',
-            'ordinal' : '-'}
+_dispFmt = {'cat' : '.',}
+#            'ordinal' : '-'}
 
 _graphTypes = {'cat' : 'line',
                'ordinal' : 'line',
@@ -54,29 +54,36 @@ def DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,
     """
     Display the error bars for the skill scores.
 
-    *dispMode*  ['cat' | 'ordinal']
+    *dispMode*  ['cat' (default) | 'ordinal', 'bar']
         Categorical or ordinal mode for the x-axis
     """
-    # Some modes don't require a "format".
-    fmt = _dispFmt.get(dispMode, None)
+    extra_kwargs = {}
+
+    if dispMode in _dispFmt :
+        # Some modes don't require a "format".
+        extra_kwargs['fmt'] = _dispFmt[dispMode]
+
     # But all modes require a graph type
     graphType = _graphTypes[dispMode]
 
     leg_objs = []
-    spaceWidth = 1.0 / (len(plotLabels) + 1.0)
+    extra_kwargs['width'] = 1.0 / (len(plotLabels) + 1.0)
 
     for figIndex, (fig, title) in enumerate(zip(figs, figTitles)) :
         ax = figs[figIndex].gca()
 
         for plotIndex, label in enumerate(plotLabels) :
             startLoc = 0.5 if dispMode == 'ordinal' else \
-                       ((plotIndex + 1) * spaceWidth)
+                       ((plotIndex + 1) * extra_kwargs['width'])
 
             MakeErrorBars(meanSkills[:, figIndex, plotIndex],
                           (skills_ci_upper[:, figIndex, plotIndex],
                            skills_ci_lower[:, figIndex, plotIndex]),
                           ax, startLoc=startLoc, label=label,
-                          fmt=fmt, graphType=graphType, width=spaceWidth)
+                          graphType=graphType, **extra_kwargs)
+
+        if dispMode == 'bar' :
+            ax.set_ylim(ymin=skills_ci_lower[:, figIndex, :].min() * 0.95)
 
         ax.set_xticks(np.arange(len(tickLabels)) + 0.5)
         ax.set_xticklabels(tickLabels)
@@ -276,6 +283,24 @@ def main(args) :
         if args.tick_disp == 'group' :
             args.tick_disp = args.groupby[1]
 
+    if args.bw_mode :
+        colors = ['0.25', '0.75', '0.5']
+        if args.dispMode == 'bar' :
+            # Make the last one white
+            colors.append('1.0')
+        else :
+            # Make the last one black
+            colors.append('0.0')
+
+        plt.rcParams['axes.color_cycle'] = colors
+
+    # These are experimental features in matplotlib and may not
+    # exist in the user's installation.
+    if 'style.cycle' in plt.rcParams :
+        plt.rcParams['style.cycle'] = True
+    if 'cycle.hatch' in plt.rcParams :
+        plt.rcParams['cycle.hatch'] = True
+
     # Validate the command-line arguments for display options
     if (set(['skills', 'trackruns', 'scenarios']) !=
         set([args.fig_disp, args.plot_disp, args.tick_disp])) :
@@ -410,7 +435,6 @@ def main(args) :
 
     if args.doShow :
         plt.show()
-
 
 if __name__ == '__main__' :
     import argparse

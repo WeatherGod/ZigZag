@@ -27,6 +27,9 @@ def main(args) :
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
 
+    if args.bw_mode :
+        BW_mode()       # from TrackPlot module
+
     # FIXME: Currently, the code allows for trackFiles to be listed as well
     #        as providing a simulation (which trackfiles are automatically
     #        grabbed). Both situations can not be handled right now, though.

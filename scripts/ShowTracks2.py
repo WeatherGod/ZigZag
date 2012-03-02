@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ZigZag.TrackPlot import PlotPlainTracks
+from ZigZag.TrackPlot import PlotPlainTracks, BW_mode
 from ZigZag.TrackFileUtils import ReadTracks
 from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks, FilterTrack, \
                               CleanupTracks
@@ -89,6 +89,9 @@ def MakeTrackPlots(grid, trackData, titles, showMap,
 
 
 def main(args) :
+    if args.bw_mode :
+        BW_mode()
+
     if len(args.trackFiles) == 0 : print "WARNING: No trackFiles given!"
 
     if args.trackTitles is None :
