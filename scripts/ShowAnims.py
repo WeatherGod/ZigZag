@@ -13,6 +13,14 @@ from BRadar.radarsites import ByName
 from BRadar.plotutils import RadarAnim
 
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import AxesGrid
+
+#if 'animation.writer' in plt.rcParams :
+#    plt.rcParams['animation.writer'] = 'ffmpeg_file'
+#    plt.rcParams['animation.codec'] = 'mpeg4'
+#    plt.rcParams['animation.ffmpeg_args'] = ['-f', 'mp4']
+
 
 def CoordinateTransform(tracks, cent_lon, cent_lat) :
     for track in tracks :
@@ -23,8 +31,6 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
 def main(args) :
     import os.path			# for os.path.join()
     import glob				# for globbing
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import AxesGrid
 
     if args.bw_mode :
         BW_mode()       # from TrackPlot module
@@ -130,7 +136,7 @@ def main(args) :
     tail = args.tail
 
     if startFrame is None :
-        startFrame = frameLims[0]
+        startFrame = 0
 
     if endFrame is None :
         endFrame = frameLims[1]
@@ -142,11 +148,10 @@ def main(args) :
     theTimer = None
 
     if args.radarFile is not None and args.statLonLat is not None :
-        if endFrame - frameLims[0] >= len(args.radarFile) :
+        if endFrame >= len(args.radarFile) :
             # Not enough radar files, so truncate the tracks.
-            endFrame = (len(args.radarFile) + frameLims[0]) - 1
-        files = args.radarFile[startFrame - frameLims[0]:(endFrame + 1) -
-                                                         frameLims[0]]
+            endFrame = len(args.radarFile) - 1
+        files = args.radarFile[startFrame:(endFrame + 1)]
         radAnim = RadarAnim(theFig, files)
         theTimer = radAnim.event_source
         for ax in grid :
@@ -214,7 +219,9 @@ def main(args) :
         grid[0].set_ylim(args.ylims)
 
     if args.saveImgFile is not None :
-        animator.save(args.saveImgFile)
+        if radAnim is not None :
+            radAnim = [radAnim]
+        animator.save(args.saveImgFile, extra_anim=radAnim)
 
     if args.doShow :
         plt.show()

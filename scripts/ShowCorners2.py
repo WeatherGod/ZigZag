@@ -181,7 +181,9 @@ def main(args) :
         grid[0].set_ylim(args.ylims)
 
     if args.saveImgFile is not None :
-        theAnim.save(args.saveImgFile)
+        if radAnim is not None :
+            radAnim = [radAnim]
+        theAnim.save(args.saveImgFile, extra_anim=radAnim)
 
     if args.doShow :
         plt.show()
