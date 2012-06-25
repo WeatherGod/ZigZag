@@ -24,6 +24,8 @@ setup(
                'scripts/ShowTracks2.py', 'scripts/ShowCorners2.py', 'scripts/ShowCompare2.py',
 
                'scripts/TrackReports.py', 'scripts/TrackSim.py',
-               'scripts/ZigZag']
+               'scripts/ZigZag'],
+    install_requires = ['numpy', 'scipy', 'matplotlib', 'BRadar', 'la',
+                        'scikits.learn', 'configobj',],
     )
 
