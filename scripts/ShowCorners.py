@@ -31,7 +31,7 @@ def main(args) :
 
     if args.simName is not None :
         dirName = os.path.join(args.directory, args.simName)
-        simParams = ParamUtils.ReadSimulationParams(os.path.join(dirName,
+        simParams = ReadSimulationParams(os.path.join(dirName,
                                                     "simParams.conf"))
         inputDataFiles.append(os.path.join(dirName, simParams['inputDataFile']))
         titles.append(args.simName)
