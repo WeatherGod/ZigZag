@@ -125,6 +125,41 @@ def PlotCorners(volData, tLims, axis=None, fade=False, big=False, **kwargs) :
 #############################################
 #           Animation Code                  #
 #############################################
+def _new_polygon(verts, ax=None) :
+    from matplotlib.patches import Polygon
+    p = Polygon(verts, lw=2, fc='gray', hatch='/',
+                   ec='k', alpha=0.5,
+                   picker=None, visible=True)
+    if ax is not None:
+        ax.add_artist(p)
+    return p
+
+def _load_verts(pickfile, trks):
+    from cPickle import load
+    from ZigZag.TrackUtils import Tracks2Cells
+    with open(pickfile, 'rb') as pck:
+        polygons = load(pck)
+
+    cells = Tracks2Cells(trks)
+    maxframe = cells['frameNums'].max()
+    minframe = cells['frameNums'].min()
+
+    polyverts = []
+    for f in xrange(minframe, maxframe + 1):
+        cells_in_frame = cells[cells['frameNums'] == f]
+        polys = [polygons[cID] for cID in cells_in_frame['cornerIDs'] if
+                 cID in polygons]
+        polyverts.append(polys)
+
+    return polyverts
+
+def _to_polygons(polyverts, ax=None):
+    polygons = []
+    for frame in polyverts:
+        polygons.append([_new_polygon(verts, ax) for verts in frame])
+
+    return polygons
+
 class CornerAnimation(FuncAnimation) :
     def __init__(self, figure, frameCnt, tail=0, fade=False, **kwargs) :
         """

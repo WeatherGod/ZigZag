@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ZigZag.TrackPlot import PlotCorners, CornerAnimation
+from ZigZag.TrackPlot import _load_verts, _to_polygons
 from ZigZag.TrackFileUtils import ReadCorners
 from ZigZag.TrackUtils import DomainFromVolumes, FilterTrack
 from ZigZag.ParamUtils import ReadSimTagFile, process_tag_filters
@@ -21,6 +22,12 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
         cents['xLocs'], cents['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
                                                      cents['xLocs'],
                                                      cents['yLocs'])
+
+def CoordinateTrans_lists(frames, cent_lon, cent_lat) :
+    for f in frames :
+        for track in f:
+            track[:, 0], track[:, 1] = Cart2LonLat(cent_lon, cent_lat,
+                                                   track[:, 0], track[:, 1])
 
 def MakeCornerPlots(fig, grid, cornerVolumes, titles,
                     showMap=False, showRadar=False,
@@ -109,6 +116,7 @@ def MakeCornerPlots(fig, grid, cornerVolumes, titles,
 
     return theAnim, radAnim
 
+
 def main(args) :
     import os.path
 
@@ -136,9 +144,14 @@ def main(args) :
     if args.simTagFiles is None :
         args.simTagFiles = []
 
+    polyfiles = args.polys
+
     cornerVolumes = [ReadCorners(inFileName,
                                  os.path.dirname(inFileName))['volume_data']
                      for inFileName in args.inputDataFiles]
+
+    polyData = [_load_verts(f, list(vol['stormCells'] for vol in vols)) for
+                f, vols in zip(polyfiles, cornerVolumes)]
 
     multiTags = [ReadSimTagFile(fname) for fname in args.simTagFiles]
 
@@ -156,6 +169,10 @@ def main(args) :
                 CoordinateTransform(vol['stormCells'],
                                     args.statLonLat[0],
                                     args.statLonLat[1])
+        for verts in polyData:
+            CoordinateTransform(verts,
+                                args.statLonLat[0],
+                                args.statLonLat[1])
 
     showMap = (args.statLonLat is not None and args.displayMap)
     showRadar = (args.statLonLat is not None and args.radarFile is not None)
@@ -174,6 +191,14 @@ def main(args) :
                                        multiTags=multiTags,
                                        tag_filters=args.filters)
 
+    polyAnims = []
+    for ax, verts in zip(grid, polyData):
+        from matplotlib.animation import ArtistAnimation
+        polyAnim = ArtistAnimation(theFig,
+                        _to_polygons(polys[startFrame:endFrame + 1], ax),
+                        event_source=theTimer)
+        polyAnims.append(polyAnim)
+
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)
 
@@ -183,7 +208,7 @@ def main(args) :
     if args.saveImgFile is not None :
         if radAnim is not None :
             radAnim = [radAnim]
-        theAnim.save(args.saveImgFile, extra_anim=radAnim)
+        theAnim.save(args.saveImgFile, extra_anim=radAnim + polyAnims)
 
     if args.doShow :
         plt.show()

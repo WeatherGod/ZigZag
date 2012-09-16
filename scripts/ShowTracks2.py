@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ZigZag.TrackPlot import PlotPlainTracks, BW_mode
+from ZigZag.TrackPlot import _load_verts, _to_polygons
 from ZigZag.TrackFileUtils import ReadTracks
 from ZigZag.TrackUtils import FilterMHTTracks, DomainFromTracks, FilterTrack, \
                               CleanupTracks
@@ -22,6 +23,13 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
         track['xLocs'], track['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
                                                      track['xLocs'],
                                                      track['yLocs'])
+
+def CoordinateTrans_lists(frames, cent_lon, cent_lat) :
+    for f in frames :
+        for track in f:
+            track[:, 0], track[:, 1] = Cart2LonLat(cent_lon, cent_lat,
+                                                   track[:, 0], track[:, 1])
+
 
 
 def MakeTrackPlots(grid, trackData, titles, showMap,
@@ -113,12 +121,19 @@ def main(args) :
 
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for
                    trackFile in args.trackFiles]
+    polyData = [_load_verts(f, tracks + falarms) for f, (tracks, falarms) in
+                zip(polyfiles, trackerData)]
+
 
     if args.statLonLat is not None :
         for aTracker in trackerData :
             CoordinateTransform(aTracker[0] + aTracker[1],
                                 args.statLonLat[0],
                                 args.statLonLat[1])
+
+        for polys in polyData:
+            CoordinateTrans_lists(polys, args.statLonLat[0],
+                                         args.statLonLat[1])
 
     if args.simTagFiles is None :
         args.simTagFiles = [None]
@@ -154,6 +169,9 @@ def main(args) :
     MakeTrackPlots(grid, trackerData, args.trackTitles, showMap,
                    endFrame=args.endFrame, tail=args.tail, fade=args.fade,
                    multiTags=multiTags, tag_filters=args.filters)
+
+    for ax, verts in zip(grid, polyData):
+        _to_polygons(verts[args.endFrame:args.endFrame+1], ax)
 
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)

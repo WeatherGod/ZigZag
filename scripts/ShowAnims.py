@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ZigZag.TrackPlot import *			# for plotting tracks
+from ZigZag.TrackPlot import _load_verts, _to_polygons
 from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks(), FilterSegments()
 import ZigZag.ParamUtils as ParamUtils           # for ReadSimulationParams()
@@ -28,6 +29,13 @@ def CoordinateTransform(tracks, cent_lon, cent_lat) :
                                                      track['xLocs'],
                                                      track['yLocs'])
 
+def CoordinateTrans_lists(frames, cent_lon, cent_lat) :
+    for f in frames :
+        for track in f:
+            track[:, 0], track[:, 1] = Cart2LonLat(cent_lon, cent_lat,
+                                                   track[:, 0], track[:, 1])
+
+
 def main(args) :
     import os.path			# for os.path.join()
     import glob				# for globbing
@@ -40,6 +48,7 @@ def main(args) :
     #        grabbed). Both situations can not be handled right now, though.
     trackFiles = []
     trackTitles = []
+    polyfiles = args.polys
 
     if args.statName is not None and args.statLonLat is None :
         statData = ByName(args.statName)[0]
@@ -82,10 +91,13 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
-
+    if len(trackFiles) < len(polyfiles):
+        raise ValueError("Can not have more polygon files than trackfiles!")
 
     trackerData = [FilterMHTTracks(*ReadTracks(trackFile)) for
                    trackFile in trackFiles]
+    polyData = [_load_verts(f, tracks + falarms) for f, (tracks, falarms) in
+                zip(polyfiles, trackerData)]
 
     keeperIDs = None
 
@@ -98,7 +110,9 @@ def main(args) :
             CoordinateTransform(aTracker[0] + aTracker[1],
                                 args.statLonLat[0],
                                 args.statLonLat[1])
-
+        for polys in polyData:
+            CoordinateTrans_lists(polys,
+                                  args.statLonLat[0], args.statLonLat[1])
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,# aspect=False,
@@ -171,7 +185,7 @@ def main(args) :
     animator = SegAnimator(theFig, startFrame, endFrame, tail,
                            event_source=theTimer, fade=args.fade)
 
-    for index, (tracks, falarms) in enumerate(trackerData) :
+    for index, (tracks, falarms) in enumerate(trackerData):
         curAxis = grid[index]
 
         if showMap :
@@ -212,6 +226,14 @@ def main(args) :
             curAxis.set_xlabel("Longitude (degrees)")
             curAxis.set_ylabel("Latitude (degrees)")
 
+    polyAnims = []
+    for ax, verts in zip(grid, polyData):
+        from matplotlib.animation import ArtistAnimation
+        polyAnim = ArtistAnimation(theFig,
+                        _to_polygons(polys[startFrame:endFrame + 1], ax),
+                        event_source=theTimer)
+        polyAnims.append(polyAnim)
+
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)
 
@@ -221,7 +243,7 @@ def main(args) :
     if args.saveImgFile is not None :
         if radAnim is not None :
             radAnim = [radAnim]
-        animator.save(args.saveImgFile, extra_anim=radAnim)
+        animator.save(args.saveImgFile, extra_anim=radAnim + polyAnims)
 
     if args.doShow :
         plt.show()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ZigZag.TrackPlot import *			# for plotting tracks
+from ZigZag.TrackPlot import _load_verts, _to_polygons
 from ZigZag.TrackFileUtils import *		# for reading track files
 from ZigZag.TrackUtils import *		# for CreateSegments(), FilterMHTTracks(), DomainFromTracks(), FilterTrack()
 from ZigZag.ParamUtils import ReadSimulationParams, ReadSimTagFile,\
@@ -19,6 +20,14 @@ def CoordinateTransform(centroids, cent_lon, cent_lat) :
         cents['xLocs'], cents['yLocs'] = Cart2LonLat(cent_lon, cent_lat,
                                                      cents['xLocs'],
                                                      cents['yLocs'])
+
+def CoordinateTrans_lists(frames, cent_lon, cent_lat) :
+    for f in frames :
+        for track in f:
+            track[:, 0], track[:, 1] = Cart2LonLat(cent_lon, cent_lat,
+                                                   track[:, 0], track[:, 1])
+
+
 
 def main(args) :
     import os.path			# for os.path
@@ -64,9 +73,14 @@ def main(args) :
     if args.figsize is None :
         args.figsize = plt.figaspect(float(args.layout[0]) / args.layout[1])
 
+    polyfiles = args.polys
+
     cornerVolumes = [ReadCorners(inFileName,
                                  os.path.dirname(inFileName))['volume_data']
                      for inFileName in inputDataFiles]
+
+    polyData = [_load_verts(f, list(vol['stormCells'] for vol in vols)) for
+                f, vols in zip(polyfiles, cornerVolumes)]
 
     multiTags = [(ReadSimTagFile(fname) if fname is not None else None) for
                  fname in simTagFiles]
@@ -86,6 +100,10 @@ def main(args) :
                 CoordinateTransform(vol['stormCells'],
                                     args.statLonLat[0],
                                     args.statLonLat[1])
+        for verts in polyData:
+            CoordinateTransform(verts,
+                                args.statLonLat[0],
+                                args.statLonLat[1])
 
     theFig = plt.figure(figsize=args.figsize)
     grid = AxesGrid(theFig, 111, nrows_ncols=args.layout,
@@ -185,6 +203,14 @@ def main(args) :
 
         theAnim.AddCornerVolume(corners)
 
+    polyAnims = []
+    for ax, verts in zip(grid, polyData):
+        from matplotlib.animation import ArtistAnimation
+        polyAnim = ArtistAnimation(theFig,
+                        _to_polygons(polys[startFrame:endFrame + 1], ax),
+                        event_source=theTimer)
+        polyAnims.append(polyAnim)
+
     if args.xlims is not None and np.prod(grid.get_geometry()) > 0 :
         grid[0].set_xlim(args.xlims)
 
@@ -194,11 +220,10 @@ def main(args) :
     if args.saveImgFile is not None :
         if radAnim is not None :
             radAnim = [radAnim]
-        theAnim.save(args.saveImgFile, extra_anim=radAnim)
+        theAnim.save(args.saveImgFile, extra_anim=radAnim + polyAnims)
 
     if args.doShow :
         plt.show()
-
 
 
 if __name__ == '__main__' :
