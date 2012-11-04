@@ -1,4 +1,4 @@
-
+from __future__ import print_function
 import fnmatch
 import ZigZag.ParamUtils as ParamUtils
 import os.path
@@ -106,7 +106,7 @@ def RenameRun(simName, simParams, trackerConfs, oldRun, newRun, dirName='.') :
         raise ValueError("Can not convert the trackrun name to an empty string after stripping")
 
     if newRun == oldRun :
-        print "WARNING: New run name is the same as the old. No changes will be made"
+        print("WARNING: New run name is the same as the old. No changes will be made")
         return
 
     simDir = os.path.join(dirName, simName)

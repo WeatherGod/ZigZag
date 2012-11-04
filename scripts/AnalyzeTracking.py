@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import numpy as np
 import ZigZag.ParamUtils as ParamUtils
 import os.path
@@ -23,7 +23,7 @@ def main(args) :
     analysis = analysis.insertaxis(axis=1, label=args.simName)
     for skill in args.skillNames :
         DisplaySkillScores(analysis.lix[[skill]], skill)
-        print '\n\n'
+        print('\n\n')
    
 
 if __name__ == '__main__' :

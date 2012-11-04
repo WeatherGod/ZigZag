@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 from MultiScenarioAnalysis import DisplayAnalysis, \
                                   Bootstrapping
 from ZigZag.AnalyzeTracking import MultiAnalyze
@@ -40,7 +40,7 @@ def main(args) :
         DisplayAnalysis(completeAnalysis.lix[[skillname]], skillname,
                         args.doFindBest, args.doFindWorst,
                         compareTo=args.compareTo)
-        print "\n\n"
+        print("\n\n")
 
         btmean, btci = Bootstrapping(n_boot, ci_alpha, completeAnalysis.lix[[skillname]].x)
 

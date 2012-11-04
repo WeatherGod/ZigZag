@@ -1,5 +1,6 @@
+from __future__ import print_function
 import numpy as np
-import TrackUtils
+import ZigZag.TrackUtils
 import os.path
 
 # A dictionary mapping a field name to the column in a corner file
@@ -203,6 +204,6 @@ def ReadCorners(inputDataFile, path='.') :
                                                     TrackUtils.corner_dtype]),
                                                dict(dtype=TrackUtils.corner_dtype))}
                    for volTime, frameNum in zip(volTimes, frames)]
-
+#    print("volume_data:", len(volume_data), " voltimes:", len(volTimes), " frames:", len(frames))
     return {'corner_filestem': corner_filestem, 'frameCnt': frameCnt, 'volume_data': volume_data}
 

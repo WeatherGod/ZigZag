@@ -1,3 +1,4 @@
+from __future__ import print_function
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
@@ -108,8 +109,8 @@ class ASCIT(object) :
                 strms_start[t1_index] = None
             else :
                 if cost[t0_index, t1_index] > self._highCost :
-                    print "SHOULD HAVE BEEN REJECTED!", \
-                          cost[t0_index, t1_index] - self._highCost
+                    print("SHOULD HAVE BEEN REJECTED!", \
+                          cost[t0_index, t1_index] - self._highCost)
                 strms_keep[t1_index] = self.prevStorms[t0_index]
 
         # Determine which other current storms were not associated
@@ -357,10 +358,9 @@ if __name__ == '__main__' :
                             dirPath)['volume_data']
 
     true_tracks, true_falarms = FilterMHTTracks(*ReadTracks(os.path.join(
-                                                    dirPath, "noise_tracks")))
+                                   dirPath, "noise_tracks")))
 
     frameLims = (0, len(cornerVol))
-    print frameLims[1]
 
     t = ASCIT(distThresh=5)
 

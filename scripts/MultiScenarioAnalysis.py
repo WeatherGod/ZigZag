@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 from ZigZag.AnalyzeTracking import DisplayAnalysis, MultiScenarioAnalyze
 from ZigZag.AnalysisPlot import MakeErrorBars
 import ZigZag.ParamUtils as ParamUtils
@@ -106,15 +106,15 @@ def DisplayTableAnalysis(figTitles, plotLabels, tickLabels,
             repr=True)
 
     for figIndex, title in enumerate(figTitles) :
-        print "%50s" % title
+        print("%50s" % title)
 
-        print " " * 10,
-        print " ".join(["%9s"] * len(tickLabels)) % tuple(tickLabels)
-        print "-" * (11 + 10 * len(tickLabels))
+        print(" " * 10,)
+        print(" ".join(["%9s"] * len(tickLabels)) % tuple(tickLabels))
+        print("-" * (11 + 10 * len(tickLabels)))
 
         for plotIndex, label in enumerate(plotLabels) :
-            print ("%10s|" % label),
-            print repr(meanSkills[:, figIndex, plotIndex])
+            print("%10s|" % label,)
+            print(repr(meanSkills[:, figIndex, plotIndex]))
 
 
     # Restore the formatting state to the default
@@ -337,10 +337,10 @@ def main(args) :
         trackRuns.pop()
 
         for skillIndex, skillName in enumerate(args.skillNames) :
-            print "Skill: ", skillName
+            print("Skill: ", skillName)
             sk_index = analysis.labelindex(skillName, axis=1)
             for sceneIndex, aScenario in enumerate(args.multiSims) :
-                print "  Scenario:", aScenario
+                print("  Scenario:", aScenario)
                 sc_index = analysis.labelindex(aScenario, axis=0)
 
                 # Cheating a bit because we aren't using the same replicates
@@ -349,19 +349,19 @@ def main(args) :
                 replicates = btstrp.bootstrap(n_boot, np.mean,
                                        analysis[sc_index, sk_index, :, :].x,
                                        axis=0)
-                print "  ", [percentileofscore(replicates[:, i], 0.0) for
-                             i in xrange(len(trackRuns))]
-                print "  ", np.sum(analysis[sc_index, sk_index, :, :].x <= 0.0,
-                                   axis=0)
+                print("  ", [percentileofscore(replicates[:, i], 0.0) for
+                             i in xrange(len(trackRuns))])
+                print("  ", np.sum(analysis[sc_index, sk_index, :, :].x <= 0.0,
+                                   axis=0))
 
         #means = analysis.mean(axis=2)
         #stddevs = analysis.std(axis=2)
-        #print skewtest(analysis.x, axis=2)
-        #print kurtosistest(analysis.x, axis=2)
-        #print "P-values", ttest_1samp(analysis.x, 0.0, axis=2)[1]
+        #print(skewtest(analysis.x, axis=2))
+        #print(kurtosistest(analysis.x, axis=2))
+        #print("P-values", ttest_1samp(analysis.x, 0.0, axis=2)[1])
 
     if analysis.label[-1] != trackRuns :
-        print "WARNING! The track runs labels aren't matching!"
+        print("WARNING! The track runs labels aren't matching!")
 
     # meanSkills, and the ci's are 3D (scenarios x skills x trackruns)
     (meanSkills,
@@ -393,9 +393,9 @@ def main(args) :
                                                           skills_ci_upper,
                                                           skills_ci_lower)
 
-    #print meanSkills.shape
-    #print len(defaultLabels['scenarios']), len(defaultLabels['skills']),\
-    #      len(defaultLabels['trackruns'])
+    #print(meanSkills.shape)
+    #print(len(defaultLabels['scenarios']), len(defaultLabels['skills']),\
+    #      len(defaultLabels['trackruns']))
 
     (meanSkills,
      skills_ci_upper,
@@ -403,7 +403,7 @@ def main(args) :
                                            skills_ci_upper,
                                            skills_ci_lower)
 
-    #print meanSkills.shape
+    #print(meanSkills.shape)
 
     tickLabels = args.ticklabels if args.ticklabels is not None else \
                  defaultLabels[display['ticks']]
@@ -412,7 +412,7 @@ def main(args) :
     plotLabels = args.plotlabels if args.plotlabels is not None else \
                  defaultLabels[display['plot']]
 
-    #print len(tickLabels), len(figTitles), len(plotLabels)
+    #print(len(tickLabels), len(figTitles), len(plotLabels))
 
     figs = [plt.figure(figsize=args.figsize) for title in figTitles]
     legs = DisplayMultiSceneAnalysis(figTitles, plotLabels, tickLabels,

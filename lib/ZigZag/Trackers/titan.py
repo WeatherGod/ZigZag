@@ -1,11 +1,9 @@
+from __future__ import print_function
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
 import numpy as np
 import numpy.lib.recfunctions as nprf   # for append_fields()
 
-try :
-    from scikits.learn.utils.hungarian import _Hungarian
-except ImportError :
-    from sklearn.utils.hungarian import _Hungarian
+from ZigZag.Trackers.hungarian import _Hungarian
 
 from collections import defaultdict
 
@@ -141,8 +139,8 @@ class TITAN(object) :
                 strms_start[t1_index] = None
             else :
                 if cost[t0_index, t1_index] > self._highCost :
-                    print "SHOULD HAVE BEEN REJECTED!", \
-                          cost[t0_index, t1_index] - self._highCost
+                    print("SHOULD HAVE BEEN REJECTED!", \
+                          cost[t0_index, t1_index] - self._highCost)
                 strms_keep[t1_index] = self.prevStorms[t0_index]
 
         # Determine which other current storms were not associated
@@ -226,7 +224,7 @@ class TITAN(object) :
                 # This should only happen if *strms_from* was in *strms_end*
                 strms_keep[m_to] = trckID
             elif (trckID is not None) and strms_keep[m_to] !=  trckID :
-                print "WARNING! Odd merging happened!"
+                print("WARNING! Odd merging happened!")
 
 
     def _handle_splits(self, strms_end, strms_keep, strms_start,
@@ -297,7 +295,7 @@ class TITAN(object) :
                 # This should only happen if *s_from* was in *strms_end*
                 strms_keep[strm_to] = trckID
             elif (trckID is not None) and strms_keep[strm_to] !=  trckID :
-                print "WARNING! Odd splitting happened!"
+                print("WARNING! Odd splitting happened!")
 
 
     def _update_tracks(self, currStrms, currFrame,
@@ -725,7 +723,7 @@ if __name__ == '__main__' :
                                                     dirPath, "noise_tracks")))
 
     frameLims = (0, len(cornerVol))
-    print frameLims[1]
+    print(frameLims[1])
 
     t = TITAN(distThresh=5)
 

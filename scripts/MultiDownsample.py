@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 from ZigZag.DownsampleUtils import DownsampleTracks
 from ZigZag.TrackFileUtils import *
 from ZigZag.TrackUtils import *
@@ -24,9 +24,9 @@ def _prepare_and_down(simName, skipCnt, multiSim, multiDir, newDir) :
                          origTrackData, noisyTrackData, volData,
                          path=newDir)
 
-        print "Sim:", simName
+        print("Sim:", simName)
     except Exception as err :
-        print err
+        print(err)
         raise err
 
 

@@ -142,7 +142,7 @@ def _load_verts(pickfile, trks):
 
     cells = Tracks2Cells(trks)
     maxframe = cells['frameNums'].max()
-    minframe = cells['frameNums'].min()
+    minframe = min(cells['frameNums'].min(), 0)
 
     polyverts = []
     for f in xrange(minframe, maxframe + 1):

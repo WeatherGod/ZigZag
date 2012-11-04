@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path
 from ZigZag.TrackUtils import FilterMHTTracks, CreateSegments, MakeContingency,\
                               FilterSegments
@@ -36,12 +37,12 @@ def DisplaySkillScores(skillScores, skillScoreName) :
 
     # Print the last eleven characters of each trackrun name for
     # the column labels.
-    print '  '.join(["%11.11s" % tracker[-11:] for
-                     tracker in skillScores.label[-1]])
+    print('  '.join(["%11.11s" % tracker[-11:] for
+                     tracker in skillScores.label[-1]]))
 
-    print repr(skillScores.x)
+    print(repr(skillScores.x))
 
-    print "-" * (11*skillScores.shape[1] + 2*(skillScores.shape[1] - 1))
+    print("-" * (11*skillScores.shape[1] + 2*(skillScores.shape[1] - 1)))
 
     # Resetting back to how it was
     np.set_string_function(None, repr=True)
@@ -67,15 +68,15 @@ def DisplayAnalysis(analysis, skillName,
         # Sort score differences for each tracker 
         indices = np.argsort(scoreDiffs, axis=0)
 
-        print "\n Against: ", '  '.join(["%7s" % tracker for
-                                         tracker in theOthers.label[1]])
+        print("\n Against: ", '  '.join(["%7s" % tracker for
+                                         tracker in theOthers.label[1]]))
         if doFindBest :
-            print "Best Run: ", '  '.join(["%7d" % index for
-                                           index in indices[-1]])
+            print("Best Run: ", '  '.join(["%7d" % index for
+                                           index in indices[-1]]))
 
         if doFindWorst :
-            print "Worst Run:", '  '.join(["%7d" % index for
-                                           index in indices[0]])
+            print("Worst Run:", '  '.join(["%7d" % index for
+                                           index in indices[0]]))
 
 
 
@@ -117,10 +118,10 @@ def AnalyzeTrackings(simName, simParams, skillNames, trackRuns, path='.',
         trk_segs = FilterSegments(keeperIDs, trk_segs)
         truthTable = MakeContingency(true_AssocSegs + true_FAlarmSegs, trk_segs)
 
-        #print "Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
+        #print("Margin Sums: %d" % (len(truthTable['assocs_Correct']) +
         #                           len(truthTable['assocs_Wrong']) +
         #                           len(truthTable['falarms_Wrong']) +
-        #                           len(truthTable['falarms_Correct']))
+        #                           len(truthTable['falarms_Correct'])))
 
         for skillIndex, skill in enumerate(skillNames) :
             analysis[skillIndex,
@@ -142,7 +143,7 @@ def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir,
     try :
         dirName = os.path.join(multiDir, simName)
         paramFile = os.path.join(dirName, "simParams.conf")
-        print "Sim:", simName
+        print("Sim:", simName)
         simParams = ParamUtils.ReadSimulationParams(paramFile)
         tagFile = os.path.join(dirName, simParams['simTagFile'])
 
@@ -156,7 +157,7 @@ def _analyze_trackings(simName, multiSim, skillNames, trackRuns, multiDir,
                                     tag_filters=tag_filters)
         analysis = analysis.insertaxis(axis=1, label=simName)
     except Exception as err :
-        print err
+        print(err)
         raise err
 
     # (Skills x Sims x TrackRuns)

@@ -1,6 +1,11 @@
 import os
 from setuptools import setup
 
+try:
+    from setuptools.command.build_py import build_py_2to3 as build_py
+except ImportError:
+    from setuptools.command.build_py import build_py
+
 setup(
     name = "ZigZag",
     version = "0.8.0",
@@ -26,6 +31,7 @@ setup(
                'scripts/TrackReports.py', 'scripts/TrackSim.py',
                'scripts/ZigZag'],
     install_requires = ['numpy', 'scipy', 'matplotlib', 'BRadar', 'la',
-                        'scikits.learn', 'configobj',],
+                        'configobj',],
+    cmdclass = {'build_py': build_py},
     )
 

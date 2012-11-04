@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 motion_modelList = {}
@@ -40,7 +41,7 @@ class ConstVel_Model(MotionModel) :
             The name *velModify* is kept for backwards compatibility.
         """
         MotionModel.__init__(self)
-#        print type(deltaFrame), type(velModify)
+#        print(type(deltaFrame), type(velModify))
         self.deltaFrame = deltaFrame
         self.accelTerm = velModify
 

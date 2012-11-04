@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import numpy.lib.recfunctions as nprf       # for append_fields()
 from ZigZag.TrackUtils import volume_dtype, tracking_dtype, identifier_dtype
@@ -115,7 +116,7 @@ def Correl_Storms(strmAdap, currStorms,
                      'dist': distThresh}
 
         #if len(infoTracks) != len(strmTracks) :
-        #    print "WARNING in Correl_Storms()"
+        #    print("WARNING in Correl_Storms()")
 
         for trackID, (infoTrack, track) in enumerate(zip(infoTracks,
                                                          strmTracks)) :
@@ -124,9 +125,9 @@ def Correl_Storms(strmAdap, currStorms,
                 """
                 ### --- Outdated consistency check --- ###
                 if track['frameNums'][-1] != (volTime - 1) :
-                    print "WARNING! Expected frame num: ", volTime - 1
-                    print "New Cell:", newCell
-                    print "Old Cell:", track[-1]
+                    print("WARNING! Expected frame num: ", volTime - 1)
+                    print("New Cell:", newCell)
+                    print("Old Cell:", track[-1])
                     continue
                 """
 
@@ -265,7 +266,7 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks,
             ytVar = np.sum((aTrack['yLocs'] - yAvg) * tDev)
             ttVar = np.sum(tDev**2)
 
-#            print "tot    tAvg:", tAvg, "   frames:", aTrack['frameNums'][-10:], "   ttVar: ", ttVar
+#            print("tot    tAvg:", tAvg, "   frames:", aTrack['frameNums'][-10:], "   ttVar: ", ttVar)
             tot_x_spd += (xtVar / ttVar)
             tot_y_spd += (ytVar / ttVar)
             trackCnt += 1
@@ -283,12 +284,12 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks,
         systemAvg = {'speed_x': speed * np.sin(direction),
                      'speed_y': speed * np.cos(direction)}
 
-    #print "AVG SPEED: %8.5f  AVG DIRECTION: %6.2f" %\
+    #print("AVG SPEED: %8.5f  AVG DIRECTION: %6.2f" %
     #                 (np.hypot(systemAvg['speed_x'],
     #                           systemAvg['speed_y']) * (60.0 / 1.852),
     #                  (np.degrees(np.arctan2(systemAvg['speed_x'],
     #                                         systemAvg['speed_y'])) +
-    #                   180.0) % 360.0)
+    #                   180.0) % 360.0))
 
     # Now initialize any unestablished tracks with the system average
     for index in trackIDs :
@@ -298,7 +299,7 @@ def Compute_Speed(strmAdap, currStorms, strmTracks, infoTracks,
             theTrackInfo['speed_y'].append(systemAvg['speed_y'])
 
         #if len(theTrackInfo['speed_x']) != len(strmTracks[index]) :
-        #    print "WARNING! Track len doesn't match trackinfo len!", index
+        #    print("WARNING! Track len doesn't match trackinfo len!", index)
 
 if __name__ == '__main__' :
     import os.path
@@ -327,7 +328,6 @@ if __name__ == '__main__' :
     stateHist = []
     strmTracks = []
     infoTracks = []
-    print frameLims[1]
 
     deltaT = cornerVol[1]['volTime'] - cornerVol[0]['volTime']
     frameOffset = cornerVol[0]['frameNum']
