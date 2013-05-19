@@ -1,6 +1,6 @@
 from __future__ import print_function
 import numpy as np
-import ZigZag.TrackUtils
+from ZigZag import TrackUtils
 import os.path
 
 # A dictionary mapping a field name to the column in a corner file
@@ -122,15 +122,21 @@ def SaveCorners(inputDataFile, corner_filestem, volume_data, path='.') :
     The control file contains the filestem of the data files, the number of
     data files, and the number of storm cells in each data file.
     """
-    startFrame = volume_data[0]['frameNum']
+    if len(volume_data) > 0:
+        startFrame = volume_data[0]['frameNum']
 
-    # NOTE: Forces the times to be uniformly spaced...
-    timeDelta = np.mean(np.diff([aVol['volTime'] for aVol in volume_data]))
+        # NOTE: Forces the times to be uniformly spaced...
+        timeDelta = np.mean(np.diff([aVol['volTime'] for aVol in volume_data]))
+    else:
+        startFrame = 0
+        timeDelta = 0
 
     dataFile = open(inputDataFile, 'w')
-    dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data), startFrame, timeDelta))
+    dataFile.write("%s %d %d %f\n" % (corner_filestem, len(volume_data),
+                                      startFrame, timeDelta))
 
-    # FIXME: Make this more robust and future-proof with respect to texture data.
+    # FIXME: Make this more robust and future-proof with respect
+    # to texture data.
     for volIndex, aVol in enumerate(volume_data) :
         outFile = open("%s.%d" % (os.path.join(path, corner_filestem), startFrame + volIndex), 'w')
         for strmCell in aVol['stormCells'] :
