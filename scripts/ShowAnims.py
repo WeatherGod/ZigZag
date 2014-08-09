@@ -243,6 +243,8 @@ def main(args) :
     if args.saveImgFile is not None :
         if radAnim is not None :
             radAnim = [radAnim]
+        else:
+            radAnim = []
         animator.save(args.saveImgFile, extra_anim=radAnim + polyAnims)
 
     if args.doShow :
