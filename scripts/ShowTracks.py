@@ -32,7 +32,6 @@ def CoordinateTrans_lists(frames, cent_lon, cent_lat) :
 
 def main(args) :
     import os.path
-    import glob				# for globbing
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import AxesGrid
 
